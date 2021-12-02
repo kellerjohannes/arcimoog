@@ -1,0 +1,33 @@
+desc: Arcimother rudimentary implementation
+
+slider1:0<-1,1,.01>CV 1
+slider2:0<-1,1,.01>CV 2
+slider3:0<-1,1,.01>CV 3
+slider4:0<-1,1,.01>CV 4
+slider5:0<-1,1,.01>CV 5
+slider6:0<-1,1,.01>CV 6
+
+out_pin:cv 1
+out_pin:cv 2
+out_pin:cv 3
+out_pin:cv 4
+out_pin:cv 5
+out_pin:cv 6
+
+
+@slider
+  val1 = slider1;
+  val2 = slider2;
+  val3 = slider3;
+  val4 = slider4;
+  val5 = slider5;
+  val6 = slider6;
+
+@sample
+
+  spl0 = val1;
+  spl1 = val2;
+  spl2 = val3;
+  spl3 = val4;
+  spl4 = val5;
+  spl5 = val6;

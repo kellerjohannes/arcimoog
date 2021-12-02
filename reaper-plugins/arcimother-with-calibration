@@ -1,0 +1,76 @@
+desc: Arcimother with Calibration
+
+slider1:0<0,1,1{absolute,relative}>Interval Calculation
+slider2:0<0,5,1{1/1,2/1,1/2,3/2,2/3,4/3,3/4,5/4,4/5,6/5,5/6,9/8,8/9,10/9,9/10,16/15,15/16,25/24,24/25,128/125,125/128,81/80,80/81}>Interval
+slider3:1<0,1,0.001>Stretch
+slider4:0<-1,1,0.01>Shift
+
+slider50:0<-1,1,.01>CV 1, VCO
+slider51:0<-1,1,.01>CV 2, Gate
+slider52:0<-1,1,.01>CV 3, VCF Cutoff
+slider53:0<-1,1,.01>CV 4, VCF Resonance
+slider54:0<-1,1,.01>CV 5, VCA
+slider55:0<-1,1,.01>CV 6
+
+out_pin:cv 1, VCO
+out_pin:cv 2, Gate
+out_pin:cv 3, Cutoff
+out_pin:cv 4, Resonance
+out_pin:cv 5, VCA
+out_pin:cv 6
+
+@init
+
+currentinterval = 1;
+
+ratios[0] = 1/1;
+ratios[1] = 2/1;
+ratios[2] = 1/2;
+ratios[3] = 3/2;
+ratios[4] = 2/3;
+ratios[5] = 4/3;
+ratios[6] = 3/4;
+ratios[7] = 5/4;
+ratios[8] = 4/5;
+ratios[9] = 6/5;
+ratios[10] = 5/6;
+ratios[11] = 9/8;
+ratios[12] = 8/9;
+ratios[13] = 10/9;
+ratios[14] = 9/10;
+ratios[15] = 16/15;
+ratios[16] = 15/16;
+ratios[17] = 25/24;
+ratios[18] = 24/25;
+ratios[19] = 128/125;
+ratios[20] = 125/128;
+ratios[21] = 81/80;
+ratios[22] = 80/81;
+
+@slider
+  slider1 < 0.8 ? (
+  	      currentinterval = slider2;
+              currentvco = (log(ratios[slider2])/log(2) * slider3) + slider4;
+            )
+          : (
+               currentinterval *= ratios[slider2];
+      	       currentvco = (log(currentinterval)/log(2) * slider3) + slider4;
+            );
+			 
+  slider50=currentvco;
+		        
+  vco = slider50;
+  gate = slider51;
+  vcf = slider52;
+  res = slider53;
+  vca = slider54;
+  val6 = slider55;
+
+@sample
+
+  spl0 = vco;
+  spl1 = gate;
+  spl2 = vcf;
+  spl3 = res;
+  spl4 = vca;
+  spl5 = val6;
