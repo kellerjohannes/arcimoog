@@ -25,6 +25,22 @@ The Reaper plugins used here are based on the EEL script language, therefore the
 
 #### User Guide: Concepts
 
+To use the plugins it is recommended to create one track per Moog (per voice). Each track needs to consist of as many output channels as CVs you want to generate. The default assumption of the plugin is 6 channels per track. The plugin doesn't have any inputs. The parameters of the plugin can be manipulated either in real time (by moving the sliders in the plugin interface) or with the Reaper automatisation features. 
+
+In a rudimentary implementation, you can set the output value for each channel directly.
+
+In a more complex implementation, there are the following sliders available:
+- for the VCO modulation:
+  - selection of a pitch from a predefined scale
+  - setting a scaling factor to tune the output
+  - setting a shift value to transpose the output
+  - setting a detune value to modify the selected, tuned and transposed pitch
+- for the gate output:
+  - a selection between on and off
+- for the VCF cutoff and resonance, and the VCA:
+  - selection of a 'sillable' which will define the settings of the output channels for the VCF cutoff, the VCF resonance and the VCA
+
+To change the scale and sillable values it is necessary to adapt the source code of the plugin accordingly. This is possible from within Reaper, in the plugin editor interface. 
 
 
 ### PureData patch
