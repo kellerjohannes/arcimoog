@@ -1,0 +1,259 @@
+<REAPER_PROJECT 0.1 "6.42/linux-x86_64" 1638108124
+  RIPPLE 0
+  GROUPOVERRIDE 1 0 0
+  AUTOXFADE 0
+  ENVATTACH 3
+  POOLEDENVATTACH 0
+  MIXERUIFLAGS 11 48
+  PEAKGAIN 1
+  FEEDBACK 0
+  PANLAW 1
+  PROJOFFS 0 0 0
+  MAXPROJLEN 0 600
+  GRID 3198 8 1 8 1 0 0 0
+  TIMEMODE 1 5 -1 30 0 0 -1
+  VIDEO_CONFIG 0 0 256
+  PANMODE 3
+  CURSOR 0
+  ZOOM 565.22561811247033 0 0
+  VZOOMEX 19 0
+  USE_REC_CFG 0
+  RECMODE 1
+  SMPTESYNC 0 30 100 40 1000 300 0 0 1 0 0
+  LOOP 0
+  LOOPGRAN 0 4
+  RECORD_PATH "" ""
+  <RECORD_CFG
+  >
+  <APPLYFX_CFG
+  >
+  RENDER_FILE ""
+  RENDER_PATTERN ""
+  RENDER_FMT 0 2 0
+  RENDER_1X 0
+  RENDER_RANGE 1 0 0 18 1000
+  RENDER_RESAMPLE 3 0 1
+  RENDER_ADDTOPROJ 0
+  RENDER_STEMS 0
+  RENDER_DITHER 0
+  TIMELOCKMODE 1
+  TEMPOENVLOCKMODE 1
+  ITEMMIX 0
+  DEFPITCHMODE 589824 0
+  TAKELANE 1
+  SAMPLERATE 44100 0 0
+  <RENDER_CFG
+  >
+  LOCK 1
+  <METRONOME 6 2
+    VOL 0.25 0.125
+    FREQ 800 1600 1
+    BEATLEN 4
+    SAMPLES "" ""
+    PATTERN 2863311530 2863311529
+    MULT 1
+  >
+  GLOBAL_AUTO -1
+  TEMPO 120 4 4
+  PLAYRATE 1 0 0.25 4
+  SELECTION 0 0
+  SELECTION2 0 0
+  MASTERAUTOMODE 0
+  MASTERTRACKHEIGHT 0 0
+  MASTERPEAKCOL 16576
+  MASTERMUTESOLO 0
+  MASTERTRACKVIEW 0 0.6667 0.5 0.5 0 -1 0 0 0 0 -1 -1 0
+  MASTERHWOUT 0 0 1 0 0 0 0 -1
+  MASTER_NCH 2 2
+  MASTER_VOLUME 1 0 -1 -1 1
+  MASTER_FX 1
+  MASTER_SEL 0
+  <MASTERPLAYSPEEDENV
+    EGUID {C5EA9C86-051E-8E44-3078-F81CA9CE633D}
+    ACT 0 -1
+    VIS 0 1 1
+    LANEHEIGHT 0 0
+    ARM 0
+    DEFSHAPE 0 -1 -1
+  >
+  <TEMPOENVEX
+    EGUID {79C0DA02-F3AA-3A90-73B1-AEDB972A7959}
+    ACT 0 -1
+    VIS 1 0 1
+    LANEHEIGHT 0 0
+    ARM 0
+    DEFSHAPE 1 -1 -1
+  >
+  <PROJBAY
+  >
+  <TRACK {D74CE40B-AADB-02C8-3786-57C63BF91942}
+    NAME ""
+    PEAKCOL 16576
+    BEAT -1
+    AUTOMODE 1
+    VOLPAN 1 0 -1 -1 1
+    MUTESOLO 0 0 0
+    IPHASE 0
+    PLAYOFFS 0 1
+    ISBUS 0 0
+    BUSCOMP 0 0 0 0 0
+    SHOWINMIX 1 0.6667 0.5 1 0.5 0 -1 0
+    FREEMODE 0
+    SEL 0
+    REC 0 0 1 0 0 0 0
+    VU 2
+    TRACKHEIGHT 0 0 0 0 0 0
+    INQ 0 0 0 0.5 100 0 0 100
+    NCHAN 6
+    FX 0
+    TRACKID {D74CE40B-AADB-02C8-3786-57C63BF91942}
+    PERF 0
+    MIDIOUT -1
+    MAINSEND 0 0
+    <FXCHAIN
+      WNDRECT 445 302 887 231
+      SHOW 0
+      LASTSEL 0
+      DOCKED 0
+      BYPASS 0 0 0
+      <JS studio31/arcimother-rudimentary ""
+        0.12 0 0 0 0 0 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - 
+      >
+      FLOATPOS 32 60 619 182
+      FXID {20D569A5-0BDE-ACF7-A348-46696484ED28}
+      <PARMENV 0 -1 1 0
+        EGUID {B80598D7-188E-5B47-D152-281636649EEC}
+        ACT 1 -1
+        VIS 1 0 1
+        LANEHEIGHT 0 0
+        ARM 1
+        DEFSHAPE 0 -1 -1
+        PT 0 0.12 0
+        PT 2.07871074 -0.16 0
+        PT 2.07935899 0.27 0
+        PT 3.64186114 0.25 0
+        PT 3.6804179 0 0 0 1
+      >
+      <PARMENV 1 -1 1 0
+        EGUID {0E158E72-D86B-803C-19CD-B372F6BDBB97}
+        ACT 1 -1
+        VIS 1 0 1
+        LANEHEIGHT 0 0
+        ARM 0
+        DEFSHAPE 0 -1 -1
+        PT 0 0 0 0 1
+      >
+      <PARMENV 2 -1 1 0
+        EGUID {4DA91EC9-D8EF-19C1-6BA1-FFCDA53DE141}
+        ACT 1 -1
+        VIS 1 0 1
+        LANEHEIGHT 0 0
+        ARM 0
+        DEFSHAPE 0 -1 -1
+        PT 0 0 0 0 1
+      >
+      <PARMENV 3 -1 1 0
+        EGUID {392BA4BA-E804-B280-135D-E8FAA1435C47}
+        ACT 1 -1
+        VIS 1 0 1
+        LANEHEIGHT 0 0
+        ARM 0
+        DEFSHAPE 0 -1 -1
+        PT 0 0 0
+      >
+      <PARMENV 4 -1 1 0
+        EGUID {CFB5CA55-3C5F-33D2-30F3-821F25532F8B}
+        ACT 1 -1
+        VIS 1 0 1
+        LANEHEIGHT 0 0
+        ARM 0
+        DEFSHAPE 0 -1 -1
+        PT 0 0 0
+      >
+      <PARMENV 5 -1 1 0
+        EGUID {0A022DC7-3C7E-AAB0-E8B6-AB7FCD883550}
+        ACT 1 -1
+        VIS 1 0 1
+        LANEHEIGHT 0 0
+        ARM 0
+        DEFSHAPE 0 -1 -1
+        PT 0 0 0
+      >
+      PARM_TCP 0 1 2 3 4 5
+      WAK 0 0
+    >
+  >
+  <TRACK {826BDF0E-FDB9-8167-A6B1-E66808B9B9EA}
+    NAME ""
+    PEAKCOL 16576
+    BEAT -1
+    AUTOMODE 1
+    VOLPAN 1 0 -1 -1 1
+    MUTESOLO 0 0 0
+    IPHASE 0
+    PLAYOFFS 0 1
+    ISBUS 0 0
+    BUSCOMP 0 0 0 0 0
+    SHOWINMIX 1 0.6667 0.5 1 0.5 -1 -1 -1
+    FREEMODE 0
+    SEL 1
+    REC 0 0 1 0 0 0 0
+    VU 2
+    TRACKHEIGHT 0 0 0 0 0 0
+    INQ 0 0 0 0.5 100 0 0 100
+    NCHAN 6
+    FX 1
+    TRACKID {826BDF0E-FDB9-8167-A6B1-E66808B9B9EA}
+    PERF 0
+    MIDIOUT -1
+    MAINSEND 0 0
+    <FXCHAIN
+      WNDRECT 147 1036 887 321
+      SHOW 0
+      LASTSEL 0
+      DOCKED 0
+      BYPASS 0 0 0
+      <JS studio31/arcimother-with-calibration ""
+        0 0 1 0 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - 0 0 0 0 0 0 - - - - - - - - - 
+      >
+      FLOATPOS 0 0 0 0
+      FXID {F167C46A-0E5D-36A3-6C7A-A52A136F8763}
+      <PARMENV 1 0 22 11
+        EGUID {0EC575E1-502A-F719-C9CC-0866B644A590}
+        ACT 1 -1
+        VIS 1 1 1
+        LANEHEIGHT 0 0
+        ARM 1
+        DEFSHAPE 1 -1 -1
+        PT 0 0 1
+        PT 0.37294901 11 1
+        PT 0.50467314 13 1 0 1
+        PT 0.56743706 7 1
+        PT 0.64749308 3 1
+        PT 0.73267269 4 1
+      >
+      <PARMENV 2 0 1 0.5
+        EGUID {BE4ADAB4-7BEB-EBB2-4665-E370ADE03CFC}
+        ACT 0 -1
+        VIS 0 1 1
+        LANEHEIGHT 0 0
+        ARM 0
+        DEFSHAPE 0 -1 -1
+        PT 0 1 0
+        PT 0.37294901 1 0
+      >
+      <PARMENV 0 0 1 0.5
+        EGUID {82A6F627-8D40-6BAC-1170-91400DAB95D1}
+        ACT 0 -1
+        VIS 0 1 1
+        LANEHEIGHT 0 0
+        ARM 0
+        DEFSHAPE 1 -1 -1
+        PT 0 1 1
+        PT 0.73267269 0 1
+      >
+      PARM_TCP 1
+      WAK 0 0
+    >
+  >
+>
