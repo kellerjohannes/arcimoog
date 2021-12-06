@@ -1,8 +1,8 @@
-<REAPER_PROJECT 0.1 "6.42/linux-x86_64" 1638542198
+<REAPER_PROJECT 0.1 "6.42/linux-x86_64" 1638618495
   RIPPLE 0
-  GROUPOVERRIDE 1 0 0
-  AUTOXFADE 0
-  ENVATTACH 1
+  GROUPOVERRIDE 0 0 0
+  AUTOXFADE 1
+  ENVATTACH 3
   POOLEDENVATTACH 0
   MIXERUIFLAGS 11 48
   PEAKGAIN 1
@@ -10,13 +10,13 @@
   PANLAW 1
   PROJOFFS 0 0 0
   MAXPROJLEN 0 600
-  GRID 3198 8 1 8 1 0 0 0
+  GRID 3199 8 1 8 1 0 0 0
   TIMEMODE 1 5 -1 30 0 0 -1
   VIDEO_CONFIG 0 0 256
   PANMODE 3
-  CURSOR 0.08739872790085
-  ZOOM 565.22561811247033 0 0
-  VZOOMEX 19 0
+  CURSOR 13
+  ZOOM 248.832 2223 0
+  VZOOMEX 6 0
   USE_REC_CFG 0
   RECMODE 1
   SMPTESYNC 0 30 100 40 1000 300 0 0 1 0 0
@@ -86,88 +86,41 @@
   >
   <PROJBAY
   >
-  <TRACK {826BDF0E-FDB9-8167-A6B1-E66808B9B9EA}
+  <TRACK {2DC849E0-11A7-FC3D-A7EC-6D42F6A95ECB}
     NAME ""
     PEAKCOL 16576
     BEAT -1
     AUTOMODE 0
-    VOLPAN 0.77 0 -1 -1 1
+    VOLPAN 1 0 -1 -1 1
     MUTESOLO 0 0 0
     IPHASE 0
     PLAYOFFS 0 1
     ISBUS 0 0
     BUSCOMP 0 0 0 0 0
-    SHOWINMIX 1 0.6667 0.5 1 0.5 0 0 0
+    SHOWINMIX 1 0.6667 0.5 1 0.5 -1 -1 -1
     FREEMODE 0
-    SEL 0
+    SEL 1
     REC 0 0 1 0 0 0 0
     VU 2
-    TRACKHEIGHT 0 0 0 0 0 0
+    TRACKHEIGHT 260 0 0 0 0 0
     INQ 0 0 0 0.5 100 0 0 100
     NCHAN 6
     FX 1
-    TRACKID {826BDF0E-FDB9-8167-A6B1-E66808B9B9EA}
+    TRACKID {2DC849E0-11A7-FC3D-A7EC-6D42F6A95ECB}
     PERF 0
     MIDIOUT -1
     MAINSEND 0 0
-    HWOUT 2 0 1 0 0 0 1024 -1:U -1
-    HWOUT 3 0 1 0 0 0 1025 -1:U -1
     <FXCHAIN
-      WNDRECT 663 29 887 321
+      WNDRECT 32 60 1110 532
       SHOW 0
       LASTSEL 0
       DOCKED 0
       BYPASS 0 0 0
-      <JS studio31/arcimother-with-calibration ""
-        0 5 0.3075 0.29 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - 0.417624 1 0 0 0 0 - - - - - - - - - 
+      <JS studio31/arcimoog-scale ""
+        - 2 0.3274 0.45 - - - - - 1 - - - - 4 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - 0.344601 1 0.9 0.8 0.8 0 - - - - - - - - - 
       >
       FLOATPOS 0 0 0 0
-      FXID {F167C46A-0E5D-36A3-6C7A-A52A136F8763}
-      <PARMENV 1 0 22 11
-        EGUID {9CFB1798-D07B-A86C-8FAC-6285622E14D6}
-        ACT 0 -1
-        VIS 1 1 1
-        LANEHEIGHT 0 0
-        ARM 0
-        DEFSHAPE 1 -1 -1
-        PT 0 0 1 0 1
-        PT 0.37294901 11 1 0 1
-        PT 0.50467314 13 1 0 1
-        PT 0.56743706 7 1 0 1
-        PT 0.64749308 3 1 0 1
-        PT 0.73267269 4 1 0 1
-      >
-      <PARMENV 2 0 1 0.5
-        EGUID {D7891906-4E4E-C9BA-2200-2C3358A7CEC7}
-        ACT 0 -1
-        VIS 0 1 1
-        LANEHEIGHT 0 0
-        ARM 0
-        DEFSHAPE 0 -1 -1
-        PT 0 1 0
-        PT 0.37294901 1 0
-      >
-      <PARMENV 0 0 1 0.5
-        EGUID {804EBF15-61B7-3688-63F7-5A67C6C31083}
-        ACT 0 -1
-        VIS 0 1 1
-        LANEHEIGHT 0 0
-        ARM 0
-        DEFSHAPE 1 -1 -1
-        PT 0 1 1
-        PT 0.73267269 0 1
-      >
-      <PARMENV 3 -1 1 0
-        EGUID {CBB11528-80EF-19E3-DE6A-4B401CAF8ECF}
-        ACT 1 -1
-        VIS 0 1 1
-        LANEHEIGHT 0 0
-        ARM 1
-        DEFSHAPE 0 -1 -1
-        PT 0 0 0
-        PT 0.21124308 0.71 0
-      >
-      PARM_TCP 1 5
+      FXID {1FAE9002-343A-2EAC-2628-E633BF8CA50D}
       WAK 0 0
     >
   >
