@@ -1,4 +1,4 @@
-<REAPER_PROJECT 0.1 "6.42/OSX64-clang" 1638972557
+<REAPER_PROJECT 0.1 "6.45/OSX64" 1641995629
   RIPPLE 0
   GROUPOVERRIDE 0 0 0
   AUTOXFADE 1
@@ -15,7 +15,7 @@
   VIDEO_CONFIG 0 0 256
   PANMODE 3
   CURSOR 0
-  ZOOM 69.87683979500167 0 0
+  ZOOM 73.1355559591214 0 0
   VZOOMEX 6 0
   USE_REC_CFG 0
   RECMODE 1
@@ -90,7 +90,7 @@
     NAME "Mother-32 I"
     PEAKCOL 16576
     BEAT -1
-    AUTOMODE 3
+    AUTOMODE 0
     VOLPAN 1 0 -1 -1 1
     MUTESOLO 0 0 0
     IPHASE 0
@@ -116,72 +116,41 @@
     HWOUT 1027 0 1 0 0 0 1027 -1:U -1
     HWOUT 1028 0 1 0 0 0 1028 -1:U -1
     <FXCHAIN
-      WNDRECT 1259 728 419 293
+      WNDRECT 956 730 659 293
       SHOW 1
       LASTSEL 0
       DOCKED 0
       BYPASS 0 0 0
       <JS studio31/arcimoog-scale ""
-        0 2 0.1483 0 1 - - - - 1 - - - - 3 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - 0 - - - - - - - - - "mother-32 I"
+        0 3 0.1483 0 1 - - - - 0 - - - - 3 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - 0 - - - - - - - - - "mother-32 Ia"
       >
       <JS_PINMAP
         6AMAAAwAAADoAwAABgAAAAAAAAA8AAAA6AMAAAYAAAAGAAAAAQAAAAAAAAACAAAAAAAAAAQAAAAAAAAACAAAAAAAAAAQAAAAAAAAACAAAAAAAAAA
       >
-      PRESETNAME "mother-32 I"
+      PRESETNAME "mother-32 Ia"
       FLOATPOS 0 0 0 0
-      FXID {251E69CD-C1A6-D346-AD9A-1973F9E9A845}
-      <PARMENV 0 0 5 2.5
-        EGUID {A3CEB838-808E-C647-A8EB-C2AF37B81048}
+      FXID {B989E639-D5CA-1642-BFCB-9960C3F5458E}
+      <PARMENV 0 0 17 8.5
+        EGUID {ECDAEA47-E56B-7A4D-9210-E0A41CF1E767}
         ACT 1 -1
         VIS 1 1 1
         LANEHEIGHT 0 0
         ARM 1
         DEFSHAPE 1 -1 -1
         PT 0 0 1
-        PT 0.192 0 1
-        PT 4 3 1
-        PT 6 1 1
-        PT 9 0 1
-        PT 25.84933333 0 1
-      >
-      <PARMENV 1 0 6 3
-        EGUID {F55171C2-D695-554E-B875-B82C88B07B1E}
-        ACT 1 -1
-        VIS 1 1 1
-        LANEHEIGHT 0 0
-        ARM 1
-        DEFSHAPE 1 -1 -1
-        PT 0 2 1
-        PT 0.192 3 1
-        PT 4 3 1
-        PT 9 2 1
-        PT 25.84933333 3 1
+        PT 2 12 1
+        PT 3 15 1
       >
       <PARMENV 5 0 1 0.5
-        EGUID {784EEADA-DEFA-0647-BA80-47B1077CDC20}
+        EGUID {7A18A30E-6DC5-4543-9455-3639349EB1B9}
         ACT 1 -1
         VIS 1 1 1
         LANEHEIGHT 0 0
         ARM 1
         DEFSHAPE 1 -1 -1
-        PT 0 1 1
-        PT 0.192 0 1
-        PT 1 1 1
-        PT 4 1 1
-        PT 25.84933333 1 1
+        PT 0 0 1
+        PT 2 1 1
       >
-      <PARMENV 6 0 5 2.5
-        EGUID {ECF24390-8E15-9048-9CA6-6A3EF04BBBB4}
-        ACT 1 -1
-        VIS 1 1 1
-        LANEHEIGHT 0 0
-        ARM 1
-        DEFSHAPE 1 -1 -1
-        PT 0 3 1
-      >
-      PARMLEARN 0 5552 20 
-      PARMLEARN 1 10672 20 
-      PARMLEARN 5 272537 20 
       WAK 0 0
     >
   >
@@ -189,7 +158,7 @@
     NAME "Mother-32 II"
     PEAKCOL 16576
     BEAT -1
-    AUTOMODE 3
+    AUTOMODE 0
     VOLPAN 1 0 -1 -1 1
     MUTESOLO 0 0 0
     IPHASE 0
@@ -215,62 +184,40 @@
     HWOUT 1032 0 1 0 0 0 1027 -1:U -1
     HWOUT 1033 0 1 0 0 0 1028 -1:U -1
     <FXCHAIN
-      WNDRECT 1264 431 416 293
+      WNDRECT 958 433 659 293
       SHOW 1
       LASTSEL 0
       DOCKED 0
       BYPASS 0 0 0
       <JS studio31/arcimoog-scale ""
-        1 2 0.1492 0 1 - - - - 1 - - - - 0 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - 0 - - - - - - - - - "mother-32 II"
+        5 3 0.1503 0 1 - - - - 0 - - - - 0 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - 0 - - - - - - - - - "mother-32 IIa"
       >
       <JS_PINMAP
         6AMAAAwAAADoAwAABgAAAAAAAAA8AAAA6AMAAAYAAAAGAAAAAQAAAAAAAAACAAAAAAAAAAQAAAAAAAAACAAAAAAAAAAQAAAAAAAAACAAAAAAAAAA
       >
-      PRESETNAME "mother-32 II"
+      PRESETNAME "mother-32 IIa"
       FLOATPOS 0 0 0 0
-      FXID {12A550B3-FF1D-5547-8A9A-8CBC44DCCDC1}
-      <PARMENV 0 0 5 2.5
-        EGUID {2B06EE2B-3C6E-5040-B9F3-B7A817CFB090}
+      FXID {BFC41E68-0373-3C46-85C8-35D759D90418}
+      <PARMENV 0 0 17 8.5
+        EGUID {57BA0FF7-F3FE-7A44-80A0-2C3A911EF92B}
         ACT 1 -1
         VIS 1 1 1
         LANEHEIGHT 0 0
         ARM 1
         DEFSHAPE 1 -1 -1
-        PT 0 1 1
-        PT 0.192 0 1
-        PT 4 0 1
-        PT 5 2 1
-        PT 7 5 1
-        PT 25.84933333 2 1
-      >
-      <PARMENV 1 0 6 3
-        EGUID {015093CA-7EF1-BC4F-8819-DF262EA4156D}
-        ACT 1 -1
-        VIS 1 1 1
-        LANEHEIGHT 0 0
-        ARM 1
-        DEFSHAPE 1 -1 -1
-        PT 0 2 1
-        PT 0.192 3 1
-        PT 4 3 1
-        PT 25.84933333 3 1
+        PT 0 5 1
+        PT 2 6 1
       >
       <PARMENV 5 0 1 0.5
-        EGUID {13F9BDD7-5676-164B-BCAB-3C4CDC0230E5}
+        EGUID {FBF1E76C-7C68-CF4A-A285-05AE8C5FF63E}
         ACT 1 -1
         VIS 1 1 1
         LANEHEIGHT 0 0
         ARM 1
         DEFSHAPE 1 -1 -1
-        PT 0 1 1
-        PT 0.192 0 1
+        PT 0 0 1
         PT 2 1 1
-        PT 4 1 1
-        PT 25.84933333 1 1
       >
-      PARMLEARN 0 5808 20 
-      PARMLEARN 1 10928 20 
-      PARMLEARN 5 272793 20 
       WAK 0 0
     >
   >
@@ -278,7 +225,7 @@
     NAME "Mother-32 III"
     PEAKCOL 16576
     BEAT -1
-    AUTOMODE 3
+    AUTOMODE 1
     VOLPAN 1 0 -1 -1 1
     MUTESOLO 0 0 0
     IPHASE 0
@@ -287,7 +234,7 @@
     BUSCOMP 0 0 0 0 0
     SHOWINMIX 1 0.6667 0.5 1 0.5 -1 -1 -1
     FREEMODE 0
-    SEL 0
+    SEL 1
     REC 0 0 1 0 0 0 0
     VU 2
     TRACKHEIGHT 47 0 0 0 0 0
@@ -304,61 +251,41 @@
     HWOUT 1037 0 1 0 0 0 1027 -1:U -1
     HWOUT 1038 0 1 0 0 0 1028 -1:U -1
     <FXCHAIN
-      WNDRECT 1251 132 429 293
+      WNDRECT 956 136 659 293
       SHOW 1
       LASTSEL 0
       DOCKED 0
       BYPASS 0 0 0
       <JS studio31/arcimoog-scale ""
-        2 2 0.1485 0 1 - - - - 1 - - - - 0 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - 0 - - - - - - - - - "mother-32 III"
+        0 3 0.1483 0 1 - - - - 0 - - - - 0 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - 0 - - - - - - - - - "mother-32 IIIa"
       >
       <JS_PINMAP
         6AMAAAwAAADoAwAABgAAAAAAAAA8AAAA6AMAAAYAAAAGAAAAAQAAAAAAAAACAAAAAAAAAAQAAAAAAAAACAAAAAAAAAAQAAAAAAAAACAAAAAAAAAA
       >
-      PRESETNAME "mother-32 III"
+      PRESETNAME "mother-32 IIIa"
       FLOATPOS 0 0 0 0
-      FXID {95E705FE-B323-664B-A554-9D095B9D14DB}
-      <PARMENV 0 0 5 2.5
-        EGUID {C8BE6B36-0615-DC4D-ABE3-8D4B0527DB93}
+      FXID {AACC355A-18AA-D242-ACB3-A6DCC44768B5}
+      <PARMENV 0 0 17 8.5
+        EGUID {2254CE8D-1199-DD4D-995F-9324E9E276D2}
         ACT 1 -1
         VIS 1 1 1
         LANEHEIGHT 0 0
         ARM 1
         DEFSHAPE 1 -1 -1
-        PT 0 2 1
-        PT 0.192 0 1
-        PT 4 0 1
-        PT 8 3 1
-        PT 25.84933333 2 1
-      >
-      <PARMENV 1 0 6 3
-        EGUID {DF5216BA-D288-E046-AEF4-74F658C456BE}
-        ACT 1 -1
-        VIS 1 1 1
-        LANEHEIGHT 0 0
-        ARM 1
-        DEFSHAPE 1 -1 -1
-        PT 0 2 1
-        PT 0.192 3 1
-        PT 4 3 1
-        PT 25.84933333 2.76 1
+        PT 0 0 1
+        PT 1 11 1
+        PT 3 6 1
       >
       <PARMENV 5 0 1 0.5
-        EGUID {D2299DF7-E094-AF46-95B5-01E9C08CD5F3}
+        EGUID {5C23064F-A61F-9741-85C7-0132E6A01706}
         ACT 1 -1
         VIS 1 1 1
         LANEHEIGHT 0 0
         ARM 1
         DEFSHAPE 1 -1 -1
-        PT 0 1 1
-        PT 0.192 0 1
-        PT 3 1 1
-        PT 4 1 1
-        PT 25.84933333 0.02 1
+        PT 0 0 1
+        PT 2 1 1
       >
-      PARMLEARN 0 6064 20 
-      PARMLEARN 1 11184 20 
-      PARMLEARN 5 273049 20 
       WAK 0 0
     >
   >
