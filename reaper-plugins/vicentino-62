@@ -1,0 +1,174 @@
+desc: Arcimoog Vicentino 62
+
+slider1:0<0,62,1{C,C+,Deses,Deses+,Cis,Cis+,Des,Des+,Cisis,Cisis+,D,D+,Eses,Eses+,Dis,Cis+,Es,Es+,Disis,Disis+,E,E+,Fes,Fes+,Eis,Eis+,F,F+,Geses,Geses+,Fis,Fis+,Ges,Ges+,Fisis,Fisis+,G,G+,Asas,Asas+,Gis,Gis+,As,As+,Gisis,Gisis+,A,A+,Heses,Heses+,Ais,Ais+,B,B+,Aisis,Aisis+,H,H+,Ces,Ces+,His,His+>Interval
+slider2:3<0,7,1{-3,-2,-1,0,+1,+2,+3}>Octave Shift
+slider3:1<0,2,0.0001>Global Frequency Stretch
+slider4:0<-2,2,0.01>Global Frequency Shift
+slider5:1<0.99,1.01,0.00001>Detune
+
+slider10:0<0,1,1{Gate off,Gate on}>Gate
+
+slider15:0<0,5,1{ut,re,mi,fa,sol,la}>Sillable
+
+//slider50:0<-1,1,.01>CV 1, VCO
+//slider51:0<-1,1,.01>CV 2, Gate
+//slider52:0<-1,1,.01>CV 3, VCF Cutoff
+//slider53:0<-1,1,.01>CV 4, VCF Resonance
+//slider54:0<-1,1,.01>CV 5, VCA
+slider55:0<-1,1,.01>CV 6, aux
+
+out_pin:cv 1, VCO
+out_pin:cv 2, Gate
+out_pin:cv 3, Cutoff
+out_pin:cv 4, Resonance
+out_pin:cv 5, VCA
+out_pin:cv 6, aux
+
+
+@init
+
+// octave selection
+
+array[0] = 1/8;
+array[1] = 1/4;
+array[2] = 1/2;
+array[3] = 1/1;
+array[4] = 2;
+array[5] = 4;
+array[6] = 8;
+
+// pitch selection
+array[10] = 1;
+array[11] = 1.00311045746463;
+array[12] = 1.024;
+array[13] = 1.02718510844378;
+array[14] = 1.04490672652566;
+array[15] = 1.04815686445303;
+array[16] = 1.06998448796227;
+array[17] = 1.0733126291999;
+array[18] = 1.09183006713857;
+array[19] = 1.09522615812101;
+array[20] = 1.11803398874989;
+array[21] = 1.12151158591592;
+array[22] = 1.14486680447989;
+array[23] = 1.1484278639779;
+array[24] = 1.16824123532908;
+array[25] = 1.171875;
+array[26] = 1.19627902497698;
+array[27] = 1.2;
+array[28] = 1.220703125;
+array[29] = 1.22450007014726;
+array[30] = 1.25;
+array[31] = 1.25388807183079;
+array[32] = 1.28;
+array[33] = 1.28398138555473;
+array[34] = 1.30613340815707;
+array[35] = 1.31019608056628;
+array[36] = 1.33748060995284;
+array[37] = 1.34164078649987;
+array[38] = 1.36958014459171;
+array[39] = 1.37384016537587;
+array[40] = 1.39754248593737;
+array[41] = 1.40188948239489;
+array[42] = 1.43108350559986;
+array[43] = 1.43553482997237;
+array[44] = 1.46030154416135;
+array[45] = 1.46484375;
+array[46] = 1.49534878122122;
+array[47] = 1.5;
+array[48] = 1.53123715197053;
+array[49] = 1.536;
+array[50] = 1.5625;
+array[51] = 1.56736008978849;
+array[52] = 1.6;
+array[53] = 1.60497673194341;
+array[54] = 1.63266676019634;
+array[55] = 1.63774510070785;
+array[56] = 1.67185076244105;
+array[57] = 1.67705098312484;
+array[58] = 1.71197518073964;
+array[59] = 1.71730020671984;
+array[60] = 1.74692810742171;
+array[61] = 1.75236185299362;
+array[62] = 1.78885438199983;
+array[63] = 1.79441853746546;
+array[64] = 1.82537693020169;
+array[65] = 1.8310546875;
+array[66] = 1.86918597652653;
+array[67] = 1.875;
+array[68] = 1.91404643996316;
+array[69] = 1.92;
+array[70] = 1.953125;
+array[71] = 1.95920011223561;
+
+
+
+// sillable selection
+array[100] = 0.4;
+array[101] = 0.1;
+array[102] = 0.5;
+
+array[103] = 0.5;
+array[104] = 0.2;
+array[105] = 0.5;
+
+array[106] = 0.6;
+array[107] = 0.3;
+array[108] = 0.5;
+
+array[109] = 0.7;
+array[110] = 0.4;
+array[111] = 0.5;
+
+array[112] = 0.8;
+array[113] = 0.5;
+array[114] = 0.5;
+
+array[115] = 0.9;
+array[116] = 0.6;
+array[117] = 0.5;
+
+
+@slider
+
+pitch_selection = slider1;
+octave_selection = slider2;
+scale_factor = slider3;
+shift_value = slider4;
+detune_factor = slider5;
+sillable_selection = slider15;
+gate_value = slider10;
+
+pitch_factor = array[pitch_selection + 10];
+octave_factor = array[octave_selection];
+
+
+// currentvco = (log(scale[slider2] * slider3)/log(2)) + slider4 + slider5;
+currentvco = log(pitch_factor * octave_factor * detune_factor) * scale_factor + shift_value;
+
+//slider50=currentvco;
+//slider51=slider10;
+
+cutoffvalue = array[ sillable_selection + 100 ];
+resonancevalue = array[ sillable_selection + 100 + 1 ];
+dynamicsvalue = array[ sillable_selection + 100 + 2 ];
+
+slider52 = cutoffvalue;
+slider53 = resonancevalue;
+slider54 = dynamicsvalue;
+
+//vco = slider50;
+//gate = slider51;
+//vcf = slider52;
+//res = slider53;
+//vca = slider54;
+aux = slider55;
+
+@sample
+
+spl0 = currentvco;
+spl1 = gate_value;
+spl2 = cutoffvalue;
+spl3 = resonancevalue;
+spl4 = dynamicsvalue;
+spl5 = aux;
