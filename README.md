@@ -42,6 +42,19 @@ In a more complex implementation, there are the following sliders available:
 
 To change the scale and sillable values it is necessary to adapt the source code of the plugin accordingly. This is possible from within Reaper, in the plugin editor interface. 
 
+If you use git to get the latest versions of the plugins it is recommended to soft link the plugin files from the local git repository into the Reaper effects folder. 
+
+On Linux / macOS:
+```
+ln -s /path/to/plugin/file/in/git /path/to/reaper/effects/folder
+```
+
+This is an example to make the plugin "arcimoog-default" available in Reaper. You need to adapt the paths to your system.
+
+```
+ln -s ~/Documents/arcimoog/reaper-plugins/arcimoog-default ~/Library/Application\ Support/REAPER/Effects/arcimoog-default
+```
+
 
 ### PureData patch
 
