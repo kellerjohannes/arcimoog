@@ -1,19 +1,20 @@
 desc: Arcimoog
 
-slider2:0<0,5,1{C,d,E,f,G,a}>Interval
-slider3:1<0,1,0.0001>Global Frequency Stretch
-slider4:0<-1,1,0.01>Global Frequency Shift
-slider5:0<-0.01,0.01,0.00001>Detune
+slider1:0<0,18,1{GG1,GG2,GG3,C1,C2,C3,D1,D2,D3,E1,E2,E3,G1,G2,G3,A1,A2,A3}>Interval
+slider2:3<0,7,1{-3,-2,-1,0,+1,+2,+3}>Octave Shift
+slider3:1<0,2,0.0001>Global Frequency Stretch
+slider4:0<-2,2,0.01>Global Frequency Shift
+slider5:1<0.99,1.01,0.00001>Detune
 
 slider10:0<0,1,1{Gate off,Gate on}>Gate
 
 slider15:0<0,5,1{ut,re,mi,fa,sol,la}>Sillable
 
-slider50:0<-1,1,.01>CV 1, VCO
-slider51:0<-1,1,.01>CV 2, Gate
-slider52:0<-1,1,.01>CV 3, VCF Cutoff
-slider53:0<-1,1,.01>CV 4, VCF Resonance
-slider54:0<-1,1,.01>CV 5, VCA
+//slider50:0<-1,1,.01>CV 1, VCO
+//slider51:0<-1,1,.01>CV 2, Gate
+//slider52:0<-1,1,.01>CV 3, VCF Cutoff
+//slider53:0<-1,1,.01>CV 4, VCF Resonance
+//slider54:0<-1,1,.01>CV 5, VCA
 slider55:0<-1,1,.01>CV 6, aux
 
 out_pin:cv 1, VCO
@@ -23,70 +24,106 @@ out_pin:cv 4, Resonance
 out_pin:cv 5, VCA
 out_pin:cv 6, aux
 
-scale = 0 ;
-sillable_values = 6 ;
 
 @init
 
-scale[0] = 1/1;
-scale[1] = 2/1;
-scale[2] = 3/2;
-scale[3] = 3/2/((81/80)^(1/4));
-scale[4] = 81/64;
-scale[5] = 5/4;
+// octave selection
 
-sillable_values[0] = 0.4;
-sillable_values[1] = 0.1;
-sillable_values[2] = 0.5;
+array[0] = 1/8;
+array[1] = 1/4;
+array[2] = 1/2;
+array[3] = 1/1;
+array[4] = 2;
+array[5] = 4;
+array[6] = 8;
 
-sillable_values[3] = 0.5;
-sillable_values[4] = 0.2;
-sillable_values[5] = 0.5;
+// pitch selection
+array[10] = 1/1;
+array[11] = 1/1 * 81/80;
+array[12] = 1/1 * 81/80 * 81/80;
+array[13] = 27/20;
+array[14] = 27/20 * 81/80;
+array[15] = 27/20 * 81/80 * 81/80;
+array[16] = 3/2;
+array[17] = 3/2 * 81/80;
+array[18] = 3/2 * 81/80 * 81/80;
+array[19] = 3/2 * 9/8;
+array[20] = 3/2 * 9/8 * 81/80;
+array[21] = 3/2 * 9/8 * 81/80 * 81/80;
+array[22] = 2/1;
+array[23] = 2/1 * 81/80;
+array[24] = 2/1 * 81/80 * 81/80;
+array[25] = 2/1 * 9/8;
+array[26] = 2/1 * 9/8 * 81/80;
+array[27] = 2/1 * 9/8 * 81/80 * 81/80;
 
-sillable_values[6] = 0.6;
-sillable_values[7] = 0.3;
-sillable_values[8] = 0.5;
 
-sillable_values[9] = 0.7;
-sillable_values[10] = 0.4;
-sillable_values[11] = 0.5;
+// sillable selection
+array[100] = 0.4;
+array[101] = 0.1;
+array[102] = 0.5;
 
-sillable_values[12] = 0.8;
-sillable_values[13] = 0.5;
-sillable_values[14] = 0.5;
+array[103] = 0.5;
+array[104] = 0.2;
+array[105] = 0.5;
 
-sillable_values[15] = 0.9;
-sillable_values[16] = 0.6;
-sillable_values[17] = 0.5;
+array[106] = 0.6;
+array[107] = 0.3;
+array[108] = 0.5;
+
+array[109] = 0.7;
+array[110] = 0.4;
+array[111] = 0.5;
+
+array[112] = 0.8;
+array[113] = 0.5;
+array[114] = 0.5;
+
+array[115] = 0.9;
+array[116] = 0.6;
+array[117] = 0.5;
 
 
 @slider
 
-currentvco = (log(scale[slider2])/log(2) * slider3) + slider4 + slider5;
-       
-slider50=currentvco;
-slider51=slider10;
+pitch_selection = slider1;
+octave_selection = slider2;
+scale_factor = slider3;
+shift_value = slider4;
+detune_factor = slider5;
+sillable_selection = slider15;
+gate_value = slider10;
 
-cutoffvalue = sillable_value[slider15];
-resonancevalue = sillable_value[slider15+1];
-dynamicsvalue = sillable_value[slider15+2];
+pitch_factor = array[pitch_selection + 10];
+octave_factor = array[octave_selection];
+
+
+// currentvco = (log(scale[slider2] * slider3)/log(2)) + slider4 + slider5;
+currentvco = log(pitch_factor * octave_factor * detune_factor) * scale_factor + shift_value;
+
+//slider50=currentvco;
+//slider51=slider10;
+
+cutoffvalue = array[ sillable_selection + 100 ];
+resonancevalue = array[ sillable_selection + 100 + 1 ];
+dynamicsvalue = array[ sillable_selection + 100 + 2 ];
 
 slider52 = cutoffvalue;
 slider53 = resonancevalue;
 slider54 = dynamicsvalue;
 
-vco = slider50;
-gate = slider51;
-vcf = slider52;
-res = slider53;
-vca = slider54;
+//vco = slider50;
+//gate = slider51;
+//vcf = slider52;
+//res = slider53;
+//vca = slider54;
 aux = slider55;
 
 @sample
 
-spl0 = vco;
-spl1 = gate;
-spl2 = vcf;
-spl3 = res;
-spl4 = vca;
+spl0 = currentvco;
+spl1 = gate_value;
+spl2 = cutoffvalue;
+spl3 = resonancevalue;
+spl4 = dynamicsvalue;
 spl5 = aux;
