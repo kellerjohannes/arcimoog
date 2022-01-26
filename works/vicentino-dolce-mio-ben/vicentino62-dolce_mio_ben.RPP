@@ -1,0 +1,1465 @@
+<REAPER_PROJECT 0.1 "5.93/OSX64" 1643214855
+  RIPPLE 0
+  GROUPOVERRIDE 0 0 0
+  AUTOXFADE 1
+  ENVATTACH 1
+  POOLEDENVATTACH 0
+  MIXERUIFLAGS 11 48
+  PEAKGAIN 1
+  FEEDBACK 0
+  PANLAW 1
+  PROJOFFS 0 0 0
+  MAXPROJLEN 0 600
+  GRID 3199 8 1 8 1 0 0 0
+  TIMEMODE 2 5 -1 30 0
+  VIDEO_CONFIG 0 0 256
+  PANMODE 3
+  CURSOR 4.5
+  ZOOM 22.32683256064985 0 0
+  VZOOMEX 1
+  USE_REC_CFG 0
+  RECMODE 1
+  SMPTESYNC 0 30 100 40 1000 300 0 0 1 0 0
+  LOOP 0
+  LOOPGRAN 0 4
+  RECORD_PATH "" ""
+  <RECORD_CFG
+    ZXZhdxgAAA==
+  >
+  <APPLYFX_CFG
+  >
+  RENDER_FILE ""
+  RENDER_PATTERN ""
+  RENDER_FMT 0 2 0
+  RENDER_1X 0
+  RENDER_RANGE 1 0 0 18 1000
+  RENDER_RESAMPLE 3 0 1
+  RENDER_ADDTOPROJ 0
+  RENDER_STEMS 0
+  RENDER_DITHER 0
+  TIMELOCKMODE 1
+  TEMPOENVLOCKMODE 1
+  ITEMMIX 0
+  DEFPITCHMODE 589824
+  TAKELANE 1
+  SAMPLERATE 44100 0 0
+  <RENDER_CFG
+    ZXZhdxgAAA==
+  >
+  LOCK 1
+  <METRONOME 6 2
+    VOL 0.25 0.125
+    FREQ 800 1600 1
+    BEATLEN 4
+    SAMPLES "" ""
+    PATTERN 2863311530 2863311529
+  >
+  GLOBAL_AUTO -1
+  TEMPO 80 4 4
+  PLAYRATE 1 0 0.25 4
+  SELECTION 74.25 75
+  SELECTION2 74.25 75
+  MASTERAUTOMODE 0
+  MASTERTRACKHEIGHT 0 0
+  MASTERPEAKCOL 16576
+  MASTERMUTESOLO 0
+  MASTERTRACKVIEW 0 0.6667 0.5 0.5 0 0 0
+  MASTERHWOUT 0 0 1 0 0 0 0 -1
+  MASTER_NCH 2 2
+  MASTER_VOLUME 1 0 -1 -1 1
+  MASTER_FX 1
+  MASTER_SEL 0
+  <MASTERPLAYSPEEDENV
+    ACT 0 -1
+    VIS 0 1 1
+    LANEHEIGHT 0 0
+    ARM 0
+    DEFSHAPE 0 -1 -1
+  >
+  <TEMPOENVEX
+    ACT 0 -1
+    VIS 1 0 1
+    LANEHEIGHT 0 0
+    ARM 0
+    DEFSHAPE 1 -1 -1
+  >
+  MARKER 1 4.5 "" 0 0 1 B
+  MARKER 2 12 "" 0 0 1 B
+  MARKER 3 18 "" 0 0 1 B
+  MARKER 4 24 "" 0 0 1 B
+  MARKER 5 30 "" 0 0 1 B
+  MARKER 6 36 "" 0 0 1 B
+  MARKER 7 42 "" 0 0 1 B
+  MARKER 8 48 "" 0 0 1 B
+  MARKER 9 54 "" 0 0 1 B
+  MARKER 10 60 "" 0 0 1 B
+  MARKER 11 66 "" 0 0 1 B
+  MARKER 12 72 "" 0 0 1 B
+  MARKER 13 78 "" 0 0 1 B
+  MARKER 14 84 "" 0 0 1 B
+  MARKER 15 90 "" 0 0 1 B
+  MARKER 16 96 "" 0 0 1 B
+  MARKER 17 102 "" 0 0 1 B
+  MARKER 18 108 "" 0 0 1 B
+  MARKER 19 114 "" 0 0 1 B
+  MARKER 20 120 "" 0 0 1 B
+  MARKER 21 126 "" 0 0 1 B
+  MARKER 22 132 "" 0 0 1 B
+  MARKER 23 138 "" 0 0 1 B
+  MARKER 24 144 "" 0 0 1 B
+  MARKER 25 150 "" 0 0 1 B
+  <PROJBAY
+  >
+  <TRACK {ACC1DDF9-A210-8C4D-A420-DCB683963DAD}
+    NAME Canto
+    PEAKCOL 16576
+    BEAT -1
+    AUTOMODE 0
+    VOLPAN 1 0 -1 -1 1
+    MUTESOLO 0 0 0
+    IPHASE 0
+    ISBUS 0 0
+    BUSCOMP 0 0
+    SHOWINMIX 1 0.6667 0.5 1 0.5 0 0 0
+    FREEMODE 0
+    SEL 1
+    REC 0 0 1 0 0 0 0
+    VU 2
+    TRACKHEIGHT 27 0 0
+    INQ 0 0 0 0.5 100 0 0 100
+    NCHAN 4
+    FX 1
+    TRACKID {ACC1DDF9-A210-8C4D-A420-DCB683963DAD}
+    PERF 0
+    MIDIOUT -32
+    MAINSEND 0 0
+    HWOUT 1024 3 1 0 0 0 1024 -1:U -1
+    HWOUT 1025 3 1 0 0 0 1025 -1:U -1
+    HWOUT 1026 3 1 0 0 0 1026 -1:U -1
+    HWOUT 1027 3 1 0 0 0 1027 -1:U -1
+    <VOLENV2
+      ACT 1 -1
+      VIS 1 1 1
+      LANEHEIGHT 0 0
+      ARM 1
+      DEFSHAPE 0 -1 -1
+      PT 0 1 0
+    >
+    <FXCHAIN
+      WNDRECT 628 552 793 293
+      SHOW 0
+      LASTSEL 0
+      DOCKED 0
+      BYPASS 0 0 0
+      <JS studio31/vicentino-62 ""
+        0.000000 3.000000 0.149800 0.000000 1.000000 - - - - 0.000000 - - - - 0.000000 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - 0.000000 - - - - - - - - - canto-labor2
+      >
+      PRESETNAME canto-labor2
+      FLOATPOS 627 186 554 265
+      FXID {F2D1F536-C113-1EA6-7C03-B21898989E79}
+      <PARMENV 0 0 61 30.5
+        ACT 1 -1
+        VIS 1 1 1
+        LANEHEIGHT 118 0
+        ARM 1
+        DEFSHAPE 0 -1 -1
+        PT 0 0 0
+        PT 0 0 0
+        PT 0.75 0 0
+        PT 4.5 0 0
+        PT 5.92485 0 0
+        PT 6 26 0
+        PT 9 26 0
+        PT 9 27 0
+        PT 10.5 27 0
+        PT 10.5 30 0
+        PT 12 30 0
+        PT 12 36 0
+        PT 13.5 36 0
+        PT 13.5 37 0
+        PT 15 37 0
+        PT 15 1 0
+        PT 16.5 1 0
+        PT 18 1 0
+        PT 18 46 0
+        PT 21 46 0
+        PT 22.5 20 0
+        PT 24 20 0
+        PT 24 46 0
+        PT 25.5 46 0
+        PT 27 46 0
+        PT 27 30 0
+        PT 28.5 30 0
+        PT 30 30 0
+        PT 30 32 0
+        PT 31.5 32 0
+        PT 33 32 0
+        PT 33 36 0
+        PT 34.5 36 0
+        PT 36 36 0
+        PT 36 10 0
+        PT 39 10 0
+        PT 39 46 0
+        PT 42 46 0
+        PT 45 39 0
+        PT 47.25 39 0
+        PT 48 39 0
+        PT 48 1 0
+        PT 49.5 1 0
+        PT 49.5 27 0
+        PT 51 27 0
+        PT 51 30 0
+        PT 52.5 30 0
+        PT 52.5 27 0
+        PT 54 27 0
+        PT 54 21 0
+        PT 54.75 21 0
+        PT 56.25 21 0
+        PT 57 21 0
+        PT 57 49 0
+        PT 58.5 49 0
+        PT 58.5 23 0
+        PT 60 23 0
+        PT 61.5 27 0
+        PT 63 27 0
+        PT 63 1 0
+        PT 63.75 1 0
+        PT 64.5 1 0
+        PT 64.5 26 0
+        PT 67.5 26 0
+        PT 67.5 20 0
+        PT 69 20 0
+        PT 69 18 0
+        PT 70.5 18 0
+        PT 70.5 22 0
+        PT 72 22 0
+        PT 72 26 0
+        PT 73.5 26 0
+        PT 75 26 0
+        PT 75.75 26 0
+        PT 75.75 27 0
+        PT 77.25 27 0
+        PT 78 27 0
+        PT 78 10 0
+        PT 81 10 0
+        PT 81 11 0
+        PT 84 11 0
+        PT 85.5 1 0
+        PT 87 1 0
+        PT 87 3 0
+        PT 89.25 3 0
+        PT 90 3 0
+        PT 90 6 0
+        PT 91.5 6 0
+        PT 93 6 0
+        PT 93 7 0
+        PT 96 7 0
+        PT 96 10 0
+        PT 99 10 0
+        PT 99 12 0
+        PT 100.5 12 0
+        PT 102 12 0
+        PT 102 16 0
+        PT 105 16 0
+        PT 105 0 0
+        PT 106.5 0 0
+        PT 109.5 0 0
+        PT 112.5 0 0
+        PT 112.5 56 0
+        PT 114 56 0
+        PT 114 59 0
+        PT 115.5 59 0
+        PT 117 59 0
+        PT 117 0 0
+        PT 118.5 0 0
+        PT 118.5 37 0
+        PT 120 37 0
+        PT 121.5 46 0
+        PT 123 46 0
+        PT 123 30 0
+        PT 124.5 30 0
+        PT 126 30 0
+        PT 126 32 0
+        PT 127.5 32 0
+        PT 129 32 0
+        PT 129 36 0
+        PT 132 36 0
+        PT 132 37 0
+        PT 133.5 37 0
+        PT 133.5 20 0
+        PT 136.5 20 0
+        PT 138 20 0
+        PT 138 47 0
+        PT 141 47 0
+        PT 141 46 0
+        PT 142.5 46 0
+        PT 145.5 46 0
+        PT 147 46 0
+        PT 147 10 0
+        PT 150 10 0
+        PT 150 12 0
+      >
+      <PARMENV 5 0 1 0.5
+        ACT 1 -1
+        VIS 1 1 1
+        LANEHEIGHT 0 0
+        ARM 1
+        DEFSHAPE 1 -1 -1
+        PT 0 0 1
+        PT 0.75 1 1
+        PT 4.5 0 1
+        PT 6 1 1
+        PT 21 0 1
+        PT 22.5 1 1
+        PT 25.5 0 1
+        PT 25.54705495 1 1
+        PT 28.44962079 0 1
+        PT 28.5 1 1
+        PT 31.5 0 1
+        PT 31.54705495 1 1
+        PT 34.5 0 1
+        PT 34.54705495 1 1
+        PT 42 0 1
+        PT 45 1 1
+        PT 47.25 0 1
+        PT 47.29705495 1 1
+        PT 54.75 0 1
+        PT 54.79705495 1 1
+        PT 56.25 0 1
+        PT 56.29705495 1 1
+        PT 57 0 1
+        PT 57.04705495 1 1
+        PT 60 0 1
+        PT 61.5 1 1
+        PT 63.75 0 1
+        PT 63.79705495 1 1
+        PT 73.4583205 0 1
+        PT 73.5 1 1
+        PT 74.95294505 0 1
+        PT 75 1 1
+        PT 75.7239532 0 1
+        PT 75.77100815 1 1
+        PT 77.25 0 1
+        PT 77.29705495 1 1
+        PT 84 0 1
+        PT 85.5 1 1
+        PT 89.25 0 1
+        PT 89.29705495 1 1
+        PT 91.5 0 1
+        PT 91.54705495 1 1
+        PT 100.5 0 1
+        PT 100.54705495 1 1
+        PT 106.5 0 1
+        PT 106.54705495 1 1
+        PT 109.5 0 1
+        PT 109.54705495 1 1
+        PT 115.5 0 1
+        PT 115.54705495 1 1
+        PT 120 0 1
+        PT 121.5 1 1
+        PT 124.5 0 1
+        PT 124.54705495 1 1
+        PT 127.5 0 1
+        PT 127.54705495 1 1
+        PT 136.5 0 1
+        PT 136.54705495 1 1
+        PT 142.5 0 1
+        PT 142.54705495 1 1
+        PT 145.5 0 1 0 1
+        PT 145.54705495 1 1 0 1
+        PT 162 0 1
+      >
+      <PARMENV 1 0 6 3
+        ACT 1 -1
+        VIS 1 1 1
+        LANEHEIGHT 0 0
+        ARM 1
+        DEFSHAPE 1 -1 -1
+        PT 0 3 1
+        PT 0.75 4 1 0 1
+        PT 1.5 3 1
+        PT 6 3 1
+        PT 15 3 1
+        PT 16.5 4 1
+        PT 18 3 1
+        PT 109.5 4 1
+        PT 112.5 3 1
+        PT 117 4 1
+        PT 118.5 3 1
+      >
+      <PARMENV 6 0 5 2.5
+        ACT 1 -1
+        VIS 1 1 1
+        LANEHEIGHT 0 0
+        ARM 1
+        DEFSHAPE 1 -1 -1
+        PT 0 0 1
+        PT 6 0 1
+        PT 9 3 1
+        PT 10.5 2 1
+        PT 12 3 1
+        PT 13.5 4 1
+        PT 15 0 1
+        PT 16.5 3 1
+        PT 18 4 1
+        PT 22.5 5 1
+        PT 24 0 1
+        PT 25.5 2 1
+        PT 27 2 1 0 1
+        PT 28.5 5 1
+        PT 30 2 1
+        PT 31.5 5 1
+        PT 33 4 1
+        PT 34.5 3 1
+        PT 36 5 1
+        PT 39 2 1
+        PT 45 4 1
+        PT 47.25 0 1
+        PT 48 4 1
+        PT 49.5 3 1
+        PT 51 2 1
+        PT 51.75 3 1
+        PT 54 5 1
+        PT 54.75 1 1
+        PT 56.25 4 1
+        PT 57 0 1
+        PT 58.5 4 1
+        PT 61.5 0 1
+        PT 63 0 1
+        PT 63.75 0 1
+        PT 64.5 0 1
+        PT 67.5 0 1
+        PT 69 0 1
+        PT 70.5 0 1
+        PT 72 0 1
+        PT 73.5 0 1
+        PT 75 0 1
+        PT 75.75 0 1
+        PT 77.25 0 1
+        PT 78 0 1
+        PT 81 0 1
+      >
+      <PARMENV 2 0 2 1
+        ACT 1 -1
+        VIS 1 1 1
+        LANEHEIGHT 0 0
+        ARM 1
+        DEFSHAPE 0 -1 -1
+        PT 0 0.1483 0
+        PT 0.75 0.14976 0
+      >
+      PARM_TCP 0 6
+      WAK 0
+    >
+  >
+  <TRACK {F3986D4B-0D4F-521B-9E08-DCAB788E2E81}
+    NAME Alto
+    PEAKCOL 16576
+    BEAT -1
+    AUTOMODE 0
+    VOLPAN 1 0 -1 -1 1
+    MUTESOLO 0 0 0
+    IPHASE 0
+    ISBUS 0 0
+    BUSCOMP 0 0
+    SHOWINMIX 1 0.6667 0.5 1 0.5 0 0 0
+    FREEMODE 0
+    SEL 0
+    REC 0 0 1 0 0 0 0
+    VU 2
+    TRACKHEIGHT 0 0 0
+    INQ 0 0 0 0.5 100 0 0 100
+    NCHAN 4
+    FX 1
+    TRACKID {F3986D4B-0D4F-521B-9E08-DCAB788E2E81}
+    PERF 0
+    MIDIOUT -1
+    MAINSEND 0 0
+    HWOUT 1028 3 1 0 0 0 1024 -1:U -1
+    HWOUT 1029 3 1 0 0 0 1025 -1:U -1
+    HWOUT 1030 3 1 0 0 0 1026 -1:U -1
+    HWOUT 1031 3 1 0 0 0 1027 -1:U -1
+    <FXCHAIN
+      WNDRECT 404 243 793 293
+      SHOW 0
+      LASTSEL 0
+      DOCKED 0
+      BYPASS 0 0 0
+      <JS studio31/vicentino-62 ""
+        0.000000 3.000000 0.149500 0.000000 1.000000 - - - - 0.000000 - - - - 0.000000 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - 0.000000 - - - - - - - - - alto-labor02
+      >
+      PRESETNAME alto-labor02
+      FLOATPOS 0 0 0 0
+      FXID {4E84CCEA-AB92-EE35-36AF-B88A24B2A4CB}
+      <PARMENV 0 0 61 30.5
+        ACT 1 -1
+        VIS 1 1 1
+        LANEHEIGHT 98 0
+        ARM 1
+        DEFSHAPE 0 -1 -1
+        PT 0 0 0
+        PT 0.6999 0 0
+        PT 0.75 0 0
+        PT 6 0 0
+        PT 9 10 0
+        PT 12 10 0
+        PT 12 56 0
+        PT 13.5 56 0
+        PT 13.5 0 0
+        PT 15 0 0
+        PT 15 46 0
+        PT 16.5 46 0
+        PT 18.75 46 0
+        PT 18.75 47 0
+        PT 19.5 47 0
+        PT 19.5 10 0
+        PT 21 10 0
+        PT 21 11 0
+        PT 22.5 11 0
+        PT 22.5 37 0
+        PT 24 37 0
+        PT 24 0 0
+        PT 25.5 0 0
+        PT 25.5 4 0
+        PT 27 4 0
+        PT 27 10 0
+        PT 28.5 10 0
+        PT 30 10 0
+        PT 30 49 0
+        PT 33 49 0
+        PT 33 11 0
+        PT 36 11 0
+        PT 37.5 52 0
+        PT 39 52 0
+        PT 39 46 0
+        PT 40.5 46 0
+        PT 40.5 1 0
+        PT 42 1 0
+        PT 42 37 0
+        PT 45 37 0
+        PT 45 2 0
+        PT 48 2 0
+        PT 48 46 0
+        PT 49.5 46 0
+        PT 49.5 47 0
+        PT 51 47 0
+        PT 52.5 47 0
+        PT 54 47 0
+        PT 54 46 0
+        PT 55.5 46 0
+        PT 57 46 0
+        PT 57 23 0
+        PT 58.5 23 0
+        PT 58.5 48 0
+        PT 60 48 0
+        PT 60 31 0
+        PT 61.5 31 0
+        PT 61.5 27 0
+        PT 64.5 27 0
+        PT 64.5 43 0
+        PT 66 43 0
+        PT 66 37 0
+        PT 69 37 0
+        PT 69 2 0
+        PT 72 2 0
+        PT 72 46 0
+        PT 73.5 46 0
+        PT 73.5 1 0
+        PT 75 1 0
+        PT 75 46 0
+        PT 76.5 46 0
+        PT 76.5 10 0
+        PT 79.5 10 0
+        PT 79.5 36 0
+        PT 81 36 0
+        PT 82.5 36 0
+        PT 84 36 0
+        PT 84 0 0
+        PT 86.25 0 0
+        PT 87 0 0
+        PT 87 19 0
+        PT 90 19 0
+        PT 90 43 0
+        PT 93 43 0
+        PT 94.5 52 0
+        PT 96 52 0
+        PT 97.5 52 0
+        PT 97.5 27 0
+        PT 99 27 0
+        PT 99 28 0
+        PT 100.5 28 0
+        PT 102 28 0 0 1
+        PT 102 53 0
+        PT 105 53 0
+        PT 105 37 0
+        PT 106.5 37 0
+        PT 108 37 0
+        PT 108 20 0
+        PT 109.5 20 0
+        PT 109.5 17 0
+        PT 111 17 0
+        PT 111 11 0
+        PT 112.5 11 0
+        PT 112.5 36 0
+        PT 114 36 0
+        PT 114 13 0
+        PT 115.5 13 0
+        PT 117 13 0
+        PT 117 37 0
+        PT 118.5 37 0
+        PT 118.5 20 0
+        PT 121.5 20 0
+        PT 121.5 21 0
+        PT 123 21 0
+        PT 123 47 0
+        PT 126 47 0
+        PT 126 12 0
+        PT 129 12 0
+        PT 129 56 0
+        PT 130.5 56 0
+        PT 132 56 0
+        PT 132 37 0
+        PT 133.5 37 0
+        PT 135 37 0
+        PT 136.5 37 0
+        PT 138 37 0
+        PT 138 30 0
+        PT 139.5 30 0
+        PT 139.5 27 0
+        PT 141 27 0
+        PT 141 21 0
+        PT 142.5 21 0
+        PT 144 21 0
+        PT 145.5 21 0
+        PT 145.5 26 0
+        PT 147 26 0
+        PT 147 27 0
+        PT 148.5 27 0
+        PT 150 27 0
+        PT 150 54 0
+      >
+      <PARMENV 1 0 6 3
+        ACT 1 -1
+        VIS 1 1 1
+        LANEHEIGHT 0 0
+        ARM 1
+        DEFSHAPE 1 -1 -1
+        PT 0 0 1
+        PT 0.75 3 1 0 1
+        PT 1.5 3 1
+        PT 9 3 1
+        PT 12 2 1
+        PT 13.5 3 1
+        PT 15 2 1
+        PT 19.5 3 1
+        PT 22.5 2 1
+        PT 24 3 1
+        PT 30 2 1
+        PT 33 3 1
+        PT 37.5 2 1
+        PT 40.5 3 1
+        PT 42 2 1
+        PT 45 3 1
+        PT 48 2 1
+        PT 69 3 1
+        PT 72 2 1
+        PT 73.5 3 1
+        PT 75 2 1
+        PT 76.5 3 1
+        PT 79.5 2 1
+        PT 84 3 1
+        PT 90 2 1
+        PT 99 3 1
+        PT 102 2 1
+        PT 106.5 3 1
+        PT 123 2 1
+        PT 126 3 1
+        PT 129 2 1
+        PT 133.5 3 1
+        PT 150 2 1
+      >
+      <PARMENV 5 0 1 0.5
+        ACT 1 -1
+        VIS 1 1 1
+        LANEHEIGHT 0 0
+        ARM 1
+        DEFSHAPE 1 -1 -1
+        PT 0 0 1
+        PT 0.75 1 1
+        PT 4.5 0 1 0 1
+        PT 6 0 1
+        PT 9 1 1
+        PT 16.5 0 1
+        PT 16.54705495 1 1
+        PT 28.5 0 1
+        PT 28.54705495 1 1
+        PT 36 0 1
+        PT 37.5 1 1
+        PT 51 0 1
+        PT 51.04705495 1 1
+        PT 52.5 0 1
+        PT 52.54705495 1 1
+        PT 55.5 0 1
+        PT 55.54705495 1 1
+        PT 81 0 1
+        PT 81.04705495 1 1
+        PT 82.5 0 1
+        PT 82.54705495 1 1
+        PT 86.25 0 1
+        PT 86.29705495 1 1
+        PT 93 0 1
+        PT 94.5 1 1
+        PT 96 0 1
+        PT 96.04705495 1 1
+        PT 100.5 0 1
+        PT 100.54705495 1 1
+        PT 106.5 0 1
+        PT 106.54705495 1 1
+        PT 115.5 0 1
+        PT 115.54705495 1 1
+        PT 130.5 0 1
+        PT 130.54705495 1 1
+        PT 133.5 0 1
+        PT 133.54705495 1 1
+        PT 135 0 1
+        PT 135.04705495 1 1
+        PT 136.5 0 1
+        PT 136.54705495 1 1
+        PT 142.5 0 1
+        PT 142.54705495 1 1
+        PT 144 0 1
+        PT 144.04705495 1 1
+        PT 148.5 0 1
+        PT 148.54705495 1 1
+        PT 162 0 1
+      >
+      <PARMENV 6 0 5 2.5
+        ACT 1 -1
+        VIS 1 1 1
+        LANEHEIGHT 0 0
+        ARM 1
+        DEFSHAPE 1 -1 -1
+        PT 0 0 1
+        PT 9 2 1
+        PT 12 5 1
+        PT 13.5 3 1
+        PT 15 2 1
+        PT 16.5 5 1
+        PT 18.75 4 1
+        PT 19.5 5 1
+        PT 21 0 1
+        PT 22.5 0 1
+        PT 24 3 1
+        PT 25.5 2 1
+        PT 27 3 1
+        PT 28.5 0 1
+        PT 30 4 1
+        PT 33 0 1
+        PT 37.5 0 1
+        PT 39 5 1
+        PT 40.5 0 1
+        PT 42 4 1
+        PT 45 3 1
+        PT 48 2 1
+        PT 49.5 5 1
+        PT 51 4 1
+        PT 52.5 0 1
+        PT 54 1 1
+        PT 55.5 0 1
+        PT 57 0 1
+        PT 58.5 3 1
+        PT 60 2 1
+        PT 61.5 4 1
+        PT 64.5 3 1
+        PT 66 4 1
+        PT 69 0 1
+        PT 72 5 1 0 1
+        PT 73.5 0 1
+        PT 75 0 1
+        PT 76.5 0 1
+        PT 79.5 0 1
+        PT 81 0 1
+        PT 82.5 0 1
+        PT 84 0 1
+        PT 86.25 0 1
+        PT 87 0 1
+        PT 90 0 1
+      >
+      <PARMENV 2 0 2 1
+        ACT 1 -1
+        VIS 1 1 1
+        LANEHEIGHT 0 0
+        ARM 1
+        DEFSHAPE 0 -1 -1
+        PT 0 0.1483 0
+        PT 0.75 0.149545 0
+        PT 1.4499 0.149545 0
+        PT 1.5 0.1494 0
+        PT 2.9499 0.149545 0
+        PT 3 0.1495 0
+      >
+      PARM_TCP 0 6
+      WAK 0
+    >
+  >
+  <TRACK {290AA135-B538-D7B5-43D7-F02AB626DFB7}
+    NAME Tenore
+    PEAKCOL 16576
+    BEAT -1
+    AUTOMODE 0
+    VOLPAN 1 0 -1 -1 1
+    MUTESOLO 0 0 0
+    IPHASE 0
+    ISBUS 0 0
+    BUSCOMP 0 0
+    SHOWINMIX 1 0.6667 0.5 1 0.5 0 0 0
+    FREEMODE 0
+    SEL 0
+    REC 0 0 1 0 0 0 0
+    VU 2
+    TRACKHEIGHT 0 0 0
+    INQ 0 0 0 0.5 100 0 0 100
+    NCHAN 4
+    FX 1
+    TRACKID {290AA135-B538-D7B5-43D7-F02AB626DFB7}
+    PERF 0
+    MIDIOUT -1
+    MAINSEND 0 0
+    HWOUT 1032 3 1 0 0 0 1024 -1:U -1
+    HWOUT 1033 3 1 0 0 0 1025 -1:U -1
+    HWOUT 1034 3 1 0 0 0 1026 -1:U -1
+    HWOUT 1035 3 1 0 0 0 1027 -1:U -1
+    <FXCHAIN
+      WNDRECT 428 133 793 293
+      SHOW 0
+      LASTSEL 0
+      DOCKED 0
+      BYPASS 0 0 0
+      <JS studio31/vicentino-62 ""
+        0.000000 4.000000 0.148700 0.000000 1.000000 - - - - 0.000000 - - - - 0.000000 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - 0.000000 - - - - - - - - - tenore-labor2
+      >
+      PRESETNAME tenore-labor2
+      FLOATPOS 0 0 0 0
+      FXID {E43C4DF6-2A7F-84D4-2267-900B182E4824}
+      <PARMENV 0 0 61 30.5
+        ACT 1 -1
+        VIS 1 1 1
+        LANEHEIGHT 67 0
+        ARM 1
+        DEFSHAPE 0 -1 -1
+        PT 0 0 0
+        PT 0.6999 1.21316 0
+        PT 0.75 0 0
+        PT 6 0 0 0 1
+        PT 15 26 0
+        PT 18 26 0
+        PT 18 27 0
+        PT 19.5 27 0
+        PT 19.5 30 0
+        PT 21 30 0
+        PT 21 36 0
+        PT 22.5 36 0
+        PT 22.5 20 0
+        PT 24 20 0
+        PT 24 21 0
+        PT 25.5 21 0
+        PT 25.5 46 0
+        PT 27 46 0
+        PT 27 47 0
+        PT 28.5 47 0
+        PT 30 47 0
+        PT 30 12 0
+        PT 33 12 0
+        PT 33 56 0
+        PT 34.5 56 0
+        PT 36 56 0
+        PT 36 27 0
+        PT 37.5 27 0
+        PT 39 27 0
+        PT 39 1 0
+        PT 40.5 1 0
+        PT 40.5 26 0
+        PT 43.5 26 0
+        PT 43.5 20 0
+        PT 45 20 0
+        PT 45 23 0
+        PT 46.5 23 0
+        PT 48 23 0
+        PT 48 26 0
+        PT 49.5 26 0
+        PT 49.5 27 0
+        PT 51 27 0
+        PT 51 10 0
+        PT 52.5 10 0
+        PT 55.5 10 0
+        PT 55.5 4 0
+        PT 57 4 0
+        PT 57 6 0
+        PT 58.5 6 0
+        PT 60 6 0
+        PT 60 11 0
+        PT 61.5 11 0
+        PT 61.5 47 0
+        PT 64.5 47 0
+        PT 64.5 1 0
+        PT 66 1 0
+        PT 66 0 0
+        PT 67.5 0 0
+        PT 69 0 0
+        PT 69 39 0
+        PT 72 39 0
+        PT 72 1 0
+        PT 73.5 1 0
+        PT 73.5 46 0
+        PT 75 46 0
+        PT 75 1 0
+        PT 76.5 1 0
+        PT 76.5 27 0
+        PT 78 27 0
+        PT 78 27 0
+        PT 79.5 27 0
+        PT 79.5 53 0
+        PT 81 53 0
+        PT 81 56 0
+        PT 82.5 56 0
+        PT 84 56 0
+        PT 84 17 0
+        PT 87 17 0
+        PT 87 45 0
+        PT 88.5 45 0
+        PT 90 45 0
+        PT 90 26 0
+        PT 91.5 26 0
+        PT 93 26 0
+        PT 93 27 0
+        PT 96 27 0
+        PT 97.5 27 0
+        PT 99 54 0
+        PT 100.5 54 0
+        PT 102 54 0
+        PT 102 53 0
+        PT 105 53 0
+        PT 105 37 0
+        PT 111 37 0
+        PT 117 20 0
+        PT 118.5 20 0
+        PT 118.5 0 0
+        PT 121.5 0 0
+        PT 121.5 4 0
+        PT 123 4 0
+        PT 123 10 0
+        PT 124.5 10 0
+        PT 126 10 0
+        PT 126 49 0
+        PT 127.5 49 0
+        PT 129 49 0
+        PT 130.5 11 0
+        PT 132 11 0
+        PT 132 17 0
+        PT 133.5 17 0
+        PT 133.5 0 0
+        PT 136.5 0 0
+        PT 138 0 0
+        PT 139.5 47 0
+        PT 141 47 0
+        PT 141 1 0
+        PT 142.5 1 0
+        PT 142.5 4 0
+        PT 145.5 4 0
+        PT 145.5 1 0
+        PT 147 1 0
+        PT 147 27 0
+        PT 148.5 27 0
+        PT 148.5 10 0
+        PT 150 10 0
+        PT 150 29 0
+      >
+      <PARMENV 5 0 1 0.5
+        ACT 1 -1
+        VIS 1 1 1
+        LANEHEIGHT 0 0
+        ARM 1
+        DEFSHAPE 1 -1 -1
+        PT 0 0 1
+        PT 0.75 0 1
+        PT 1.5 1 1
+        PT 4.5 0 1 0 1
+        PT 15 1 1
+        PT 27 0 1
+        PT 27.04705495 1 1
+        PT 28.5 0 1
+        PT 28.54705495 1 1
+        PT 34.5 0 1
+        PT 34.54705495 1 1
+        PT 37.5 0 1
+        PT 37.54705495 1 1
+        PT 46.5 0 1
+        PT 46.54705495 1 1
+        PT 49.5 0 1
+        PT 49.54705495 1 1
+        PT 52.5 0 1
+        PT 52.54705495 1 1
+        PT 58.5 0 1
+        PT 58.54705495 1 1
+        PT 66 0 1
+        PT 66.04705495 1 1
+        PT 67.5 0 1
+        PT 67.54705495 1 1
+        PT 78 0 1
+        PT 78.04705495 1 1
+        PT 82.5 0 1
+        PT 82.54705495 1 1
+        PT 88.5 0 1
+        PT 88.54705495 1 1
+        PT 91.5 0 1
+        PT 91.54705495 1 1
+        PT 97.5 0 1
+        PT 99 1 1
+        PT 100.5 0 1
+        PT 100.54705495 1 1
+        PT 111 0 1
+        PT 117 1 1
+        PT 124.5 0 1
+        PT 124.54705495 1 1
+        PT 127.5 0 1
+        PT 127.54705495 1 1
+        PT 129 0 1
+        PT 130.5 1 1
+        PT 136.5 0 1
+        PT 136.54705495 1 1
+        PT 138 0 1
+        PT 139.5 1 1
+      >
+      <PARMENV 6 0 5 2.5
+        ACT 1 -1
+        VIS 1 1 1
+        LANEHEIGHT 44 0
+        ARM 1
+        DEFSHAPE 1 -1 -1
+        PT 0 0 1
+        PT 15 3 1
+        PT 18 4 1
+        PT 19.5 2 1
+        PT 21 3 1
+        PT 22.5 5 1
+        PT 24 4 1
+        PT 25.5 5 1
+        PT 27 0 1
+        PT 28.5 4 1
+        PT 30 0 1
+        PT 33 3 1
+        PT 34.5 5 1
+        PT 36 4 1
+        PT 37.5 0 1
+        PT 39 3 1
+        PT 40.5 4 1
+        PT 43.5 5 1
+        PT 45 2 1
+        PT 46.5 5 1
+        PT 48 0 1
+        PT 49.5 3 1
+        PT 51 1 1
+        PT 52.5 4 1
+        PT 55.5 5 1
+        PT 57 2 1
+        PT 58.5 5 1
+        PT 60 0 1
+        PT 61.5 5 1
+        PT 64.5 4 1
+        PT 66 0 1
+        PT 67.5 3 1
+        PT 69 4 1
+        PT 72 0 1 0 1
+        PT 73.5 5 1
+        PT 75 5 1
+        PT 76.5 5 1
+        PT 78 5 1
+        PT 79.5 5 1
+        PT 81 5 1
+        PT 82.5 5 1
+        PT 84 5 1
+        PT 87 5 1
+        PT 88.5 5 1
+        PT 90 5 1
+        PT 91.5 5 1
+        PT 93 5 1
+        PT 96 5 1
+      >
+      <PARMENV 1 0 6 3
+        ACT 1 -1
+        VIS 1 1 1
+        LANEHEIGHT 0 0
+        ARM 1
+        DEFSHAPE 1 -1 -1
+        PT 0 3 1
+        PT 0.75 4 1
+        PT 1.5 4 1
+        PT 15 2 1
+        PT 30 3 1
+        PT 33 2 1
+        PT 39 3 1
+        PT 40.5 2 1
+        PT 52.5 3 1
+        PT 61.5 2 1
+        PT 64.5 3 1
+        PT 69 2 1
+        PT 72 3 1
+        PT 73.5 2 1
+        PT 75 3 1
+        PT 76.5 2 1
+        PT 118.5 3 1
+        PT 126 2 1
+        PT 130.5 3 1
+        PT 139.5 2 1
+        PT 141 3 1
+        PT 147 2 1 0 1
+      >
+      <PARMENV 2 0 2 1
+        ACT 1 -1
+        VIS 1 1 1
+        LANEHEIGHT 0 0
+        ARM 1
+        DEFSHAPE 0 -1 -1
+        PT 0 0.1483 0
+        PT 0.75 0.148732 0
+      >
+      PARM_TCP 0 6
+      WAK 0
+    >
+  >
+  <TRACK {A184DCB5-811B-7717-E00D-43DCA6446B44}
+    NAME Basso
+    PEAKCOL 16576
+    BEAT -1
+    AUTOMODE 0
+    VOLPAN 1 0 -1 -1 1
+    MUTESOLO 0 0 0
+    IPHASE 0
+    ISBUS 0 0
+    BUSCOMP 0 0
+    SHOWINMIX 1 0.6667 0.5 1 0.5 0 0 0
+    FREEMODE 0
+    SEL 0
+    REC 0 0 1 0 0 0 0
+    VU 2
+    TRACKHEIGHT 0 0 0
+    INQ 0 0 0 0.5 100 0 0 100
+    NCHAN 4
+    FX 1
+    TRACKID {A184DCB5-811B-7717-E00D-43DCA6446B44}
+    PERF 0
+    MIDIOUT -1
+    MAINSEND 0 0
+    HWOUT 1036 3 1 0 0 0 1024 -1:U -1
+    HWOUT 1037 3 1 0 0 0 1025 -1:U -1
+    HWOUT 1038 3 1 0 0 0 1026 -1:U -1
+    HWOUT 1039 3 1 0 0 0 1027 -1:U -1
+    <FXCHAIN
+      WNDRECT 554 57 793 293
+      SHOW 0
+      LASTSEL 0
+      DOCKED 0
+      BYPASS 0 0 0
+      <JS studio31/vicentino-62 ""
+        37.000000 4.000000 0.148300 0.000000 1.000000 - - - - 0.000000 - - - - 0.000000 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - 0.000000 - - - - - - - - - basso-labor2
+      >
+      PRESETNAME basso-labor2
+      FLOATPOS 0 0 0 0
+      FXID {22E0712C-2BC3-9F19-0089-FDFF374E569E}
+      <PARMENV 0 0 61 30.5
+        ACT 1 -1
+        VIS 1 1 1
+        LANEHEIGHT 164 0
+        ARM 1
+        DEFSHAPE 0 -1 -1
+        PT 0 0 0
+        PT 0.6999 0.38883333 0
+        PT 0.75 37 0
+        PT 1.4499 37 0
+        PT 1.5 0 0
+        PT 4.5 37 0
+        PT 18 10 0
+        PT 21 10 0
+        PT 21 56 0
+        PT 22.5 56 0
+        PT 22.5 0 0
+        PT 24 0 0
+        PT 24 46 0
+        PT 27 46 0
+        PT 27 10 0
+        PT 30 10 0
+        PT 30 13 0
+        PT 31.5 13 0
+        PT 33 13 0
+        PT 33 36 0
+        PT 34.5 36 0
+        PT 36 36 0
+        PT 36 52 0
+        PT 37.5 52 0
+        PT 39 52 0
+        PT 39 26 0
+        PT 40.5 26 0
+        PT 42 26 0
+        PT 42 0 0
+        PT 45 0 0
+        PT 45 3 0
+        PT 48 3 0
+        PT 49.5 10 0
+        PT 51.75 10 0
+        PT 52.5 10 0
+        PT 54 10 0
+        PT 54 46 0
+        PT 55.5 46 0
+        PT 57 46 0
+        PT 57 49 0
+        PT 58.5 49 0
+        PT 60 49 0
+        PT 60 11 0
+        PT 61.5 11 0
+        PT 61.5 10 0
+        PT 63 10 0
+        PT 63 27 0
+        PT 64.5 27 0
+        PT 64.5 26 0
+        PT 66 26 0
+        PT 66 0 0
+        PT 67.5 0 0
+        PT 69 0 0
+        PT 69 3 0
+        PT 72 3 0
+        PT 72 26 0
+        PT 75 26 0
+        PT 76.5 52 0
+        PT 78 52 0
+        PT 78 53 0
+        PT 79.5 53 0
+        PT 79.5 36 0
+        PT 81 36 0
+        PT 82.5 36 0
+        PT 84 36 0
+        PT 84 42 0
+        PT 87 42 0
+        PT 87 45 0
+        PT 88.5 45 0
+        PT 90 45 0
+        PT 90 6 0
+        PT 91.5 6 0
+        PT 93 6 0
+        PT 93 7 0
+        PT 94.5 7 0
+        PT 94.5 52 0
+        PT 96 52 0
+        PT 99 52 0
+        PT 99 54 0
+        PT 102 54 0
+        PT 102 16 0
+        PT 105 16 0
+        PT 105 20 0
+        PT 106.5 20 0
+        PT 108 20 0
+        PT 108 37 0
+        PT 112.5 37 0
+        PT 112.5 36 0
+        PT 114 36 0
+        PT 114 38 0
+        PT 117 38 0
+        PT 117 0 0
+        PT 118.5 0 0
+        PT 118.5 1 0
+        PT 120 1 0
+        PT 120 46 0
+        PT 121.5 46 0
+        PT 123 46 0
+        PT 123 10 0
+        PT 124.5 10 0
+        PT 126 10 0
+        PT 126 12 0
+        PT 127.5 12 0
+        PT 129 12 0
+        PT 129 36 0
+        PT 132 36 0
+        PT 132 0 0
+        PT 135 0 0
+        PT 138 10 0
+        PT 141 10 0
+        PT 141 46 0
+        PT 144 46 0
+        PT 147 46 0
+        PT 147 52 0
+        PT 150 52 0
+        PT 150 54 0
+      >
+      <PARMENV 5 0 1 0.5
+        ACT 1 -1
+        VIS 1 1 1
+        LANEHEIGHT 0 0
+        ARM 1
+        DEFSHAPE 1 -1 -1
+        PT 0 0 1
+        PT 0.75 1 1
+        PT 4.5 0 1
+        PT 18 1 1
+        PT 31.5 0 1
+        PT 31.54705495 1 1
+        PT 34.5 0 1
+        PT 34.54705495 1 1
+        PT 37.5 0 1
+        PT 37.54705495 1 1
+        PT 40.5 0 1
+        PT 40.54705495 1 1
+        PT 48 0 1
+        PT 49.5 1 1
+        PT 51.75 0 1
+        PT 51.79705495 1 1
+        PT 52.5 0 1
+        PT 52.54705495 1 1
+        PT 55.5 0 1
+        PT 55.54705495 1 1
+        PT 55.54705495 0 1
+        PT 55.5941099 1 1
+        PT 67.5 0 1 0 1
+        PT 67.54705495 1 1 0 1
+        PT 75 0 1
+        PT 76.5 1 1
+        PT 78 0 1
+        PT 78.04705495 1 1
+        PT 79.5 0 1
+        PT 79.54705495 1 1
+        PT 81 0 1
+        PT 81.04705495 1 1
+        PT 82.5 0 1
+        PT 82.54705495 1 1
+        PT 84 0 1
+        PT 84.04705495 1 1
+        PT 88.5 0 1
+        PT 88.54705495 1 1
+        PT 91.5 0 1
+        PT 91.54705495 1 1
+        PT 96 0 1
+        PT 96.04705495 1 1
+        PT 106.5 0 1
+        PT 106.54705495 1 1
+        PT 121.5 0 1
+        PT 121.54705495 1 1
+        PT 124.5 0 1
+        PT 124.54705495 1 1
+        PT 127.5 0 1
+        PT 127.54705495 1 1
+        PT 135 0 1
+        PT 138 1 1
+        PT 144 0 1
+        PT 144.04705495 1 1
+        PT 162 0 1
+      >
+      <PARMENV 6 0 5 2.5
+        ACT 1 -1
+        VIS 1 1 1
+        LANEHEIGHT 46 0
+        ARM 1
+        DEFSHAPE 1 -1 -1
+        PT 0 0 1
+        PT 18 0 1
+        PT 21 2 1
+        PT 22.5 3 1
+        PT 24 0 1
+        PT 27 3 1
+        PT 30 0 1
+        PT 31.5 3 1
+        PT 33 4 1
+        PT 34.5 3 1
+        PT 36 0 1
+        PT 37.5 3 1
+        PT 39 4 1
+        PT 40.5 3 1
+        PT 42 0 1
+        PT 45 3 1
+        PT 49.5 1 1
+        PT 51.75 0 1
+        PT 52.5 4 1
+        PT 54 1 1
+        PT 55.5 5 1
+        PT 57 2 1
+        PT 58.5 5 1
+        PT 60 0 1
+        PT 61.5 1 1
+        PT 63 4 1
+        PT 64.5 1 1
+        PT 66 0 1
+        PT 67.5 3 1
+        PT 69 0 1
+        PT 72 3 1
+        PT 76.5 3 1
+        PT 78 3 1
+        PT 79.5 3 1
+        PT 81 3 1
+        PT 82.5 3 1
+        PT 84 3 1
+        PT 87 3 1
+        PT 88.5 3 1
+        PT 90 3 1
+        PT 91.5 3 1
+        PT 93 3 1
+        PT 94.5 3 1
+        PT 96 3 1
+        PT 99 3 1
+        PT 102 3 1
+        PT 105 3 1
+        PT 106.5 3 1
+        PT 108 3 1
+        PT 112.5 3 1
+        PT 114 3 1
+        PT 117 3 1
+        PT 118.5 3 1
+        PT 120 3 1
+        PT 121.5 3 1
+        PT 123 3 1
+        PT 124.5 3 1
+        PT 126 3 1
+        PT 127.5 3 1
+      >
+      <PARMENV 1 0 6 3
+        ACT 1 -1
+        VIS 1 1 1
+        LANEHEIGHT 48 0
+        ARM 1
+        DEFSHAPE 1 -1 -1
+        PT 0 3 1
+        PT 0.75 4 1
+        PT 1.5 4 1
+        PT 18 2 1
+        PT 21 1 1
+        PT 22.5 2 1
+        PT 24 1 1
+        PT 27 2 1
+        PT 33 1 1
+        PT 42 2 1
+        PT 54 1 1
+        PT 60 2 1
+        PT 72 1 1
+        PT 90 2 1
+        PT 94.5 1 1
+        PT 102 2 1
+        PT 120 1 1
+        PT 123 2 1
+        PT 129 1 1
+        PT 132 2 1 0 1
+        PT 135 1 1
+        PT 138 2 1
+        PT 141 1 1
+      >
+      <PARMENV 2 0 2 1
+        ACT 1 -1
+        VIS 1 1 1
+        LANEHEIGHT 0 0
+        ARM 1
+        DEFSHAPE 0 -1 -1
+        PT 0 0.1483 0
+        PT 0.75 0.14845 0
+        PT 1.4499 0.14845 0
+        PT 1.5 0.14832 0
+      >
+      PARM_TCP 0 6
+      WAK 0
+    >
+  >
+>
