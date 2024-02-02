@@ -209,11 +209,11 @@ In order to make a decision of this magnitude, I'll examine both
 approaches a bit further.
 
 ** Representing a score
-Musical notation depends on many conventions. I try to summarize them
-in order to design a suitable data structure, maintaining the two
-dimensional space as a starting point. Both the time and the pitch
-dimension are quantized, which means that there is a predefined set of
-discrete values for both coordinates.
+Conventional musical notation depends on many conventions. I try to
+summarize them in order to design a suitable data structure,
+maintaining the two dimensional space as a starting point. Both the
+time and the pitch dimension are quantized, which means that there is
+a predefined set of discrete values for both coordinates.
 
 Music consists of individual notes, represented by glyphs. Their
 graphical properties encode the duration of the note (the shape of the
@@ -226,10 +226,11 @@ be globally defined (time signature) and locally changed (signature
 change).
 
 ~note-value~ contains all the semantically relevant information of a
-note glyph. There would be many more, like the direction of the stem,
-the length and thickness of the stem, etc., but those don't change the
-musical meaning of the glyph. The struct doesn't include any time
-context, like the time signature, or place within a bar or beat.
+note glyph. There are many more properties of a note glyph, like the
+direction of the stem, the length and thickness of the stem, etc., but
+these don't change the musical meaning of the glyph. The following
+struct doesn't include any time context, like the time signature, or
+place within a bar or beat.
 
 #+begin_src lisp
 (defstruct note-value
@@ -239,6 +240,7 @@ context, like the time signature, or place within a bar or beat.
            flag)
 
 (defun note-value (shape stemp flag)
+  "Creates an instance of the struct NOTE-VALUE."
   (make-note-value :notehead-shape shape :stemp stemp :flag flag))
 #+end_src
 
@@ -258,11 +260,11 @@ pitch. It doesn't take into account any global alterations.
 
 #+begin_src lisp
 (defstruct pitch
-           "LETTER: chars \\#a to \\#g. OCTAVE: integer, 0 for central octave. ALTERATION: :sharp, :flat or
+  "LETTER: chars \\#a to \\#g. OCTAVE: integer, 0 for central octave. ALTERATION: :sharp, :flat or
 :natural."
-           letter
-           octave
-           alteration)
+  letter
+  octave
+  alteration)
 
 (defun pitch (letter octave alteration)
   (make-pitch :letter letter :octave octave :alteration alteration))
@@ -272,7 +274,7 @@ pitch. It doesn't take into account any global alterations.
 : PITCH
 
 With this, I can express a melody as a list of ~note~-objects, using
-~note-value~ and ~pitch~ for as coordinates.
+~note-value~ and ~pitch~ as coordinates.
 
 #+begin_src lisp
 (defvar *follia* (list (note (note-value :empty t nil) (pitch #\d 0 nil))
@@ -289,9 +291,11 @@ The next step is to figure out what this representation can be used
 for. There are two obvious cases: generate a human readable graphical
 output, like a proper score, or generate an audio signal. These are
 two very different tasks. To produce a score is easy, since the data
-structure contains the relevant properties of notes. A conversion to
-Lilypond code would be trivial. For each property there needs to be a
-dictionary in order to translate the data into valid Lilypond syntax.
+structure contains the relevant properties of notes. The data is
+modeled after a musical score, so the conversion into a graphical
+representation of a score is trivial, for example using Lilypond. For
+each property there needs to be a dictionary in order to translate the
+data into valid Lilypond syntax.
 
 #+begin_src lisp
 (defparameter *dict-alterations* '((:sharp . "is")
@@ -332,19 +336,36 @@ dictionary in order to translate the data into valid Lilypond syntax.
                        (lookup-value (note-time-coordinate glyph))
                        " "))
 
+(defparameter *lilypond-header*
+  "\\version \"2.22.2\"
+\\paper{indent=0\\mm tagline=##f line-width=170\\mm}
+#(ly:set-option 'use-paper-size-for-page #f)
+#(ly:set-option 'tall-page-formats 'png)
+
+{ \\override Score.TimeSignature.stencil = ##f
+  \\cadenzaOn")
+
+(defparameter *lilypond-footer*
+   "}")
+
 (defun data-to-lilypond (data)
-  (let ((result (format nil "\\version \"2.22.2\"~%~%{ ")))
+  (let ((result (format nil "~a~% " *lilypond-header*)))
     (dolist (glyph data)
       (setf result (concatenate 'string result (convert-glyph-to-lilypond glyph))))
-    (concatenate 'string result "}")))
+    (concatenate 'string result *lilypond-footer*)))
 
 (data-to-lilypond *follia*)
 #+end_src
 
 #+RESULTS:
 : \version "2.22.2"
+: \paper{indent=0\mm tagline=##f line-width=170\mm}
+: (ly:set-option 'use-paper-size-for-page #f)
+: (ly:set-option 'tall-page-formats 'png)
 :
-: { d'2 cis'4 d'2 e'4 f'2 }
+: { \override Score.TimeSignature.stencil = ##f
+:   \cadenzaOn
+:  d'2 cis'4 d'2 e'4 f'2 }
 
 The results can then be processed by Lilypond, which produces the
 score as expected. I tweaked the lilypond source with some settings to
@@ -365,8 +386,6 @@ the time signature and bar lines.
 #+RESULTS:
 [[file:follia.png]]
 
-[[file:follia.png]]
-
 Obviously there is lots of room for improvements. But conceptually
 this conversion is only a matter of a straight forward translation.
 
@@ -379,17 +398,18 @@ symbols, not by absolute values for frequency in Hz and the number of
 elapsed milliseconds or something like that.
 
 The challenge of the signal processing will be postponed and replaced
-by a visual representation. Pitch and time should be calculated so
-that an audio engine could be fed with them, but instead of an actual
-audio processor I'll feed a graphical backend that will produce a two
-dimensional diagram displaying time on the x axis and frequency on the
-y axis.
+by a visual representation: Pitch and time should be calculated in a
+way that they could be fed to an audio engine, but instead of an
+actual audio processor I'll feed them to a graphical backend that will
+produce a two dimensional diagram displaying time on the x axis and
+frequency on the y axis.
 
 I'll focus first on the tranformation of the musical data into
 absolute values, and on the graphical output later. This
-transformation requires some music theoretical ground rules. The
-mapping between pitch letters with their alterations to frequencies is
-defined by a tuning system, or scale.
+transformation requires some music theoretical ground rules. Musical
+notation (my data structure) implies quite a bit of music theoretical
+knowledge. The mapping between pitch letters with their alterations to
+frequencies is defined by a tuning system, or scale.
 
 #+begin_src lisp
 (defparameter *frequency-table* '(((#\a nil 0) . 440.0)
@@ -402,11 +422,12 @@ defined by a tuning system, or scale.
 #+RESULTS:
 : *FREQUENCY-TABLE*
 
-I'd like to keep this flexible, so instead of a dictionary I'll
-express the scale as a function. That allows me to experiment with
-different functions and generate different outputs. To write this
-function, I need to implement a model of a tuning system. There are
-various models I encountered so far:
+I'd like to keep this flexible, so instead of this kind of dictionary
+I'll express the scale as a function. That allows me to experiment
+with different function definitions and generate different outputs
+accordingly. To write this function, I need to implement a model of a
+tuning system. There are various models I can think of (for sure I'll
+discover many more):
 
 - Linear system :: Pitches are generated by creating a chain of always
   the same interval (the generator). All members of the chain are
@@ -440,7 +461,7 @@ model is a function that handles the chain of intervals.
 #+RESULTS:
 : 81/16
 
-I tried a recursive approach, since I know that I will need to add a
+This is a recursive approach, since I know that I will need to add a
 function to move the members of the chain into the range of the
 identity interval. As the example above shows, ~(linear-system 4)~
 doesn't produce the Pythagorean third, but the Pythagorean third plus
@@ -467,11 +488,20 @@ recursive call. I will opt for the latter, since it will prevent the
 build up of ratios with very large numerators and denominators. This
 doesn't seem very efficient, but optimisation can be dealt with later.
 
-Also, the previous implementation of ~linear-system~ didn't process
-negative indices. A negative index is convenient if I would like to
-describe a chain of fifths starting from a central note with
-index 0. Negative indices cause the chain to expand "to the left",
-adding descending fifths to the system.
+A side node concerning efficiency: if any musical data (like a scale
+in this moment) needs to be calculated only once, and then played
+back, efficiency can be neglected, because it is not a musically
+critical real time situation. But if I'd like to interfere with a
+running system while it is playing back a score, such calculations
+might happen at sample rate, for example to morph gradually between
+two tuning systems while playing. In this case, the calculation of a
+scale becomes part of the audio design pipeline and needs to be as
+efficient as possible.
+
+The previous implementation of ~linear-system~ didn't process negative
+indices. A negative index is convenient to describe a chain of fifths
+starting from a central note with index 0. Negative indices cause the
+chain to expand "to the left", adding descending fifths to the system.
 
 #+begin_src lisp
 (defun linear-system (index &optional (generator-interval 3/2) (identity-interval 2/1))
