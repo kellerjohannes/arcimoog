@@ -1,0 +1,656 @@
+#+title: Representing music with a computer
+#+author: Johannes Keller
+#+startup: overview
+#+eval: yes
+
+* Before I begin
+I decided to write this journal to keep track of my journey towards a
+representation of music in a computer. In my professional work as a
+musician and musicologist I often came across the need to represent a
+musical score in a digital format. I heavily used the Sibelius
+notation software for many years, transcribing several complete operas
+for theaters and orchestras. Then I switched to Dorico and I was very
+pleased with the concise concept and the high quality engraving. After
+having notated again several large scale works I changed my digital
+life to a more open source oriented approach, moved from Mac to Linux
+and faced the dilemma: should I keep a Windows partition on my
+ThinkPad, just to run Dorico? After some time with this hybrid setup I
+became tired and I moved over completely to Arch Linux, where I fully
+embraced the concept of plain text. After two years using Vim as my
+primary interface to my computer I moved into Emacs. Currently my
+professional and private life is mainly coordinated within org mode,
+including the writing of my dissertation. For music engraving I use
+mainly Lilypond.
+
+Notation software is just one part of my use cases. The other part are
+various experiments and studies concerning polyphonic music of the
+16th century. I have a particular interest in intonation phenomena. My
+daily work with highly microtonal keyboard instruments from the 16th
+century sharpened my senses for the specific properties of musical
+intervals and the musical diversity that can be gained from adopting
+complex concepts of pitch organisation. In that context I was given
+the task of transcribing all musical examples in Nicola Vicentinos
+treatise /L'antica musica ridotta alla moderna prattica/, printed in
+Rome in 1555. These roughly 350 snippets of very strange music needed
+to encoded digitally. Because of the unusual pitch system, this
+notation wasn't compatible with any established standard of music
+encoding. I decided to create my own way of representing these scores
+and I wrote a program to transform this encoding into various
+graphical formats, including modern looking scores engraved by
+Lilypond.
+
+I'm not a programmer. To me, coding is still a mysterious island with
+fascinating discoveries, but also many forbidden fruits. As a musician
+I learned to trust my gut feeling. And my guts tell me that there is
+something to be discovered in the field of digital representation of
+musical structure. In many occasions over the last couple of years I
+implemented various approached for rudimentary tools that had the
+purpose of generating an explicative figure for a journal article or
+they were used to control an analog synthesizer by modelling specific
+tuning systems. The life span of those mini projects was never longer
+than a couple of days or weeks.
+
+I feel that it is time to invest some time and effort to dig deeper
+and potentially come up with something that could be used for many
+projects, maybe even by more than just me.
+
+So, here we go.
+
+* The environment
+I decided to use Common Lisp. The reason is simple: it's my personal
+preference. I used to code in C++ in high school, but stopped
+programming entirely during my musical studies. Only a couple of years
+ago I picked it up again, after a phase of being obsessively
+interested in life coding. Andrew Sorensen with his Impromptu /
+Extempore languages were a huge inspiration. Because of his work I
+taught myself Scheme and used it for a couple of musical
+performances. Orm Finnendahl pointed me towards Common Lisp, which
+became the main language for my every day needs. I never wrote a
+finished piece of software, but dozens of small helper programs.
+
+My understanding of Common Lisp is far from complete, I read the first
+half of SICP, worked through /Practical Common Lisp/ and read many
+blogs. I have a hunch that some properties of the Lisp language will
+be very important for my undertaking, particularly its homoiconicity
+and the distinction of compile time and execution time.
+
+Apart from those reasons I perceive Lisp as a poetic language. There
+are always many different paths that lead to a solution. Having many
+ways to express something is a critical ingredience for a poetic
+language. I also feel that it encourages quick, dirty and intuitive
+coding. Planning, setting goals and checkpoints destroy any kind of
+artistic approach, in my personal experience. Child like play needs to
+be possible, and Lisp seems to allow that. Plus, its syntax is very
+compact, I can express complicated structures with few key strokes,
+which is an important feature when it comes to time critical
+coding. Interacting with your code while it is generating music has a
+great potential for stress. Having a compact language that is
+efficient to edit helps.
+
+Coming from an Early Music background, I appreciate old things. The
+fact that Common Lisp is a language with a standard has a comforting
+quality because it's easier to trust that code will be executable over
+a long period of time.
+
+For this journal I'm going to use Emacs's /org mode/ and Common Lisp
+code blocks. I use SBCL as a Lisp instance. For now I don't write any
+code anywhere else.
+
+Let's test it. I started SLIME with 'M-x slime' (normally I use 'sly'
+for Common Lisp development, but org mode seems to work better with
+SLIME).
+
+#+begin_src lisp
+3/2
+#+end_src
+
+#+RESULTS:
+: 3/2
+
+I need to understand how to connect separate code blocks to one
+context. Let's test this as well.
+
+#+begin_src lisp
+(defun simplify (interval &optional (identity-interval 2/1))
+  (cond ((< interval 1)
+         (simplify (* interval identity-interval) identity-interval))
+        ((>= interval identity-interval)
+         (simplify (/ interval identity-interval) identity-interval))
+        (t interval)))
+#+end_src
+
+#+RESULTS:
+: SIMPLIFY
+
+I didn't execute this definition, but I'd like to use the function in
+the following code block.
+
+#+begin_src lisp
+(simplify 9/4)
+#+end_src
+
+#+RESULTS:
+: 9/8
+
+Ok, this sends me into the debugger saying that 'simplify' is unbound.
+
+After executing the code block with the function definition, I can call
+it in the other code block.
+
+Now what happens if I quit SBCL and restart it?
+
+I need to manually execute all code blocks again.
+
+First I try to avoid the explicit confirmation to execute a code
+block, according to
+https://orgmode.org/manual/Evaluating-Code-Blocks.html.
+
+#+begin_src lisp :eval yes
+2/1
+#+end_src
+
+#+RESULTS:
+: 2
+
+Ok, that works. Would be great to be able to enable this globally. I
+added it at the top of the file.
+
+#+begin_src lisp
+5/4
+#+end_src
+
+#+RESULTS:
+: 5/4
+
+Great, this works. I discovered that ~org-babel-execute-buffer~ (C-c
+C-v C-b) executes the whole document. That might be sufficient. It
+causes 'redefining' warnings in the REPL, but that seems to be ok for
+now.
+
+* The straight forward approach
+The most naive approach to representing music with data structures is
+to treat each note as a point in a two dimensional space. The
+horizontal axis would be time, the vertical axis pitch.
+
+#+begin_src lisp
+(defstruct note
+           time-coordinate
+           pitch-coordinate)
+
+(defun note (time pitch)
+  (make-note :time-coordinate time :pitch-coordinate pitch))
+#+end_src
+
+#+RESULTS:
+: NOTE
+
+A simple melody could be encoded as a collection of note objects.
+
+#+begin_src lisp
+(defvar *ave* (list (note 0 1/1) (note 1 3/2) (note 2 8/5) (note 3 4/3) (note 4 3/2)))
+
+,*ave*
+#+end_src
+
+#+RESULTS:
+: (#S(NOTE :TIME-COORDINATE 0 :PITCH-COORDINATE 1)
+:  #S(NOTE :TIME-COORDINATE 1 :PITCH-COORDINATE 3/2)
+:  #S(NOTE :TIME-COORDINATE 2 :PITCH-COORDINATE 8/5)
+:  #S(NOTE :TIME-COORDINATE 3 :PITCH-COORDINATE 4/3)
+:  #S(NOTE :TIME-COORDINATE 4 :PITCH-COORDINATE 3/2))
+
+Obviously, there is a lot to improve. But this extremely rudimentary
+implementation shows the necessity for a fundamental decision: Am I
+going to represent the appearance of a musical score in modern
+notation or the mental model of musicians when they read, process or
+invent musical structures?
+
+In order to make a decision of this magnitude, I'll examine both
+approaches a bit further.
+
+** Representing a score
+Musical notation depends on many conventions. I try to summarize them
+in order to design a suitable data structure, maintaining the two
+dimensional space as a starting point. Both the time and the pitch
+dimension are quantized, which means that there is a predefined set of
+discrete values for both coordinates.
+
+Music consists of individual notes, represented by glyphs. Their
+graphical properties encode the duration of the note (the shape of the
+note head, possibly modified with a rhythmical dot, the presence or
+absence of a stem, with or without flags). The glyphs are printed
+sequentially, there is no absolute time code involved, the note values
+are read in an additive way. This series of note values can be
+structured in beats and bars, various durations of beats and bars can
+be globally defined (time signature) and locally changed (signature
+change).
+
+~note-value~ contains all the semantically relevant information of a
+note glyph. There would be many more, like the direction of the stem,
+the length and thickness of the stem, etc., but those don't change the
+musical meaning of the glyph. The struct doesn't include any time
+context, like the time signature, or place within a bar or beat.
+
+#+begin_src lisp
+(defstruct note-value
+           "NOTEHEAD-SHAPE: :empty, :filled. FLAG: integer from 0 to 4."
+           notehead-shape
+           stemp
+           flag)
+
+(defun note-value (shape stemp flag)
+  (make-note-value :notehead-shape shape :stemp stemp :flag flag))
+#+end_src
+
+#+RESULTS:
+: NOTE-VALUE
+
+Pitch is encoded by the vertical position of the note heads on a line
+system. The horizontal lines represent an ordered succession of
+pitches, called the gamut. The positions on the gamut are labelled
+with the letters A-G. The pitch that is defined by the position of the
+note head can be modified by using alteration signs (sharps and flats)
+placed left of a note head. They can also be applied globally by
+placing them at the beginning of a line system.
+
+~pitch~ contains the semantically relevant information for a notes
+pitch. It doesn't take into account any global alterations.
+
+#+begin_src lisp
+(defstruct pitch
+           "LETTER: chars \\#a to \\#g. OCTAVE: integer, 0 for central octave. ALTERATION: :sharp, :flat or
+:natural."
+           letter
+           octave
+           alteration)
+
+(defun pitch (letter octave alteration)
+  (make-pitch :letter letter :octave octave :alteration alteration))
+#+end_src
+
+#+RESULTS:
+: PITCH
+
+With this, I can express a melody as a list of ~note~-objects, using
+~note-value~ and ~pitch~ for as coordinates.
+
+#+begin_src lisp
+(defvar *follia* (list (note (note-value :empty t nil) (pitch #\d 0 nil))
+                       (note (note-value :filled t nil) (pitch #\c 0 :sharp))
+                       (note (note-value :empty t nil) (pitch #\d 0 nil))
+                       (note (note-value :filled t nil) (pitch #\e 0 nil))
+                       (note (note-value :empty t nil) (pitch #\f 0 nil))))
+#+end_src
+
+#+RESULTS:
+: *FOLLIA*
+
+The next step is to figure out what this representation can be used
+for. There are two obvious cases: generate a human readable graphical
+output, like a proper score, or generate an audio signal. These are
+two very different tasks. To produce a score is easy, since the data
+structure contains the relevant properties of notes. A conversion to
+Lilypond code would be trivial. For each property there needs to be a
+dictionary in order to translate the data into valid Lilypond syntax.
+
+#+begin_src lisp
+(defparameter *dict-alterations* '((:sharp . "is")
+                                  (:flat . "es")
+                                  (:natural . "")))
+
+(defun lookup-alteration (alteration)
+  (if alteration
+      (cdr (assoc alteration *dict-alterations*))
+      ""))
+
+(defparameter *dict-octaves* '((-2 . ",")
+                               (-1 . "")
+                               (0 . "'")
+                               (1 . "''")
+                               (2 . "'''")))
+
+(defun lookup-octave (octave)
+  (cdr (assoc octave *dict-octaves*)))
+
+(defparameter *dict-values* '(((:empty nil nil) . "1")
+                              ((:empty t nil) . "2")
+                              ((:filled t nil) . "4")
+                              ((:filled t 1) . "8")
+                              ((:filled t 2) . "16")))
+
+(defun lookup-value (note-value)
+  (cdr (assoc (list (note-value-notehead-shape note-value)
+                    (note-value-stemp note-value)
+                    (note-value-flag note-value))
+              ,*dict-values*
+              :test #'equal)))
+
+(defun convert-glyph-to-lilypond (glyph)
+  (concatenate 'string (string (pitch-letter (note-pitch-coordinate glyph)))
+                       (lookup-alteration (pitch-alteration (note-pitch-coordinate glyph)))
+                       (lookup-octave (pitch-octave (note-pitch-coordinate glyph)))
+                       (lookup-value (note-time-coordinate glyph))
+                       " "))
+
+(defun data-to-lilypond (data)
+  (let ((result (format nil "\\version \"2.22.2\"~%~%{ ")))
+    (dolist (glyph data)
+      (setf result (concatenate 'string result (convert-glyph-to-lilypond glyph))))
+    (concatenate 'string result "}")))
+
+(data-to-lilypond *follia*)
+#+end_src
+
+#+RESULTS:
+: \version "2.22.2"
+:
+: { d'2 cis'4 d'2 e'4 f'2 }
+
+The results can then be processed by Lilypond, which produces the
+score as expected. I tweaked the lilypond source with some settings to
+create a small snippet and not a whole page of music, and to suppress
+the time signature and bar lines.
+
+#+begin_src lilypond :file follia.png
+\version "2.22.2"
+\paper{indent=0\mm tagline=##f line-width=170\mm}
+#(ly:set-option 'use-paper-size-for-page #f)
+#(ly:set-option 'tall-page-formats 'png)
+
+{ \override Score.TimeSignature.stencil = ##f
+  \cadenzaOn
+ d'2 cis'4 d'2 e'4 f'2 }
+#+end_src
+
+#+RESULTS:
+[[file:follia.png]]
+
+[[file:follia.png]]
+
+Obviously there is lots of room for improvements. But conceptually
+this conversion is only a matter of a straight forward translation.
+
+To produce an audio output based on the data structure is more
+challenging. One part of the challenge is the technical solution how
+to produce audio, which involves some sort of digital signal
+processing. The other part is how to interpret the score. Obviously
+the data is of a relative nature. Pitch and time are represented by
+symbols, not by absolute values for frequency in Hz and the number of
+elapsed milliseconds or something like that.
+
+The challenge of the signal processing will be postponed and replaced
+by a visual representation. Pitch and time should be calculated so
+that an audio engine could be fed with them, but instead of an actual
+audio processor I'll feed a graphical backend that will produce a two
+dimensional diagram displaying time on the x axis and frequency on the
+y axis.
+
+I'll focus first on the tranformation of the musical data into
+absolute values, and on the graphical output later. This
+transformation requires some music theoretical ground rules. The
+mapping between pitch letters with their alterations to frequencies is
+defined by a tuning system, or scale.
+
+#+begin_src lisp
+(defparameter *frequency-table* '(((#\a nil 0) . 440.0)
+                                  ((#\a :sharp 0) . 466.1638)
+                                  ((#\b :flat 0) . 466.1638)
+                                  ((#\b nil 0) . 493.8833))
+              "The keys are lists containing the three elements of the PITCH struct.")
+#+end_src
+
+#+RESULTS:
+: *FREQUENCY-TABLE*
+
+I'd like to keep this flexible, so instead of a dictionary I'll
+express the scale as a function. That allows me to experiment with
+different functions and generate different outputs. To write this
+function, I need to implement a model of a tuning system. There are
+various models I encountered so far:
+
+- Linear system :: Pitches are generated by creating a chain of always
+  the same interval (the generator). All members of the chain are
+  reduced in a way that they lie within the identity interval,
+  normally the octave. A sorted version of such a list of intervals
+  represents the pitches that are available in a scale. I used linear
+  systems to desribe pythagorean and regular meantone systems.
+- Equal division :: By dividing a specific interval (normally the
+  octave) in a specific number of equal parts you can describe the
+  available pitches of a scale. Subsets can be defined. This is the
+  obvious model for the piano tuning (twelve equal parts per octave,
+  12-EDO or 12ed2), or meantone approaches such as 19-ed2 and 31ed2.
+- Lattice (Tonnetz) :: An n-dimensional lattice where each axis
+  represents a specific interval size. This approach is very
+  productive for Just Intonation systems.
+
+I'll start with an implementation of linear systems. The core of the
+model is a function that handles the chain of intervals.
+
+#+begin_src lisp
+(defun linear-system (index &optional (generator-interval 3/2) (identity-interval 2/1))
+  (if (zerop index)
+      1/1
+      (* generator-interval (linear-system (decf index) generator-interval identity-interval))))
+
+;; c - g - d - a - e
+;; 0   1   2   3   4
+(linear-system 4)
+#+end_src
+
+#+RESULTS:
+: 81/16
+
+I tried a recursive approach, since I know that I will need to add a
+function to move the members of the chain into the range of the
+identity interval. As the example above shows, ~(linear-system 4)~
+doesn't produce the Pythagorean third, but the Pythagorean third plus
+two octaves. For the function to reduce an interval to its smallest
+form I also follow a recursive approach.
+
+#+begin_src lisp
+(defun interval-modulo (interval &optional (identity-interval 2/1))
+  (cond ((< interval 1/1)
+         (interval-modulo (* interval identity-interval) identity-interval))
+        ((>= interval identity-interval)
+         (interval-modulo (/ interval identity-interval) identity-interval))
+        (t interval)))
+
+(interval-modulo 81/16)
+#+end_src
+
+#+RESULTS:
+: 81/64
+
+I could either apply the requested "modulo" function to the end result
+of ~linear-system~, when breaking the recursive loop, or in each
+recursive call. I will opt for the latter, since it will prevent the
+build up of ratios with very large numerators and denominators. This
+doesn't seem very efficient, but optimisation can be dealt with later.
+
+Also, the previous implementation of ~linear-system~ didn't process
+negative indices. A negative index is convenient if I would like to
+describe a chain of fifths starting from a central note with
+index 0. Negative indices cause the chain to expand "to the left",
+adding descending fifths to the system.
+
+#+begin_src lisp
+(defun linear-system (index &optional (generator-interval 3/2) (identity-interval 2/1))
+  (if (zerop index)
+      1/1
+    (interval-modulo (* (if (minusp index) (/ 1 generator-interval) generator-interval)
+                        (linear-system (if (minusp index)
+                                           (incf index)
+                                         (decf index))
+                                       generator-interval
+                                       identity-interval))
+                     identity-interval)))
+
+(linear-system 4)
+#+end_src
+
+#+RESULTS:
+: 81/64
+
+This seems to work. To collect the pitches of a conventional
+Pythagorean tuning into a lookup table, I just need to decide the
+range of the chain of fifths. For example:
+
+|  E♭ |  B♭ |  F |  C |  G | D | A | E | B♮ | F♯ | C♯ | G♯ |
+| -5 | -4 | -3 | -2 | -1 | 0 | 1 | 2 | 3 | 4 | 5 | 6 |
+
+#+begin_src lisp
+(defun generate-pythagorean-dictionary (index-start index-end)
+  (mapcar (lambda (index)
+            (cons index (linear-system index)))
+          (loop for i from index-start to index-end collect i)))
+
+(defparameter *pythagorean-scale* (generate-pythagorean-dictionary -5 6))
+
+(defun lookup-pythagorean-pitch (index)
+  (cdr (assoc index *pythagorean-scale*)))
+
+(lookup-pythagorean-pitch 4)
+#+end_src
+
+#+RESULTS:
+: 81/64
+
+With this, I can easily generate dictionaries for any linear system,
+including regular meantone temperaments. I just need to adjust the
+generator interval and the range of fifths. But there is still one
+piece missing. ~linear-system~ expects an index, but the pitch
+information (~pitch-coordinate~) in my score data consists of
+~letter~, ~octave~ and ~alteration~.
+
+There is still one translation process necessary to convert a
+~pitch-coordinate~ into an index for a linear system. It is already
+clear that this translation depends on the implementation of the
+model. For the linear system, an index is required that represents the
+position of the note within the interval chain. For an equal division
+function, the expected index would represent something else, probably
+the number of atomic intervals the requested interval consists of. For
+a Tonnetz, the index would probably be an n-dimensional coordinate
+that describes the position of the pitch within the lattice.
+
+That means that the translation between a ~pitch-coordinate~ and the
+arguments that the function of the model of the tuning system expects
+depends on the model itself. Therefore I need to add this translation
+to the ~linear-system~ function. But strictly speaking it's not part
+of the tuning system itself. I decide to introduce the concept of a
+Tonsystem. This creates the chain
+
+| pitch information (~pitch-coordinate~) | ➙ | Tonsystem | ➙ | tuning model | ➙ | output module |
+
+The Tonsystem is a function that takes a ~pitch-coordinate~ (~letter~,
+~octave~, ~alteration~) and transforms it to an index that is
+meaningful in a specific Tonsystem (like the index of a linear
+system). The tuning model takes this index and transforms is into a
+number that describes the pitch (like ratios in the Pythagorean
+tuning, calculated by ~linear-system~). This number can then be used
+by an output module to calculate a sounding frequency or the
+y-coordinate in a diagram.
+
+This reminds me of the OpenGL pipeline. You describe your virtual
+world with data structures, which are then transformed by various
+functions (shaders) to finally get to the numbers that are required to
+render something on the screen.
+
+It would be interesting to come up with a generic implementation of
+such a pipeline. Later I could add implementations of various
+Tonsystems, tuning models and output modules to represent different
+approaches how to transform musical data into actual sound.
+
+For a generic pipeline I'll try an object oriented approach. Each
+component of the pipeline will be represented by a class with
+subclasses for the various different models. The slots of the
+subclasses contain the configuration of the model (like the size of
+the generator interval in a linear system, or the setup of the axis in
+a Tonnetz). The transformation functions are implemented as methods.
+
+#+begin_src lisp
+(defclass pipeline () ())
+
+(defclass pitch-convention (pipeline) ()
+  "Contains definitions relevant to a specific note naming convention. For example valid letters or
+alterations that are used to create an instance of MUSICAL-DATA.")
+(defgeneric valid-data-p (pitch-convention data))
+
+(defclass musical-data (pipeline) ()
+  "Contains for example a note name, following a specific convention.")
+(defgeneric create-data (pitch-convention data))
+
+(defclass tonsystem (pipeline) ()
+  "Contains parameters that define a specific Tonsystem, like lookup tables that map note names to
+indices that can be used to apply a tuning model.")
+(defgeneric pitch-information-to-tonsystem (pitch-information tonsystem))
+
+(defclass tuning-model (pipeline) ()
+  "Contains parameters that define a tuning model, like the size of the generator interval, or the
+configuration of a Tonnetz.")
+(defgeneric tonsystem-to-tuning-model (music-data tonsystem tuning-model))
+
+(defclass output-module (pipeline) ()
+  "Contains parameters that define the appearance of the final result of the pipeline, like the
+reference pitch and oscillator configurations for audio output.")
+(defgeneric tuning-model-to-output-module (music-data tuning-model output-module))
+
+(defun create-pipeline (tonsystem tuning-model output-module)
+  "Creates a function that transforms origin data into sound or graphics."
+  (lambda (musical-data)
+    (apply tuning-model-to-output-module
+           (apply tonsystem-to-tuning-model
+                  (apply pitch-information-to-tonsystem musical-data)))))
+#+end_src
+
+#+RESULTS:
+: CREATE-PIPELINE
+
+For each specific combination of Tonsystem, tuning model and output
+module I could create an individual pipeline. The pipeline is a
+procedure that takes musical data (like a note name) and generates
+some sort of output (audio or diagram). The concept of pipelines would
+allow me to render the same musical data in many different ways,
+examining the impact of certain parameters on the perception of
+sounding music.
+
+To test this concept I'll implement a simple meantone system. I'm
+doubting if the design of the struct ~pitch-coordinate~ is powerful
+enough, but I'll stick to it for now. In the future I probably want to
+be able to use different formats for the musical data, not just
+conventional note names. I therefore reimplement ~pitch-coordinate~ as
+~common-note-name~, a subclass of ~pitch-information~.
+
+#+begin_src lisp
+(defclass common-note-name-convention (pitch-convention)
+  ((valid-letters :reader valid-letters :initform "abcdefg")
+   (valid-octaves :reader valid-octaves :initform (list -3 -2 -1 0 1 2))
+   (valid-alterations :reader valid-alterations :initform (list :flat :sharp :natural nil)))
+  "The standard note naming convention, like c', d♭, F♯.")
+
+(defparameter *common-note-name-convention* (make-instance common-note-name-convention))
+
+(defmethod valid-data-p ((convention common-note-name-convention) letter alteration octave)
+           (and (find letter (valid-letters convention))
+                (member alteration (valid-alterations convention))
+                (member octave (valid-octaves convention))))
+
+(defclass common-note-name (musical-data)
+  ((letter :accessor letter :initarg :letter)
+   (octave :accessor octave :initarg :octave)
+   (alteration :accessor alteration :initarg :alteration)))
+
+(defmethod create-data ((convention common-note-name-convention) letter alteration octave)
+  (when (valid-data-p )
+    (make-instance 'common-note-name :letter letter :alteration alteration :octave octave)))
+
+(defun common-note (letter alteration octave)
+  (create-data *common-note-name-convention* letter alteration octave))
+#+end_src
+
+#+RESULTS:
+: COMMON-NOTE
+
+To create an instance of ~common-note-name~ I will use the function
+~common-note~ which does some checking. The goal is to only create
+valid data right from the start. So I force myself to be always
+correct and complete when creating new note names.
