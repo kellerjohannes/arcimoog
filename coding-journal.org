@@ -167,7 +167,7 @@ C-v C-b) executes the whole document. That might be sufficient. It
 causes 'redefining' warnings in the REPL, but that seems to be ok for
 now.
 
-* The straight forward approach
+* Music as a two-dimentional phenomenon
 The most naive approach to representing music with data structures is
 to treat each note as a point in a two dimensional space. The
 horizontal axis would be time, the vertical axis pitch.
@@ -208,7 +208,8 @@ invent musical structures?
 In order to make a decision of this magnitude, I'll examine both
 approaches a bit further.
 
-** Representing a score
+* Representing a score
+** A naive sketch
 Conventional musical notation depends on many conventions. I try to
 summarize them in order to design a suitable data structure,
 maintaining the two dimensional space as a starting point. Both the
@@ -287,6 +288,7 @@ With this, I can express a melody as a list of ~note~-objects, using
 #+RESULTS:
 : *FOLLIA*
 
+** Lilypond output
 The next step is to figure out what this representation can be used
 for. There are two obvious cases: generate a human readable graphical
 output, like a proper score, or generate an audio signal. These are
@@ -389,6 +391,8 @@ the time signature and bar lines.
 Obviously there is lots of room for improvements. But conceptually
 this conversion is only a matter of a straight forward translation.
 
+** Processing pitch information
+*** Tuning functions and Tonsystems
 To produce an audio output based on the data structure is more
 challenging. One part of the challenge is the technical solution how
 to produce audio, which involves some sort of digital signal
@@ -566,121 +570,246 @@ That means that the translation between a ~pitch-coordinate~ and the
 arguments that the function of the model of the tuning system expects
 depends on the model itself. Therefore I need to add this translation
 to the ~linear-system~ function. But strictly speaking it's not part
-of the tuning system itself. I decide to introduce the concept of a
-Tonsystem. This creates the chain
+of the tuning system. I decide to introduce the concept of a
+Tonsystem, which is more like a naming convention to encode pitch
+information in a way that is meaningful to the tuning function.
 
-| pitch information (~pitch-coordinate~) | ➙ | Tonsystem | ➙ | tuning model | ➙ | output module |
+This creates the chain
 
-The Tonsystem is a function that takes a ~pitch-coordinate~ (~letter~,
-~octave~, ~alteration~) and transforms it to an index that is
-meaningful in a specific Tonsystem (like the index of a linear
-system). The tuning model takes this index and transforms is into a
-number that describes the pitch (like ratios in the Pythagorean
-tuning, calculated by ~linear-system~). This number can then be used
-by an output module to calculate a sounding frequency or the
-y-coordinate in a diagram.
+| note name (~pitch-coordinate~) | ➙ | Tonsystem | ➙ | tuning model | ➙ | output module |
 
-This reminds me of the OpenGL pipeline. You describe your virtual
-world with data structures, which are then transformed by various
-functions (shaders) to finally get to the numbers that are required to
-render something on the screen.
+The Tonsystem is a function that takes a ~pitch-coordinate~ (a note
+name represented by ~letter~, ~octave~ and ~alteration~) and
+transforms it to an index that is meaningful in the context of a
+specific Tonsystem (like the index of a linear system). The tuning
+model takes this index and transforms it into a number that describes
+the pitch (like the ratios in the Pythagorean tuning example above,
+calculated by ~linear-system~). This number is still relative to a
+reference frequency that is not defined by the tuning function. It can
+then be used by an output module to calculate a sounding frequency or
+the y-coordinate in a diagram.
 
+This reminds me of an OpenGL pipeline. You describe your virtual world
+with data structures, which are then transformed by various functions
+(shaders) to finally get to the numbers that are required to draw
+something on the screen.
+
+*** The pitch pipeline
+**** Aspects of the pitch pipeline
 It would be interesting to come up with a generic implementation of
 such a pipeline. Later I could add implementations of various
 Tonsystems, tuning models and output modules to represent different
 approaches how to transform musical data into actual sound.
 
-For a generic pipeline I'll try an object oriented approach. Each
-component of the pipeline will be represented by a class with
-subclasses for the various different models. The slots of the
-subclasses contain the configuration of the model (like the size of
-the generator interval in a linear system, or the setup of the axis in
-a Tonnetz). The transformation functions are implemented as methods.
+The pipeline could be fed at any stage. To process conventional
+scores, for example in the case of notated historical music, it would
+start at the first stage. All it would need is a parser for existing
+music encoding standards such as MusicXML, MEI, Lilypond or Humdrum,
+and existing music could be sent through the pipeline. But I expect
+that it could be artistically interesting to inject or modify data at
+later stages, for example to provide musical information directly to
+the tuning function, without bothering about the conventional
+notation. That would enable me to compose beyond the restrictions of
+conventional music notation (in a way, collections of indices for
+linear systems are just another kind of notation).
 
-#+begin_src lisp
-(defclass pipeline () ())
+The real time manipulation of all the stages of the pipeline could be
+an important feature. It would allow to morph existing musical content
+while it is being rendered. Morphing within a tuning model is trivial,
+as long as the pipeline is being updated at sample rate: I'd just need
+to update the size of the generator interval of the linear system. To
+morph between different tuning models will pose a challenge, since the
+underlying data is not compatible.
 
-(defclass pitch-convention (pipeline) ()
-  "Contains definitions relevant to a specific note naming convention. For example valid letters or
-alterations that are used to create an instance of MUSICAL-DATA.")
-(defgeneric valid-data-p (pitch-convention data))
+To sketch an implementation of this pitch pipeline I'll invent
+concrete scenarios and perform case studies.
 
-(defclass musical-data (pipeline) ()
-  "Contains for example a note name, following a specific convention.")
-(defgeneric create-data (pitch-convention data))
+**** Case study: polyphonic motet in meantone temperament
+The data is somehow provided as a succession of notenames per voice,
+maybe after parsing a MusicXML file. The time dimension is ignored for
+this case study, since I'm focusing on pitch only. The piece requires
+more than 12 note names per octave (E♭ and D♯, G♯ and A♭). The note
+names need to be translated into indices that represent a location on
+the chain of fifths. This requires some sort of dictionary that maps
+every possible note name to indices. There are various options:
 
-(defclass tonsystem (pipeline) ()
-  "Contains parameters that define a specific Tonsystem, like lookup tables that map note names to
-indices that can be used to apply a tuning model.")
-(defgeneric pitch-information-to-tonsystem (pitch-information tonsystem))
+- Only 12 indices are defined, D♯ and E♭ are mapped to the same
+  index. This makes sense if a keyboard with 12 keys per octave should
+  be simulated. The very fact that there is no distinction between E♭
+  and D♯ creates interesting musical situations ('impossible' notes
+  sound badly out of tune, which might be used expressively).
+- All note names that can be expressed are mapped to indices. This
+  makes sense if a keyboard with more than 12 keys per octave should
+  be simulated. Or some approximation of keyboard-independent
+  intonation, like a violin consort for example.
 
-(defclass tuning-model (pipeline) ()
-  "Contains parameters that define a tuning model, like the size of the generator interval, or the
-configuration of a Tonnetz.")
-(defgeneric tonsystem-to-tuning-model (music-data tonsystem tuning-model))
+In this example, the dictionary always works with the same principle,
+but there should be various versions available that use different
+'ranges' in their mapping procedure. When setting up the pipeline it
+would be necessary to decide for a specific version of the dictionary.
 
-(defclass output-module (pipeline) ()
-  "Contains parameters that define the appearance of the final result of the pipeline, like the
-reference pitch and oscillator configurations for audio output.")
-(defgeneric tuning-model-to-output-module (music-data tuning-model output-module))
+The next stage in the pipeline is the tuning function, which also need
+configuration. Meantone temperaments can be modeled as linear
+systems. Obviously the size of the fifth needs to be
+defined. Alternatively it could also be defined as an equal division
+of the octave, with 19 for 1/3-comma-meantone, 31 for
+1/4-comma-meantone and 55 for 1/6-comma-meantone. Furthermore,
+irregular setups might be interesting, which need to be custom
+defined, for example by a list of the sizes of the fifths. When
+setting up the pipeline, a specific tuning model needs to be selected
+and configured by defining the necessary parameters of the model.
 
-(defun create-pipeline (tonsystem tuning-model output-module)
-  "Creates a function that transforms origin data into sound or graphics."
-  (lambda (musical-data)
-    (apply tuning-model-to-output-module
-           (apply tonsystem-to-tuning-model
-                  (apply pitch-information-to-tonsystem musical-data)))))
-#+end_src
+The final stage is the output model which defines the appearance of
+the final product (audio stream, audio file, some kind of
+diagram). It also needs to be configured, in the case of audio
+production it needs a reference pitch and possibly some parameters for
+the sound synthesis.
 
-#+RESULTS:
-: CREATE-PIPELINE
+These three stages could be implemented with an object oriented
+approach. Each stage would be a class. Subclasses could represent the
+various variations, for example different tuning models. They would be
+configured by creating instances with specific initialisation
+arguments. When creating a pipeline, I'd need to pass in instances of
+the stages. Ideally it would be possible to reconfigure instances
+while the pipeline is in use, or even swap stages with other
+instances.
 
-For each specific combination of Tonsystem, tuning model and output
-module I could create an individual pipeline. The pipeline is a
-procedure that takes musical data (like a note name) and generates
-some sort of output (audio or diagram). The concept of pipelines would
-allow me to render the same musical data in many different ways,
-examining the impact of certain parameters on the perception of
-sounding music.
+The pipeline would be represented by another class, holding the
+instances of the stages. A method of this class would manage the data
+flow from stage to stage. It would also be handling real time
+modifications of the pipeline.
 
-To test this concept I'll implement a simple meantone system. I'm
-doubting if the design of the struct ~pitch-coordinate~ is powerful
-enough, but I'll stick to it for now. In the future I probably want to
-be able to use different formats for the musical data, not just
-conventional note names. I therefore reimplement ~pitch-coordinate~ as
-~common-note-name~, a subclass of ~pitch-information~.
+label:idea-dsl A side note and idea for the future: The configuration
+and manipulation of the pipeline could be accessed with a domain
+specific language. This would offer the possibility that users who are
+not familiar with the implementation of the whole system could use it,
+by just learning this language. I could optimize the language for
+brevity, which would make it interesting for live coding. Furthermore
+it would simplify the process of mapping it to hardware
+controllers. It could be artistically interesting to have a hardware
+knob or slider to gradually change the generator interval during a
+piece, for example.
 
-#+begin_src lisp
-(defclass common-note-name-convention (pitch-convention)
-  ((valid-letters :reader valid-letters :initform "abcdefg")
-   (valid-octaves :reader valid-octaves :initform (list -3 -2 -1 0 1 2))
-   (valid-alterations :reader valid-alterations :initform (list :flat :sharp :natural nil)))
-  "The standard note naming convention, like c', d♭, F♯.")
+**** Case study: Serbian songs
+Two-part serbian songs in an unknown tonal system should be
+simulated. The intervals can be expressed with a three-dimensional
+Tonnetz, with an axis for pure fifths, one for pure major thirds and
+one for natural sevenths.
 
-(defparameter *common-note-name-convention* (make-instance common-note-name-convention))
+The first stage will be omitted, since the pitch information is
+available directly as coordinates of the Tonnetz. The tuning function
+consists of a Tonnetz that needs to be configured accordingly when
+setting up the pipeline.
 
-(defmethod valid-data-p ((convention common-note-name-convention) letter alteration octave)
-           (and (find letter (valid-letters convention))
-                (member alteration (valid-alterations convention))
-                (member octave (valid-octaves convention))))
+label:idea-stage-visualisation Idea for the future: Each stage could
+have its own real time visualisation. Particularly the Tonnetz model
+could be interesting to watch while pitch information is being
+processed. In polyphonic setups each voice would need its own
+visualisation.
 
-(defclass common-note-name (musical-data)
-  ((letter :accessor letter :initarg :letter)
-   (octave :accessor octave :initarg :octave)
-   (alteration :accessor alteration :initarg :alteration)))
+label:idea-reverse-pipeline Idea for the future: It could be useful to
+have the option of using a stage in the pipeline in reverse. In this
+case the first stage could produce a transcription of the
+Tonnetz-based primary data into staff notation, using for example the
+Helmholtz-Ellis notation, or standard notation with detune-information
+in cent. Having reversible stages would require that each
+transformation method is defined bidirectionally. Reversing raw pitch
+information (ratios or frequencies) could be transformed into
+positions in a Tonnetz or locations in a linear system by finding best
+approximates. This function could be highly useful for theoretical
+explorations. It could create transcriptions or snapshots of musical
+situations that are being created by freely modulating pitch, for
+example by turning hardware knobs by ear. Another application of
+reversible stages are complex transposition tasks. It could be
+studied to what extend it is possible to transpose a melody within the
+Harry-Partch-system by calculating specific frequencies, shifting
+them, and sending them back through the pipeline.
 
-(defmethod create-data ((convention common-note-name-convention) letter alteration octave)
-  (when (valid-data-p )
-    (make-instance 'common-note-name :letter letter :alteration alteration :octave octave)))
+**** Datatypes
+An object oriented approach seems sensible to represent the pipeline
+and its stages. I'm not sure about the data that flows between the
+stages. It might be useful to define the format of the data in a
+precise way to make data checking as transparent as possible. Since
+there will be many similar but slightly different data formats, it
+might be challenging to keep track.
 
-(defun common-note (letter alteration octave)
-  (create-data *common-note-name-convention* letter alteration octave))
-#+end_src
+The first case study above showed that the validity of the output of
+the first stage depends on the definition of the dictionary. If it
+represents a keyboard with 12 keys per octave, there can only be 12
+different indices. But the tuning function theoretically accepts any
+index, since linear systems are infinite by definition. It probably
+makes sense to implement a data checking method for each stage
+subclass. There will be a data checking method for the incoming data
+(for example the validity of note name information) and a data
+checking method for the outgoing data (for example the validity of
+indices).
 
-#+RESULTS:
-: COMMON-NOTE
+It might makes sense to represent different data formats by classes
+themselves, since they could exist independently of specific
+stages. I can think of these examples of note naming conventions:
 
-To create an instance of ~common-note-name~ I will use the function
-~common-note~ which does some checking. The goal is to only create
-valid data right from the start. So I force myself to be always
-correct and complete when creating new note names.
+- Standard note names with none or one chromatic alteration.
+- Standard note names with none, single or multiple alterations
+  (double sharps, triple flats, etc.).
+- Quarter tone notation (with quarter-sharp, three-quarter-flat, etc.).
+- Vicentino notation (with single alterations and enharmonic dots).
+- Helmholtz-Ellis notation.
+
+If the fist stage simulates a keyboard with 19 keys per octave and
+outputs indices for linear systems, it might be desireable to use it
+for different note naming conventions. That means that the processing
+method of this stage needs to distinguish between different
+notations. This could be solved by multiple dispatch
+methods. For each accepted notation convention there would be a
+separate processing method, applying the data format checking method
+provided by the notation class.
+
+That means I could define a class for pitch information, with
+subclasses for /note names/, /Tonnetz indices/, /interval ratios/,
+etc. For each specific format (like /Vicentino notation/) there would
+be a subclass of the /note names/ class, with a dedicated
+implementation of the format checking method, or with a constructor
+method that only allows the creation of valid instances. Each pitch
+information that enters the pipeline would be an instance of a pitch
+information subclass. In each stage of the pipeline there would be a
+transformation from one pitch information subclass into another one.
+
+An alternative approach would be to define custom types. This could
+make type checking more flexible and I'd have the choice to check
+types at compile time more rigourously. A class based approach has the
+danger of triggering run time errors that would stop the signal
+processing, which is unacceptable in a real time environment. This
+danger might be reduced by using the condition system, which I still
+know only superficially.
+
+At this point I like the idea of having instances of finely defined
+classes for any kind of pitch information. I imagine that it will help
+my own mental transparency. I'll be working on this system for a long
+time, and it will be crucial to have clean procedures to add new data
+formats much later.
+
+Having classes to represent notation conventions also offers the
+possibility of conversion methods between them. It could be useful to
+have conversions between /double accidentals/ and /Vicentino
+notation/. Further subclasses might even offer the possibility of
+defining the available note names on very specific instruments, for
+example a keyboard instrument with a short octave could be represented
+by a subclass of /standard notation/.
+
+A class based approach to represent pitch information can potentially
+also solve another problem that I ignored so far: the handling of
+octaves. Some pitch information formats are octave sensitive, other
+are not (in that case they encode pitch classes, like indices in
+linear systems). It is vital that original octave information is
+preserved thoughout the pipeline, also by stages that don't care about
+it. This could be done by having a dedicated slot for the octave
+information that is carried along through all stages.
+
+
+
+* Representing musical thinking
+
+* Ideas for the future
+- ref:idea-dsl
+- ref:idea-stage-visualisation
+- ref:idea-reverse-pipeline
