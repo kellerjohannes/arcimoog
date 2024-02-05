@@ -805,6 +805,56 @@ preserved thoughout the pipeline, also by stages that don't care about
 it. This could be done by having a dedicated slot for the octave
 information that is carried along through all stages.
 
+**** Implementing pitch data, first sketch
+The following class hierarchy is a first attempt.
+
+#+begin_src lisp
+(defclass pitch-data ()
+  ((octave :accessor octave
+           :documentation "NIL: treated as pitch class, NUMBER: octave indicator, LIST of NUMBERs: simultaneous octaves"))
+  (:documentation "Parent class of subclasses for any kind of pitch data."))
+
+(defclass note-name (pitch-data)
+  ((letter :accessor letter
+           :documentation "CHAR describing the root note name.")
+   (accidental :accessor accidental
+               :documentation "KEYWORD describing an accidental, NIL for the raw root name."))
+  (:documentation "Parent class for note names based on letters and alterations."))
+
+(defclass note-name-12 (note-name)
+  ()
+  (:documentation "Operational subclass for note names represented by a standard keyboard with B♭, E♭ and F♯, C♯,
+G♯. All other alterations are accepted as input but silently mapped onto these note names."))
+
+(defclass note-name-smn (note-name)
+  ()
+  (:documentation "Operational subclass for note names that are part of standard music notation (multiple alterations
+are accepted)."))
+
+(defclass note-name-vicentino (note-name)
+  ((enharmonic-dot :accessor enharmonic-dot
+                   :documentation "NIL if absent, :dot when raised by a 'diesis enarmonico minore', :comma when raised by a 'comma'."))
+  (:documentation "Operational subclass for note names of Vicentino's staff notation."))
+
+(defclass note-name-arciorgano (note-name-vicentino)
+  ()
+  (:documentation "Operational subclass representing the available notes of the Basel Arciorgano."))
+
+(defclass key-name-vicentino (pitch-data)
+  ((letter :accessor letter
+           :documentation "CHAR a-g.")
+   (ordine :accessor ordine
+           :documentation "NUMBER 1-6."))
+  (:documentation "Operational subclass for key names according to Vicentinos L'antica musica (Rome 1555)."))
+
+(defclass key-name-arciorgano (key-name-vicentino)
+  ()
+  (:documentation "Operational subclass representing the available keys of the Basel Arciorgano."))
+#+end_src
+
+#+RESULTS:
+: #<STANDARD-CLASS COMMON-LISP-USER::KEY-NAME-ARCIORGANO>
+
 
 
 * Representing musical thinking
