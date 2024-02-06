@@ -816,20 +816,20 @@ The following class hierarchy is a first attempt.
 
 (defclass note-name (pitch-data)
   ((letter :accessor letter
-           :documentation "CHAR describing the root note name.")
+           :documentation "Keyword describing the root note name.")
    (accidental :accessor accidental
                :documentation "KEYWORD describing an accidental, NIL for the raw root name."))
   (:documentation "Parent class for note names based on letters and alterations."))
-
-(defclass note-name-12 (note-name)
-  ()
-  (:documentation "Operational subclass for note names represented by a standard keyboard with B♭, E♭ and F♯, C♯,
-G♯. All other alterations are accepted as input but silently mapped onto these note names."))
 
 (defclass note-name-smn (note-name)
   ()
   (:documentation "Operational subclass for note names that are part of standard music notation (multiple alterations
 are accepted)."))
+
+(defclass note-name-12 (note-name-smn)
+  ()
+  (:documentation "Operational subclass for note names represented by a standard keyboard with B♭, E♭ and F♯, C♯,
+G♯. All other alterations are accepted as input but silently mapped onto these note names."))
 
 (defclass note-name-vicentino (note-name)
   ((enharmonic-dot :accessor enharmonic-dot
@@ -842,7 +842,7 @@ are accepted)."))
 
 (defclass key-name-vicentino (pitch-data)
   ((letter :accessor letter
-           :documentation "CHAR a-g.")
+           :documentation "Keyword :a-:g.")
    (ordine :accessor ordine
            :documentation "NUMBER 1-6."))
   (:documentation "Operational subclass for key names according to Vicentinos L'antica musica (Rome 1555)."))
@@ -854,6 +854,50 @@ are accepted)."))
 
 #+RESULTS:
 : #<STANDARD-CLASS COMMON-LISP-USER::KEY-NAME-ARCIORGANO>
+
+A generic function to check for validity. Another function could
+provide some sort of iterators for finite ranges, to sweep through all
+available note names or pitches of a certain system.
+
+#+begin_src lisp
+(defgeneric validp (pitch-data)
+  (:documentation "Checks for validity of a pitch-data subclass."))
+
+(defgeneric iterator (pitch-data)
+  (:documentation "Returns a list with all possible pitch-data instances. This is only available for finite sets of
+pitch-data."))
+#+end_src
+
+#+RESULTS:
+: #<STANDARD-GENERIC-FUNCTION COMMON-LISP-USER::ITERATOR (0)>
+
+The implementation of the methods:
+
+#+begin_src lisp
+(defmethod validp ((note pitch-data))
+  "Checks if the octave indicator is valid."
+  (or (integerp (octave note))
+      (null (octave note))
+      (and (listp (octave note))
+           (every #'integerp (octave note)))))
+
+(defmethod validp ((note note-name))
+  "Checks for validity of generic note name. The letter needs to be a keyword between :a and :g, the
+accidental needs to be a keyword or nil."
+  (and (member (letter note) (list :a :b :c :d :e :f :g))
+       (or (keywordp (accidental note))
+           (null (accidental note))
+           (and (listp (accidental note))
+                (every #'keywordp (accidental note))))
+       (call-next-method)))
+
+(defmethod validp ((note note-name-smn))
+  "Checks validity for accidentals."
+  )
+#+end_src
+
+#+RESULTS:
+: #<STANDARD-METHOD COMMON-LISP-USER::VALIDP (NOTE-NAME-SMN) {1009419F93}>
 
 
 
