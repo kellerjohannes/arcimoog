@@ -149,6 +149,12 @@ uniquely :FLAT or :SHARP."
   (:documentation "Operational subclass for note names represented by a standard keyboard with B♭, E♭ and F♯, C♯,
 G♯. All other alterations are accepted as input but silently mapped onto these note names."))
 
+;; print-object is not necessary, it is covered by the print-object of parent class
+
+;; TODO: validp, iterator
+
+
+
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; NOTE-NAME-VICENTINO ;;
@@ -207,6 +213,8 @@ G♯. All other alterations are accepted as input but silently mapped onto these
                        (subsetp allowed-enharmonic-alterations (enharmonic-dot note))))))))
 
 
+;; TODO: iterator
+
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; NOTE-NAME-ARCIORGANO ;;
@@ -226,6 +234,13 @@ G♯. All other alterations are accepted as input but silently mapped onto these
   ;;TODO finish implementation
   )
 
+;; print-object not necessary, covered by parent class
+
+;; TODO: validp, iterator
+
+
+
+
 
 ;;;;;;;;;;;;;;;;;;;;;;;;
 ;; KEY-NAME-VICENTINO ;;
@@ -240,6 +255,10 @@ G♯. All other alterations are accepted as input but silently mapped onto these
            :documentation "NUMBER 1-6."))
   (:documentation "Operational subclass for key names according to Vicentinos L'antica musica (Rome 1555)."))
 
+;; TODO: validp, print-object, iterator
+
+
+
 ;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; KEY-NAME-ARCIORGANO ;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -250,7 +269,9 @@ G♯. All other alterations are accepted as input but silently mapped onto these
   ()
   (:documentation "Operational subclass representing the available keys of the Basel Arciorgano."))
 
+;; print-object not necessary, covered by parent class
 
+;; TODO: validp, iterator
 
 
 
