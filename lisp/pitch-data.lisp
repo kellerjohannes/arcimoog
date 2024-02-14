@@ -40,6 +40,8 @@
 (defgeneric iterator (start end)
   (:documentation "Returns an unordered list with all possible PITCH-DATA instances between start and end. Since in many cases (for example NOTE-NAME) the pitch is unknown, the list is not sorted."))
 
+(defgeneric transform (pitch-data target-format)
+  (:documentation "Translates pitch data into another pitch data format."))
 
 (defmethod validp and ((note pitch-data))
   "Checks if the octave indicator is valid."
@@ -115,6 +117,11 @@ uniquely :FLAT or :SHARP."
                        (reduce-accidental-list (accidental note))
                        (accidental note))))
     (member candidate allowed-accidentals)))
+
+(defmethod transform ((note note-name-smn) target)
+  (ecase target
+    (note-name-12 (with-note-name-convention 'note-name-12
+                    (note (letter note) nil (octave note))))))
 
 ;; TODO: finish implementation, and implement others
 (defmethod iterator ((start note-name-smn) (end note-name-smn))
