@@ -1,24 +1,43 @@
 (in-package :arcimoog)
 
+;; When adding a new PITCH-DATA subclass:
+;; 1. Create a new section in the code below.
+;; 2. Define a appropriate subclass.
+;; 3. Implement all generic functions (see PITCH-DATA implementation). Implement the PRINT-OBJECT method.
+;; 4. Add the class identifier (type of PITCH-DATA) to *valid-note-name-conventions*.
+;; 5. Add case statements to various TRANSFORM methods, to translate other PITCH-DATA instances into the newly created one.
+;; 6. Add a TRANSFORM method to the newly created class.
+
+
+
 ;; TODO
-;; Allowed accidentals etc.: define as global parameters for each class
+;; - write 5am tests for everything
 
+(defparameter *valid-note-name-conventions* (list 'note-name-smn
+                                                  'note-name-12
+                                                  'note-name-vicentino
+                                                  'note-name-arciorgano
+                                                  'key-name-vicentino
+                                                  'key-name-arciorgano))
 
+(defparameter *default-note-name-convention* 'note-name-smn)
 
-;;;;;;;;;;;;;;;
-;; Utilities ;;
-;;;;;;;;;;;;;;;
+(defun set-default-note-name-convention (convention-class)
+  "Set the global default for the note naming convention, used to create new note name instances."
+  (if (member convention-class *valid-note-name-conventions*)
+      (setf *default-note-name-convention* convention-class)
+      (log:warn "Convention class unknown, DEFAULT-NOTE-NAME-CONVENTION will remain unchanged: "
+                *default-note-name-convention*)))
 
-(defun reduce-accidental-list (accidental-list)
-  "Excepts a list of identical keywords"
-  (let ((simple-list (remove-duplicates accidental-list)))
-    (cond ((= 1 (length simple-list))
-           (cond ((keywordp (car simple-list))
-                  (car simple-list))
-                 (t (log:warn "The simplified ACCIDENTAL-LIST" accidental-list "doesn't consist of a keyword and is therefore ignored. This might produce unwanted results.")
-                    nil)))
-          (t (log:warn "The ACCIDENTAL-LIST" accidental-list "doesn't consist of exclusively identical keywords and will therefore be ignored. This might produce unwanted results.")
-             nil))))
+(defmacro with-note-name-convention (note-name-class &body body)
+  "Dynamically rebind the global symbol *default-note-name-convention*."
+  `(if (member ,note-name-class *valid-note-name-conventions*)
+       (let ((*default-note-name-convention* ,note-name-class))
+         ,@body)
+       (progn
+         (log:warn "Convention class unknown, DEFAULT-NOTE-NAME-CONVENTION will remain unchanged: "
+                   *default-note-name-convention*)
+         ,@body)))
 
 
 ;;;;;;;;;;;;;;;;
@@ -30,8 +49,13 @@
 
 (defclass pitch-data ()
   ((octave :accessor octave
+           :initarg :octave
            :documentation "NIL: treated as pitch class, NUMBER: octave indicator, LIST of NUMBERs: simultaneous octaves"))
-  (:documentation "Parent class of subclasses for any kind of pitch data."))
+  (:documentation "Parent class of subclasses for any kind of pitch data. The generic functions of PITCH-DATA need to be implemented for each functional subclass. Some can be omitted if the parent class handles all relevant cases already."))
+
+(defgeneric pitch-equal (pitch-data-1 pitch-data-2 &optional octavep)
+  (:method-combination and)
+  (:documentation "Checks for equality of two instances of subclasses of PITCH-DATA. When OCTAVEP is nil, the octave equality will be ignored. This is useful when testing for equality of pitch classes."))
 
 (defgeneric validp (pitch-data)
   (:method-combination and :most-specific-last)
@@ -42,6 +66,15 @@
 
 (defgeneric transform (pitch-data target-format)
   (:documentation "Translates pitch data into another pitch data format."))
+
+
+
+(defmethod pitch-equal and ((note-1 pitch-data) (note-2 pitch-data) &optional (octavep t))
+  "Checks for equality of the OCTAVE slot."
+  (log:debug "Testing equality on PITCH-DATA level: OCTAVE slot.")
+  (if octavep
+      (equalp (octave note-1) (octave note-2))
+      t))
 
 (defmethod validp and ((note pitch-data))
   "Checks if the octave indicator is valid."
@@ -60,10 +93,46 @@
 
 (defclass note-name (pitch-data)
   ((letter :accessor letter
+           :initarg :letter
            :documentation "Keyword describing the root note name.")
    (accidental :accessor accidental
+               :initarg :accidental
                :documentation "KEYWORD describing an accidental, NIL for the raw root name."))
   (:documentation "Parent class for note names based on letters and alterations."))
+
+(defmethod pitch-equal and ((note-1 note-name) (note-2 note-name) &optional (octavep t))
+  "Checks the equality of the LETTER and the ACCIDENTAL slots."
+  (declare (ignore octavep))
+  (log:debug "Testing equality on NOTE-NAME level: LETTER and ACCIDENTAL slots.")
+  (and (eq (letter note-1) (letter note-2))
+       (equalp (accidental note-1) (accidental note-2))))
+
+(defparameter *note-name-valid-letters*
+  (list :a :b :c :d :e :f :g)
+  "Valid letters for the NOTE-NAME subclasses.")
+
+(defun letter-shift (origin distance)
+  "Expects a keyword (member of *note-name-valid-letters*) and a delta (integer), returns a keyword."
+  (log:debug "Letter translation:" origin distance)
+  (unless (member origin *note-name-valid-letters*)
+    (log:warn "ORIGIN letter" origin "is not valid."))
+  (unless (integerp distance)
+    (log:warn "DISTANCE" distance "is not an integer."))
+  (let ((pos (position origin *note-name-valid-letters*)))
+    (cond ((zerop distance) origin)
+          ((zerop pos)
+           (if (minusp distance)
+               (letter-shift (car (last *note-name-valid-letters*)) (shrink distance))
+               (letter-shift (nth (1+ pos) *note-name-valid-letters*) (shrink distance))))
+          ((= pos (1- (length *note-name-valid-letters*)))
+           (if (minusp distance)
+               (letter-shift (nth (1- pos) *note-name-valid-letters*) (shrink distance))
+               (letter-shift (first *note-name-valid-letters*) (shrink distance))))
+          (t (letter-shift (nth (if (plusp distance)
+                                          (1+ pos)
+                                          (1- pos))
+                                      *note-name-valid-letters*)
+                                 (shrink distance))))))
 
 (defmethod validp and ((note note-name))
   "Checks for validity of generic note name. The letter needs to be a keyword between :a and
@@ -71,11 +140,13 @@
 or a list containing keywords (usually all identical, but not necessarily). Methods of subclasses
 are required to do the checking of accidentals."
   (log:debug "Testing validity on NOTE-NAME level.")
-  (and (member (letter note) (list :a :b :c :d :e :f :g))
-       (or (null (accidental note))
-           (keywordp (accidental note))
-           (and (listp (accidental note))
-                (every #'keywordp (accidental note))))))
+  (with-accessors ((acc accidental))
+      note
+    (and (member (letter note) *note-name-valid-letters*)
+         (or (null acc)
+             (keywordp acc)
+             (and (listp acc)
+                  (every #'keywordp acc))))))
 
 
 ;;;;;;;;;;;;;;;;;;;
@@ -90,6 +161,7 @@ are required to do the checking of accidentals."
 are accepted)."))
 
 (defun print-smn-accidental (accidental)
+  "Returns a string based on a valid SMN-accidental."
   (cond ((null accidental) nil)
         ((keywordp accidental)
          (ecase accidental
@@ -108,40 +180,74 @@ are accepted)."))
             (print-smn-accidental (accidental note))
             (octave note))))
 
+;; pitch-equal is not needed, parent class implementation covers all slots.
+
+(defparameter *note-name-smn-valid-accidentals* (list :sharp :flat))
+
 (defmethod validp and ((note note-name-smn))
   "Checks the validity for accidentals. They have to be :FLAT, :SHARP, NIL or a list containing
 uniquely :FLAT or :SHARP."
   (log:debug "Testing validity on NOTE-NAME-SMN level.")
-  (let ((allowed-accidentals (list :sharp :flat))
-        (candidate (if (listp (accidental note))
-                       (reduce-accidental-list (accidental note))
-                       (accidental note))))
-    (member candidate allowed-accidentals)))
+  (with-accessors ((acc accidental))
+      note
+    (let ((candidate (if (and acc (listp acc))
+                         (reduce-equal-keyword-list acc)
+                         acc)))
+      (or (member candidate *note-name-smn-valid-accidentals*)))))
 
-(defmethod transform ((note note-name-smn) target)
-  (ecase target
-    (note-name-12 (with-note-name-convention 'note-name-12
-                    (note (letter note) nil (octave note))))))
+(defparameter *note-name-letter-circle*
+  (list :f :c :g :d :a :e :b)
+  "Valid NOTE-NAME letters, arranged according to their position in a column of fifths.")
 
-;; TODO: finish implementation, and implement others
-(defmethod iterator ((start note-name-smn) (end note-name-smn))
-  (cond ((and (integerp (octave start))
-              (integerp (octave end)))
-         (log:warn "Octave indicators of START or END or both are not integers. Returning an empty nil.")
-         nil)
-        ((and (integerp multiple-accidentals-depth)
-              (>= multiple-accidentals-depth 0))
-         (log:warn "MULTIPLE-ACCIDENTALS-DEPTH" multiple-accidentals-depth "is invalid. Returning NIL."))
-        (t (with-note-name-convention 'note-name-smn
-             (let ((result nil))
-               (loop for octave from (octave start) to (octave end)
-                     do (dolist (letter (list :a :b :c :d :e :f :g))
-                          (dolist (accidental (list nil :flat :sharp))
-                            (push (note letter accidental octave) result)
-                            (when (> multiple-accidentals-depth 1)
-                              (dotimes (i (1- multiple-accidentals-depth))
-                                (push (note letter accidental octave) result))))))
-               result)))))
+(defmethod note-name-smn-fifth-above ((note note-name-smn))
+  "Returns a new instance of NOTE-NAME-SMN that represents a note a fifth above the given note."
+  (with-accessors ((acc accidental))
+      note
+    (let ((pos (position (letter note) *note-name-letter-circle*)))
+      (cond ((= pos (1- (length *note-name-letter-circle*)))
+             (create-note 'note-name-smn
+                          (first *note-name-letter-circle*)
+                          (cond ((null acc) :sharp)
+                                ((eq acc :flat) nil)
+                                ((eq acc :sharp) (list :sharp :sharp))
+                                ((and (listp acc)
+                                      (eq (first acc) :flat))
+                                 (rest acc))
+                                (t (cons :sharp acc)))
+                          (octave note)))
+            (t (create-note 'note-name-smn
+                            (nth (1+ pos) *note-name-letter-circle*)
+                            acc
+                            (octave note)))))))
+
+(defmethod note-name-smn-fifth-below ((note note-name-smn))
+  "Returns a new instance of NOTE-NAME-SMN that represents a note a fifth below the given note."
+  (with-accessors ((acc accidental))
+      note
+    (let ((pos (position (letter note) *note-name-letter-circle*)))
+      (cond ((zerop pos)
+             (create-note 'note-name-smn
+                          (car (last *note-name-letter-circle*))
+                          (cond ((null acc) :flat)
+                                ((eq acc :flat) (list :flat :flat))
+                                ((eq acc :sharp) nil)
+                                ((and (listp acc)
+                                      (eq (first acc) :sharp))
+                                 (rest acc))
+                                (t (cons :flat acc)))
+                          (octave note)))
+            (t (create-note 'note-name-smn
+                            (nth (1- pos) *note-name-letter-circle*)
+                            acc
+                            (octave note)))))))
+
+(defmethod note-name-smn-fifth-shift ((note note-name-smn) delta)
+  "Returns a new instance of NOTE-NAME-SMN that represents a pitch class transposed by DELTA fifths."
+  (cond ((zerop delta) note)
+        ((plusp delta) (note-name-smn-fifth-shift (note-name-smn-fifth-above note)
+                                                        (1- delta)))
+        ((minusp delta) (note-name-smn-fifth-shift (note-name-smn-fifth-below note)
+                                                         (1+ delta)))))
 
 
 ;;;;;;;;;;;;;;;;;;
@@ -157,8 +263,42 @@ uniquely :FLAT or :SHARP."
 G♯. All other alterations are accepted as input but silently mapped onto these note names."))
 
 ;; print-object is not necessary, it is covered by the print-object of parent class
+;; pitch-equal is not needed, parent class implementation covers all slots.
 
-;; TODO: validp, iterator
+(defparameter *note-name-12-black-notes*
+  (list (make-instance 'note-name-12 :letter :c :accidental :sharp :octave nil)
+        (make-instance 'note-name-12 :letter :e :accidental :flat :octave nil)
+        (make-instance 'note-name-12 :letter :f :accidental :sharp :octave nil)
+        (make-instance 'note-name-12 :letter :g :accidental :sharp :octave nil)
+        (make-instance 'note-name-12 :letter :b :accidental :flat :octave nil)))
+
+(defmethod validp and ((note note-name-12))
+  "Checks validity of a already valid NOTE-NAME-SMN."
+  (or (null (accidental note))
+      (member note *note-name-12-black-notes* :test (lambda (a b) (pitch-equal a b nil)))))
+
+(defmethod note-name-smn-enharmonic-equivalent-12 ((note note-name-smn) direction)
+  "Returns a new instance of NOTE-NAME-SMN with the next enharmonic equivalent in a 12-fold circle of fifths. DIRECTION is :UP or :DOWN."
+  (if (eq direction :up)
+      (note-name-smn-fifth-shift note 12)
+      (note-name-smn-fifth-shift note -12)))
+
+(defmethod note-name-smn-remap-multiple-accidental ((note note-name-smn))
+  "Returns a new instance of NOTE-NAME-SMN with a note name that represents the same Pitch as NOTE on a 12-fold circle of fifths."
+  (cond ((or (null (accidental note)) (keywordp (accidental note))) note)
+        (t (note-name-smn-remap-multiple-accidental
+            (note-name-smn-enharmonic-equivalent-12 note (if (eq (first (accidental note)) :sharp)
+                                                             :down
+                                                             :up))))))
+
+(defparameter *note-name-smn-12-sharps* (list :f :c :g)
+  "The letters that can have valid sharps in a strict 12-keyboard.")
+
+(defparameter *note-name-smn-12-flats* (list :b :e)
+  "The letters that can have valid flats in a strict 12-keyboard.")
+
+
+;; TODO: iterator
 
 
 
@@ -172,6 +312,7 @@ G♯. All other alterations are accepted as input but silently mapped onto these
 
 (defclass note-name-vicentino (note-name)
   ((enharmonic-dot :accessor enharmonic-dot
+                   :initarg :enharmonic-dot
                    :documentation "NIL if absent, :dot when raised by a 'diesis enarmonico minore', :comma when raised by a 'comma'."))
   (:documentation "Operational subclass for note names of Vicentino's staff notation."))
 
@@ -206,18 +347,26 @@ G♯. All other alterations are accepted as input but silently mapped onto these
               "❜")
             (octave note))))
 
+(defmethod pitch-equal and ((note-1 note-name-vicentino) (note-2 note-name-vicentino) &optional octavep)
+  "Checks equality of the ENHARMONIC-DOT slot."
+  (declare (ignore octavep))
+  (log:debug "Testing equality on NOTE-NAME-VICENTINO level: ENHARMONIC-DOT slot.")
+  (equalp (enharmonic-dot note-1) (enharmonic-dot note-2)))
+
+(defparameter *note-name-vicentino-valid-accidentals* (list :flat :sharp))
+
+(defparameter *note-name-vicentino-valid-enharmonic-dots* (list :dot :comma))
+
 (defmethod validp and ((note note-name-vicentino))
   "Checks the validity of accidentals and enharmonic shifts."
   (log:debug "Testing validity on NOTE-NAME-VICENTINO level.")
-  (let ((allowed-accidentals (list :sharp :flat))
-        (allowed-enharmonic-alterations (list :dot :comma)))
-    (and (or (null (accidental note))
-             (member (accidental note) allowed-accidentals))
-         (or (null (enharmonic-dot note))
-             (member (enharmonic-dot note) allowed-enharmonic-alterations)
-             (and (listp (enharmonic-dot note))
-                  (and (subsetp (enharmonic-dot note) allowed-enharmonic-alterations)
-                       (subsetp allowed-enharmonic-alterations (enharmonic-dot note))))))))
+  (and (or (null (accidental note))
+           (member (accidental note) *note-name-vicentino-valid-accidentals*))
+       (or (null (enharmonic-dot note))
+           (member (enharmonic-dot note) *note-name-vicentino-valid-enharmonic-dots*)
+           (and (listp (enharmonic-dot note))
+                (and (subsetp (enharmonic-dot note) *note-name-vicentino-valid-enharmonic-dots*)
+                     (subsetp *note-name-vicentino-valid-enharmonic-dots* (enharmonic-dot note)))))))
 
 
 ;; TODO: iterator
@@ -243,6 +392,8 @@ G♯. All other alterations are accepted as input but silently mapped onto these
 
 ;; print-object not necessary, covered by parent class
 
+;; pitch-equal is not needed, parent class implementation covers all slots.
+
 ;; TODO: validp, iterator
 
 
@@ -257,10 +408,14 @@ G♯. All other alterations are accepted as input but silently mapped onto these
 
 (defclass key-name-vicentino (pitch-data)
   ((letter :accessor letter
+           :initarg :letter
            :documentation "Keyword :a-:g.")
    (ordine :accessor ordine
+           :initarg :ordine
            :documentation "NUMBER 1-6."))
   (:documentation "Operational subclass for key names according to Vicentinos L'antica musica (Rome 1555)."))
+
+;; TODO: pitch-equal
 
 ;; TODO: validp, print-object, iterator
 
@@ -278,6 +433,9 @@ G♯. All other alterations are accepted as input but silently mapped onto these
 
 ;; print-object not necessary, covered by parent class
 
+;; pitch-equal is not needed, parent class implementation covers all slots.
+
+
 ;; TODO: validp, iterator
 
 
@@ -291,40 +449,11 @@ G♯. All other alterations are accepted as input but silently mapped onto these
 
 
 
+;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; Universal constructor ;;
+;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-
-
-
-(defparameter *default-note-name-convention* 'note-name-smn)
-
-(defun set-default-note-name-convention (convention-class)
-  "Set the global default for the note naming convention, used to create new note name instances."
-  (if (member convention-class (list 'note-name-smn
-                                     'note-name-vicentino
-                                     'note-name-arciorgano
-                                     'key-name-vicentino
-                                     'key-name-arciorgano))
-      (setf *default-note-name-convention* convention-class)
-      (log:warn "Convention class unknown, DEFAULT-NOTE-NAME-CONVENTION will remain unchanged: "
-                *default-note-name-convention*)))
-
-;; TODO: write 5am-tests for this macro
-(defmacro with-note-name-convention (note-name-class &body body)
-  "Dynamically rebind the global symbol *default-note-name-convention*."
-  `(if (member ,note-name-class (list 'note-name-smn
-                                      'note-name-12
-                                      'note-name-vicentino
-                                      'note-name-arciorgano
-                                      'key-name-vicentino
-                                      'key-name-arciorgano))
-       (let ((*default-note-name-convention* ,note-name-class))
-         ,@body)
-       (progn
-         (log:warn "Convention class unknown, DEFAULT-NOTE-NAME-CONVENTION will remain unchanged: "
-                   *default-note-name-convention*)
-         ,@body)))
-
-(defun note (letter &optional (alteration nil) (octave 2) enharmonic-dot)
+(defun nn (letter &optional (alteration nil) (octave 2) enharmonic-dot)
   "Create an instance of a PITCH-DATA subclass."
   (let ((result (make-instance *default-note-name-convention*)))
     (setf (letter result) letter
@@ -334,5 +463,63 @@ G♯. All other alterations are accepted as input but silently mapped onto these
                                                        'note-name-arciorgano))
       (setf (enharmonic-dot result) enharmonic-dot))
     (unless (validp result)
-      (log:warn "Validity for newly created PITCH-INFO" result "failed. This might create unwanted results. The PITCH INFO instance is returend nevertheless."))
+      (log:warn "Validity for newly created PITCH-INFO" result "failed. The pitch convention is" *default-note-name-convention* "This might create unwanted results. The PITCH-DATA instance is returend nevertheless."))
     result))
+
+(defun create-note (note-name-convention letter &optional (alteration nil) (octave 2) enharmonic-dot)
+  (with-note-name-convention note-name-convention
+    (nn letter alteration octave enharmonic-dot)))
+
+
+
+
+
+
+;;;;;;;;;;;;;;;;;;;;;
+;; Transformations ;;
+;;;;;;;;;;;;;;;;;;;;;
+
+(defmethod transform ((note note-name-smn) target)
+  "Returns a new PITCH-DATA instance based on the PITCH-DATA subclass specified in TARGET. Some conversions might cause a loss of information. In this case, no warning is issued."
+  (ecase target
+    (note-name-12
+     (let* ((simple-note (note-name-smn-remap-multiple-accidental note))
+            (result (cond ((eq (accidental simple-note) :sharp)
+                           (if (member (letter simple-note) *note-name-smn-12-sharps*)
+                               simple-note
+                               (note-name-smn-enharmonic-equivalent-12 simple-note :down)))
+                          ((eq (accidental simple-note) :flat)
+                           (if (member (letter simple-note) *note-name-smn-12-flats*)
+                               simple-note
+                               (note-name-smn-enharmonic-equivalent-12 simple-note :up)))
+                          (t simple-note))))
+       (create-note 'note-name-12
+                    (letter result) (accidental result) (octave result))))))
+
+
+
+;;;;;;;;;;;;;;;
+;; Iterators ;;
+;;;;;;;;;;;;;;;
+
+
+;; TODO: finish implementation, and implement others
+(defmethod iterator ((start note-name-smn) (end note-name-smn))
+  "Returns an unordered list of possible note names of the type NOTE-NAME-SMN."
+  (cond ((and (integerp (octave start))
+              (integerp (octave end)))
+         (log:warn "Octave indicators of START or END or both are not integers. Returning an empty nil.")
+         nil)
+        ((and (integerp multiple-accidentals-depth)
+              (>= multiple-accidentals-depth 0))
+         (log:warn "MULTIPLE-ACCIDENTALS-DEPTH" multiple-accidentals-depth "is invalid. Returning NIL."))
+        (t (with-note-name-convention 'note-name-smn
+             (let ((result nil))
+               (loop for octave from (octave start) to (octave end)
+                     do (dolist (letter (list :a :b :c :d :e :f :g))
+                          (dolist (accidental (list nil :flat :sharp))
+                            (push (nn letter accidental octave) result)
+                            (when (> multiple-accidentals-depth 1)
+                              (dotimes (i (1- multiple-accidentals-depth))
+                                (push (nn letter accidental octave) result))))))
+               result)))))

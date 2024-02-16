@@ -31,8 +31,8 @@
   (loop for letter in (list :a :b :c :d :e :f :g)
         do (loop for accidental in (list nil :sharp :flat)
                  do (loop for octave from -3 to 8
-                          do (let ((n-oct (note letter accidental octave))
-                                   (n-pc (note letter accidental)))
+                          do (let ((n-oct (nn letter accidental octave))
+                                   (n-pc (nn letter accidental)))
                                (5am:is (letter n-oct) letter)
                                (5am:is (letter n-pc) letter)
                                (5am:is (eq (accidental n-oct) accidental))
