@@ -1,5 +1,4 @@
 (in-package :arcimoog)
-
 ;; When adding a new PITCH-DATA subclass:
 ;; 1. Create a new section in the code below.
 ;; 2. Define a appropriate subclass.
@@ -7,7 +6,6 @@
 ;; 4. Add the class identifier (type of PITCH-DATA) to *valid-note-name-conventions*.
 ;; 5. Add case statements to various TRANSFORM methods, to translate other PITCH-DATA instances into the newly created one.
 ;; 6. Add a TRANSFORM method to the newly created class.
-
 
 
 ;; TODO
@@ -479,6 +477,23 @@ G♯. All other alterations are accepted as input but silently mapped onto these
 ;; Transformations ;;
 ;;;;;;;;;;;;;;;;;;;;;
 
+;; TODO: do be completed
+(defparameter *dict-smn-vicentino*
+  (macrolet ((smn (letter acc)
+               `(make-instance 'note-name-smn :letter ,letter
+                                              :accidental ,acc
+                                              :octave nil))
+             (vic (letter acc dot)
+               `(make-instance 'note-name-vicentino :letter ,letter
+                                                    :accidental ,acc
+                                                    :octave nil
+                                                    :enharmonic-dot ,dot)))
+    (list (cons (smn :c nil) (vic :c nil nil))
+          (cons (smn :d '(:flat :flat)) (vic :c nil :dot)))))
+
+(defmethod lookup-smn-vicentino ((note note-name-smn))
+  (cdr (assoc note *dict-smn-vicentino* :test (lambda (a b) (pitch-equal a b nil)))))
+
 (defmethod transform ((note note-name-smn) target)
   "Returns a new PITCH-DATA instance based on the PITCH-DATA subclass specified in TARGET. Some conversions might cause a loss of information. In this case, no warning is issued."
   (ecase target
@@ -494,7 +509,8 @@ G♯. All other alterations are accepted as input but silently mapped onto these
                                (note-name-smn-enharmonic-equivalent-12 simple-note :up)))
                           (t simple-note))))
        (create-note 'note-name-12
-                    (letter result) (accidental result) (octave result))))))
+                    (letter result) (accidental result) (octave result))))
+    (note-name-vicentino (lookup-smn-vicentino note))))
 
 
 
