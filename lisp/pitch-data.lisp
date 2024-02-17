@@ -477,17 +477,14 @@ G♯. All other alterations are accepted as input but silently mapped onto these
 ;;;;;;;;;;;;;;;;;;;;;
 
 (defparameter *dict-smn-vicentino*
-  (macrolet ((smn (letter acc)
-               `(make-instance 'note-name-smn :letter ,letter
-                                              :accidental ,acc
-                                              :octave nil))
-             (vic (letter acc dot)
-               `(make-instance 'note-name-vicentino :letter ,letter
-                                                    :accidental ,acc
-                                                    :octave nil
-                                                    :enharmonic-dot ,dot))
-             (entry (smn-arguments vic-arguments)
-               `(cons (smn ,@smn-arguments) (vic ,@vic-arguments))))
+  (macrolet
+      ((smn (letter acc)
+         `(make-instance 'note-name-smn :letter ,letter :accidental ,acc :octave nil))
+       (vic (letter acc dot)
+         `(make-instance 'note-name-vicentino :letter ,letter :accidental ,acc :octave nil
+                                              :enharmonic-dot ,dot))
+       (entry (smn-arguments vic-arguments)
+         `(cons (smn ,@smn-arguments) (vic ,@vic-arguments))))
     (list (entry (:c nil) (:c nil nil))
           (entry (:d '(:flat :flat)) (:c nil :dot))
           (entry (:c :sharp) (:c :sharp nil))
@@ -523,6 +520,9 @@ G♯. All other alterations are accepted as input but silently mapped onto these
 (defmethod lookup-smn-vicentino ((note note-name-smn))
   (cdr (assoc note *dict-smn-vicentino* :test (lambda (a b) (pitch-equal a b nil)))))
 
+(defmethod lookup-vicentino-smn ((note note-name-vicentino))
+  (car (rassoc note *dict-smn-vicentino* :test (lambda (a b) (pitch-equal a b nil)))))
+
 (defmethod transform ((note note-name-smn) target)
   "Returns a new PITCH-DATA instance based on the PITCH-DATA subclass specified in TARGET. Some conversions might cause a loss of information. In this case, no warning is issued."
   (ecase target
@@ -539,8 +539,23 @@ G♯. All other alterations are accepted as input but silently mapped onto these
                           (t simple-note))))
        (create-note 'note-name-12
                     (letter result) (accidental result) (octave result))))
-    (note-name-vicentino (lookup-smn-vicentino note))))
+    (note-name-vicentino
+     (let ((result (lookup-smn-vicentino note)))
+       (if result
+           (create-note 'note-name-vicentino
+                        (letter result) (accidental result) (enharmonic-dot result) (octave note))
+           (progn (log:warn "Transformation of" note "into" target "is not possible. Returning original note.")
+                  note))))))
 
+(defmethod transform ((note note-name-vicentino) target)
+  (ecase target
+    (note-name-smn
+     (let ((result (lookup-vicentino-smn note)))
+       (if result
+           (create-note 'note-name-smn
+                        (letter result) (accidental result) (octave note))
+           (progn (log:warn "Transformation of" note "into" target "is not possible. Returning original note.")
+                  note))))))
 
 
 ;;;;;;;;;;;;;;;
