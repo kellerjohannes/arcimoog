@@ -77,10 +77,9 @@
 (defmethod validp and ((note pitch-data))
   "Checks if the octave indicator is valid."
   (log:debug "Testing validity on PITCH-DATA level.")
-  (or (null (octave note))
-      (integerp (octave note))
-      (and (listp (octave note))
-           (every #'integerp (octave note)))))
+  (with-accessors ((oct octave))
+      note
+    (or (null oct) (integerp oct) (and (listp oct) (every #'integerp oct)))))
 
 
 ;;;;;;;;;;;;;;;
@@ -191,7 +190,7 @@ uniquely :FLAT or :SHARP."
     (let ((candidate (if (and acc (listp acc))
                          (reduce-equal-keyword-list acc)
                          acc)))
-      (or (member candidate *note-name-smn-valid-accidentals*)))))
+      (or (null acc) (member candidate *note-name-smn-valid-accidentals*)))))
 
 (defparameter *note-name-letter-circle*
   (list :f :c :g :d :a :e :b)
@@ -451,8 +450,8 @@ G♯. All other alterations are accepted as input but silently mapped onto these
 ;; Universal constructor ;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-(defun nn (letter &optional (alteration nil) (octave 2) enharmonic-dot)
-  "Create an instance of a PITCH-DATA subclass."
+(defun nn (letter &optional (alteration nil) (octave 2) (enharmonic-dot nil))
+  "Creates an instance of a PITCH-DATA subclass."
   (let ((result (make-instance *default-note-name-convention*)))
     (setf (letter result) letter
           (accidental result) alteration
@@ -464,7 +463,7 @@ G♯. All other alterations are accepted as input but silently mapped onto these
       (log:warn "Validity for newly created PITCH-INFO" result "failed. The pitch convention is" *default-note-name-convention* "This might create unwanted results. The PITCH-DATA instance is returend nevertheless."))
     result))
 
-(defun create-note (note-name-convention letter &optional (alteration nil) (octave 2) enharmonic-dot)
+(defun create-note (note-name-convention letter &optional (alteration nil) (octave 2) (enharmonic-dot nil))
   (with-note-name-convention note-name-convention
     (nn letter alteration octave enharmonic-dot)))
 
@@ -477,7 +476,6 @@ G♯. All other alterations are accepted as input but silently mapped onto these
 ;; Transformations ;;
 ;;;;;;;;;;;;;;;;;;;;;
 
-;; TODO: do be completed
 (defparameter *dict-smn-vicentino*
   (macrolet ((smn (letter acc)
                `(make-instance 'note-name-smn :letter ,letter
@@ -487,9 +485,40 @@ G♯. All other alterations are accepted as input but silently mapped onto these
                `(make-instance 'note-name-vicentino :letter ,letter
                                                     :accidental ,acc
                                                     :octave nil
-                                                    :enharmonic-dot ,dot)))
-    (list (cons (smn :c nil) (vic :c nil nil))
-          (cons (smn :d '(:flat :flat)) (vic :c nil :dot)))))
+                                                    :enharmonic-dot ,dot))
+             (entry (smn-arguments vic-arguments)
+               `(cons (smn ,@smn-arguments) (vic ,@vic-arguments))))
+    (list (entry (:c nil) (:c nil nil))
+          (entry (:d '(:flat :flat)) (:c nil :dot))
+          (entry (:c :sharp) (:c :sharp nil))
+          (entry (:d :flat) (:d :flat nil))
+          (entry (:c '(:sharp :sharp)) (:d :flat :dot))
+          (entry (:d nil) (:d nil nil))
+          (entry (:e '(:flat :flat)) (:d nil :dot))
+          (entry (:d :sharp) (:d :sharp nil))
+          (entry (:e :flat) (:e :flat nil))
+          (entry (:d '(:sharp :sharp)) (:e :flat :dot))
+          (entry (:e nil) (:e nil nil))
+          (entry (:f :flat) (:e nil :dot))
+          (entry (:e :sharp) (:e :sharp nil))
+          (entry (:f nil) (:f nil nil))
+          (entry (:g '(:flat :flat)) (:f nil :dot))
+          (entry (:f :sharp) (:g :sharp nil))
+          (entry (:g :flat) (:g :flat nil))
+          (entry (:f '(:sharp :sharp)) (:g :flat :dot))
+          (entry (:g nil) (:g nil nil))
+          (entry (:a '(:flat :flat)) (:g nil :dot))
+          (entry (:g :sharp) (:g :sharp nil))
+          (entry (:a :flat) (:a :flat nil))
+          (entry (:g '(:sharp :sharp)) (:a :flat :dot))
+          (entry (:a nil) (:a nil nil))
+          (entry (:b '(:flat :flat)) (:a nil :dot))
+          (entry (:a :sharp) (:a :sharp nil))
+          (entry (:b :flat) (:b :flat nil))
+          (entry (:a '(:sharp :sharp)) (:b :flat :dot))
+          (entry (:b nil) (:b nil nil))
+          (entry (:c :flat) (:b nil :dot))
+          (entry (:b :sharp) (:b :sharp nil)))))
 
 (defmethod lookup-smn-vicentino ((note note-name-smn))
   (cdr (assoc note *dict-smn-vicentino* :test (lambda (a b) (pitch-equal a b nil)))))
