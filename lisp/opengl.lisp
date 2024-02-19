@@ -1,5 +1,39 @@
 (in-package :arcimoog)
 
+(defclass minimal-window (glut:window)
+  ()
+  (:default-initargs :width 500 :height 500 :pos-x 100 :pos-y 100
+                     :mode '(:double :rgb :depth) :title "Minimal OpenGL window"
+                     :tick-interval (round 1000 60)))
+
+(defmethod glut:tick ((w minimal-window))
+  (declare (ignore w))
+  (glut:post-redisplay))
+
+(defmethod glut:display ((w minimal-window))
+  (gl:clear-color 1.0 1.0 1.0 1.0)
+  (gl:clear :color-buffer-bit :depth-buffer-bit)
+  (glut:swap-buffers))
+
+(defmethod glut:close ((w minimal-window)))
+
+(defun minimal ()
+  (let ((w (make-instance 'minimal-window)))
+    (unwind-protect
+         (glut:display-window w)
+      (when (not (glut::destroyed w))
+        (setf (glut::destroyed w) t)
+        (glut:destroy-window (glut:id w))))))
+
+
+(defun minimal-test ()
+  (bt:make-thread (lambda () (minimal)) :name "minimal-window-test-1")
+  (bt:make-thread (lambda () (minimal)) :name "minimal-window-test-2")
+  )
+
+
+
+
 (defclass shader-vao-window (glut:window)
   ((vbuff :accessor vertex-buffer)
    (ibuff :accessor index-buffer)
@@ -9,8 +43,8 @@
    (program :accessor program)
    (angle :accessor angle :initform 0.0))
   (:default-initargs :width 500 :height 500 :pos-x 100 :pos-y 100
-             :mode '(:double :rgb :depth) :title "shader-vao-window"
-             :tick-interval (round 1000 60)))
+                     :mode '(:double :rgb :depth) :title "shader-vao-window"
+                     :tick-interval (round 1000 60)))
 
 
 ;;; Initialization
@@ -187,4 +221,4 @@
          (glut:destroy-window (glut:id w))))))
 
 (defun test ()
-  (bt:make-thread (lambda () (shader-vao)) :name "opengl-pipeline-2"))
+  (bt:make-thread (lambda () (shader-vao)) :name "opengl-pipeline-1"))
