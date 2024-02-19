@@ -49,6 +49,7 @@
   ((octave :accessor octave
            :initarg :octave
            :documentation "NIL: treated as pitch class, NUMBER: octave indicator, LIST of NUMBERs: simultaneous octaves"))
+  (:default-initargs :octave 2)
   (:documentation "Parent class of subclasses for any kind of pitch data. The generic functions of PITCH-DATA need to be implemented for each functional subclass. Some can be omitted if the parent class handles all relevant cases already."))
 
 (defgeneric pitch-equal (pitch-data-1 pitch-data-2 &optional octavep)
@@ -95,6 +96,7 @@
    (accidental :accessor accidental
                :initarg :accidental
                :documentation "KEYWORD describing an accidental, NIL for the raw root name."))
+  (:default-initargs :letter nil :accidental nil)
   (:documentation "Parent class for note names based on letters and alterations."))
 
 (defmethod pitch-equal and ((note-1 note-name) (note-2 note-name) &optional (octavep t))
@@ -311,6 +313,7 @@ G♯. All other alterations are accepted as input but silently mapped onto these
   ((enharmonic-dot :accessor enharmonic-dot
                    :initarg :enharmonic-dot
                    :documentation "NIL if absent, :dot when raised by a 'diesis enarmonico minore', :comma when raised by a 'comma'."))
+  (:default-initargs :enharmonic-dot nil)
   (:documentation "Operational subclass for note names of Vicentino's staff notation."))
 
 (defparameter *vicentino-dotted-letters*
@@ -410,6 +413,7 @@ G♯. All other alterations are accepted as input but silently mapped onto these
    (ordine :accessor ordine
            :initarg :ordine
            :documentation "NUMBER 1-6."))
+  (:default-initargs :letter nil :ordine 1)
   (:documentation "Operational subclass for key names according to Vicentinos L'antica musica (Rome 1555)."))
 
 ;; TODO: pitch-equal
