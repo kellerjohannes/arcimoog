@@ -28,8 +28,7 @@
 
 (defun minimal-test ()
   (bt:make-thread (lambda () (minimal)) :name "minimal-window-test-1")
-  (bt:make-thread (lambda () (minimal)) :name "minimal-window-test-2")
-  )
+  (bt:make-thread (lambda () (minimal)) :name "minimal-window-test-2"))
 
 
 
