@@ -1,3 +1,7 @@
+;; testing two options for opengl: glut/glu and gflw3. glfw3 seems more suitable, since support for
+;; multiple windows is stable, and www.learnopengl is compatible. minimal examples and font
+;; rendering are still to be tested.
+
 (in-package :arcimoog)
 
 (defclass minimal-window (glut:window)
@@ -28,9 +32,14 @@
 
 (defun minimal-test ()
   (bt:make-thread (lambda () (minimal)) :name "minimal-window-test-1")
-  (bt:make-thread (lambda () (minimal)) :name "minimal-window-test-2")
   )
 
+
+(defparameter *test* (ft2:new-face "/usr/share/fonts/TTF/DejaVuSans.ttf"))
+
+(ft2:set-char-size *test* (* 24 64) 0 72 72)
+
+(ft2:print-with-face *test* "ſ")
 
 
 
@@ -222,3 +231,22 @@
 
 (defun test ()
   (bt:make-thread (lambda () (shader-vao)) :name "opengl-pipeline-1"))
+
+
+
+
+
+
+;; testing font rendering
+
+
+(defparameter *scr-width* 800)
+(defparameter *scr-height* 600)
+
+(defclass character-class ()
+  ((texture-id :accessor texture-id :initarg :texture-id)
+   (size :accessor size :initarg :size)
+   (bearing :accessor bearing :initarg :bearing)
+   (advance :accessor advance :initarg :advance)))
+
+(defparameter *characters* nil)
