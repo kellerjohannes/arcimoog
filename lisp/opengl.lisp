@@ -296,3 +296,141 @@
 ;;    (advance :accessor advance :initarg :advance)))
 
 ;; (defparameter *characters* nil)
+
+
+
+
+
+;;;;;;;;;;;;;;;;;;;;;
+;; TESTING SHADERS ;;
+;;;;;;;;;;;;;;;;;;;;;
+
+
+(define-condition compile-error (error)
+  ((message
+    :initform nil
+    :initarg :message
+    :reader compile-error-message
+    :documentation "The reason given for the error")))
+
+(defparameter *vertex-shader-source* "
+
+// Input our our time variable
+uniform float time;
+
+// Pass to frag shader
+varying vec2 vUv;
+
+attribute vec4 vert;
+
+void main()
+{
+    vUv = vert.xy;
+    vec4 offsets = vec4(cos(time), sin(time), 1., 1.);
+    gl_Position = gl_ModelViewProjectionMatrix * vert * offsets;
+}
+")
+
+(defparameter *fragment-shader-source* "
+
+varying vec2 vUv;
+
+void main()
+{
+    gl_FragColor = vec4(vUv.x, vUv.y, 1., 1.);
+}
+")
+
+(defvar *shader-prog* -1)
+(defvar *frag-shader* nil)
+(defvar *vert-shader* nil)
+
+(defvar *shader-time* 0)
+
+(defun render ()
+  (gl:clear :color-buffer)
+
+  (gl:uniformf
+   (gl:get-uniform-location *shader-prog* "time")
+   (incf *shader-time* 0.01))
+
+  (gl:with-pushed-matrix
+    (gl:translate 0 0 -800)
+    (gl:rect -25 -25 25 25)))
+
+(defun check-shader-error (shader)
+  "Get the current error status of a shader, throw error if status"
+  (let ((error-string (gl:get-shader-info-log shader)))
+    (unless (equalp error-string "")
+      (progn
+        (format t "~A~%" error-string)
+        (error 'compile-error :message error-string)))))
+
+(defun is-invalid-shader (shader)
+  (= shader -1))
+
+(defun setup-shader ()
+  (loop
+    while (is-invalid-shader *shader-prog*) do
+      (with-simple-restart
+          (retry "Retry compiling shaders.")
+        (setf *vert-shader* (gl:create-shader :vertex-shader))
+        (setf *frag-shader* (gl:create-shader :fragment-shader))
+
+        (gl:shader-source *vert-shader*
+                          (uiop:read-file-string
+                           "/home/johannes/common-lisp/arcimoog/lisp/basic-vertex-shader.vert"))
+        (gl:shader-source *frag-shader*
+                          (uiop:read-file-string
+                           "/home/johannes/common-lisp/arcimoog/lisp/basic-fragment-shader.frag"))
+
+        (gl:compile-shader *vert-shader*)
+        (gl:compile-shader *frag-shader*)
+
+        (check-shader-error *vert-shader*)
+        (check-shader-error *frag-shader*)
+
+        (setf *shader-prog* (gl:create-program))
+
+        (gl:attach-shader *shader-prog* *vert-shader*)
+        (gl:attach-shader *shader-prog* *frag-shader*)
+
+        (gl:link-program *shader-prog*)
+
+        (gl:use-program *shader-prog*))))
+
+
+(glfw:def-key-callback quit-on-escape (window key scancode action mod-keys)
+  (declare (ignore window scancode mod-keys))
+  (when (and (eq key :escape) (eq action :press))
+    (glfw:set-window-should-close)))
+
+(defun set-viewport (width height)
+  (gl:clear-color 0.2 0.2 0.2 0.2)
+  (gl:viewport 0 0 width height)
+  (gl:matrix-mode :projection)
+  (gl:load-identity)
+
+  (let ((h (/ height width)))
+    (gl:frustum -1 1 (- h) h 9 50000))
+
+  (gl:matrix-mode :modelview)
+  (gl:load-identity))
+
+(glfw:def-window-size-callback update-viewport (window w h)
+  (declare (ignore window))
+  (set-viewport w h))
+
+(defun fragment-shader-example ()
+  (glfw:with-init-window (:title "OpenGL test" :width 600 :height 400)
+    (glfw:set-key-callback 'quit-on-escape)
+
+    (glfw:set-window-size-callback 'update-viewport)
+    (set-viewport 800 400)
+
+    (setup-shader)
+
+    (loop until (glfw:window-should-close-p)
+          do (render)
+          do (glfw:swap-buffers)
+          do (glfw:poll-events))))
