@@ -237,51 +237,51 @@
 
 ;; testing basic window from learnopengl.com
 
-(defparameter *scr-width* 800)
-(defparameter *scr-height* 600)
+;; (defparameter *scr-width* 800)
+;; (defparameter *scr-height* 600)
 
-(defparameter *vertex-shader-source* (uiop:read-file-string "/home/johannes/common-lisp/arcimoog/lisp/basic-vertex-shader.vert"))
+;; (defparameter *vertex-shader-source* (uiop:read-file-string "/home/johannes/common-lisp/arcimoog/lisp/basic-vertex-shader.vert"))
 
-(defparameter *fragment-shader-source* (uiop:read-file-string "/home/johannes/common-lisp/arcimoog/lisp/basic-fragment-shader.frag"))
+;; (defparameter *fragment-shader-source* (uiop:read-file-string "/home/johannes/common-lisp/arcimoog/lisp/basic-fragment-shader.frag"))
 
-(defun set-viewport (width height)
-  (gl:viewport 0 0 width height)
-  (gl:matrix-mode :projection)
-  (gl:load-identity)
-  (gl:ortho -50 50 -50 50 -1 1)
-  (gl:matrix-mode :modelview)
-  (gl:load-identity))
+;; (defun set-viewport (width height)
+;;   (gl:viewport 0 0 width height)
+;;   (gl:matrix-mode :projection)
+;;   (gl:load-identity)
+;;   (gl:ortho -50 50 -50 50 -1 1)
+;;   (gl:matrix-mode :modelview)
+;;   (gl:load-identity))
 
-(defun render ()
-  (gl:clear :color-buffer)
-  (gl:with-pushed-matrix
-    (gl:color 1 1 1)
-    (gl:rect -25 -25 25 25)))
+;; (defun render ()
+;;   (gl:clear :color-buffer)
+;;   (gl:with-pushed-matrix
+;;     (gl:color 1 1 1)
+;;     (gl:rect -25 -25 25 25)))
 
-(glfw:def-window-size-callback update-viewport (window w h)
-  (declare (ignore window))
-  (set-viewport w h))
+;; (glfw:def-window-size-callback update-viewport (window w h)
+;;   (declare (ignore window))
+;;   (set-viewport w h))
 
-(glfw:def-key-callback quit-on-escape (window key scancode action mod-keys)
-  (declare (ignore window scancode mod-keys))
-  (when (and (eq key :escape) (eq action :press))
-    (glfw:set-window-should-close)))
+;; (glfw:def-key-callback quit-on-escape (window key scancode action mod-keys)
+;;   (declare (ignore window scancode mod-keys))
+;;   (when (and (eq key :escape) (eq action :press))
+;;     (glfw:set-window-should-close)))
 
-(defun main ()
-  (glfw:with-init-window
-      (:title "Minimal OpenGL window" :width *scr-width* :height *scr-height*)
-    (setf %gl:*gl-get-proc-address* #'glfw:get-proc-address)
-    (glfw:set-key-callback 'quit-on-escape)
-    (glfw:set-window-size-callback 'update-viewport)
-    (gl:clear-color 1 0 0 1)
-    (set-viewport *scr-width* *scr-height*)
-    (loop until (glfw:window-should-close-p)
-          do (render)
-          do (glfw:swap-buffers)
-          do (glfw:poll-events))))
+;; (defun main ()
+;;   (glfw:with-init-window
+;;       (:title "Minimal OpenGL window" :width *scr-width* :height *scr-height*)
+;;     (setf %gl:*gl-get-proc-address* #'glfw:get-proc-address)
+;;     (glfw:set-key-callback 'quit-on-escape)
+;;     (glfw:set-window-size-callback 'update-viewport)
+;;     (gl:clear-color 1 0 0 1)
+;;     (set-viewport *scr-width* *scr-height*)
+;;     (loop until (glfw:window-should-close-p)
+;;           do (render)
+;;           do (glfw:swap-buffers)
+;;           do (glfw:poll-events))))
 
-(defun main-thread ()
-  (bt:make-thread 'main))
+;; (defun main-thread ()
+;;   (bt:make-thread 'main))
 
 ;; testing font rendering
 
@@ -306,6 +306,163 @@
 ;;;;;;;;;;;;;;;;;;;;;
 
 
+;; (define-condition compile-error (error)
+;;   ((message
+;;     :initform nil
+;;     :initarg :message
+;;     :reader compile-error-message
+;;     :documentation "The reason given for the error")))
+
+;; (defparameter *vertex-shader-source* "
+
+;; // Input our our time variable
+;; uniform float time;
+
+;; // Pass to frag shader
+;; varying vec2 vUv;
+
+;; attribute vec4 vert;
+
+;; void main()
+;; {
+;;     vUv = vert.xy;
+;;     vec4 offsets = vec4(cos(time), sin(time), 1., 1.);
+;;     gl_Position = gl_ModelViewProjectionMatrix * vert * offsets;
+;; }
+;; ")
+
+;; (defparameter *fragment-shader-source* "
+
+;; varying vec2 vUv;
+
+;; void main()
+;; {
+;;     gl_FragColor = vec4(vUv.x, vUv.y, 1., 1.);
+;; }
+;; ")
+
+;; (defvar *shader-prog* -1)
+;; (defvar *frag-shader* nil)
+;; (defvar *vert-shader* nil)
+
+;; (defvar *shader-time* 0)
+
+;; (defun render ()
+;;   (gl:clear :color-buffer)
+
+;;   (gl:uniformf
+;;    (gl:get-uniform-location *shader-prog* "time")
+;;    (incf *shader-time* 0.01))
+
+;;   (gl:with-pushed-matrix
+;;     (gl:translate 0 0 -800)
+;;     (gl:rect -25 -25 25 25)))
+
+;; (defun check-shader-error (shader)
+;;   "Get the current error status of a shader, throw error if status"
+;;   (let ((error-string (gl:get-shader-info-log shader)))
+;;     (unless (equalp error-string "")
+;;       (progn
+;;         (format t "~A~%" error-string)
+;;         (error 'compile-error :message error-string)))))
+
+;; (defun is-invalid-shader (shader)
+;;   (= shader -1))
+
+;; (defun setup-shader ()
+;;   (loop
+;;     while (is-invalid-shader *shader-prog*) do
+;;       (with-simple-restart
+;;           (retry "Retry compiling shaders.")
+;;         (setf *vert-shader* (gl:create-shader :vertex-shader))
+;;         (setf *frag-shader* (gl:create-shader :fragment-shader))
+
+;;         (gl:shader-source *vert-shader*
+;;                           (uiop:read-file-string
+;;                            "/home/johannes/common-lisp/arcimoog/lisp/basic-vertex-shader.vert"))
+;;         (gl:shader-source *frag-shader*
+;;                           (uiop:read-file-string
+;;                            "/home/johannes/common-lisp/arcimoog/lisp/basic-fragment-shader.frag"))
+
+;;         (gl:compile-shader *vert-shader*)
+;;         (gl:compile-shader *frag-shader*)
+
+;;         (check-shader-error *vert-shader*)
+;;         (check-shader-error *frag-shader*)
+
+;;         (setf *shader-prog* (gl:create-program))
+
+;;         (gl:attach-shader *shader-prog* *vert-shader*)
+;;         (gl:attach-shader *shader-prog* *frag-shader*)
+
+;;         (gl:link-program *shader-prog*)
+
+;;         (gl:use-program *shader-prog*))))
+
+
+;; (glfw:def-key-callback quit-on-escape (window key scancode action mod-keys)
+;;   (declare (ignore window scancode mod-keys))
+;;   (when (and (eq key :escape) (eq action :press))
+;;     (glfw:set-window-should-close)))
+
+;; (defun set-viewport (width height)
+;;   (gl:clear-color 0.2 0.2 0.2 0.2)
+;;   (gl:viewport 0 0 width height)
+;;   (gl:matrix-mode :projection)
+;;   (gl:load-identity)
+
+;;   (let ((h (/ height width)))
+;;     (gl:frustum -1 1 (- h) h 9 50000))
+
+;;   (gl:matrix-mode :modelview)
+;;   (gl:load-identity))
+
+;; (glfw:def-window-size-callback update-viewport (window w h)
+;;   (declare (ignore window))
+;;   (set-viewport w h))
+
+;; (defun fragment-shader-example ()
+;;   (glfw:with-init-window (:title "OpenGL test" :width 600 :height 400)
+;;     (glfw:set-key-callback 'quit-on-escape)
+
+;;     (glfw:set-window-size-callback 'update-viewport)
+;;     (set-viewport 800 400)
+
+;;     (setup-shader)
+
+;;     (loop until (glfw:window-should-close-p)
+;;           do (render)
+;;           do (glfw:swap-buffers)
+;;           do (glfw:poll-events))))
+
+
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; STARTING FROM BEGINNING ;;
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+(defparameter *shader-program* -1)
+(defparameter *vertex-shader* -1)
+(defparameter *fragment-shader* -1)
+
+
+(defun set-viewport (width height)
+  (gl:viewport 0 0 width height)
+  (gl:matrix-mode :projection)
+  (gl:load-identity)
+  (gl:ortho -50 50 -50 50 -1 1)
+  (gl:matrix-mode :modelview)
+  (gl:load-identity))
+
+(glfw:def-key-callback quit-on-escape (window key scancode action mod-keys)
+  (declare (ignore window scancode mod-keys))
+  (when (and (eq key :escape) (eq action :press))
+    (glfw:set-window-should-close)))
+
+(glfw:def-window-size-callback update-viewport (window w h)
+  (declare (ignore window))
+  (set-viewport w h))
+
 (define-condition compile-error (error)
   ((message
     :initform nil
@@ -313,50 +470,8 @@
     :reader compile-error-message
     :documentation "The reason given for the error")))
 
-(defparameter *vertex-shader-source* "
-
-// Input our our time variable
-uniform float time;
-
-// Pass to frag shader
-varying vec2 vUv;
-
-attribute vec4 vert;
-
-void main()
-{
-    vUv = vert.xy;
-    vec4 offsets = vec4(cos(time), sin(time), 1., 1.);
-    gl_Position = gl_ModelViewProjectionMatrix * vert * offsets;
-}
-")
-
-(defparameter *fragment-shader-source* "
-
-varying vec2 vUv;
-
-void main()
-{
-    gl_FragColor = vec4(vUv.x, vUv.y, 1., 1.);
-}
-")
-
-(defvar *shader-prog* -1)
-(defvar *frag-shader* nil)
-(defvar *vert-shader* nil)
-
-(defvar *shader-time* 0)
-
-(defun render ()
-  (gl:clear :color-buffer)
-
-  (gl:uniformf
-   (gl:get-uniform-location *shader-prog* "time")
-   (incf *shader-time* 0.01))
-
-  (gl:with-pushed-matrix
-    (gl:translate 0 0 -800)
-    (gl:rect -25 -25 25 25)))
+(defun is-invalid-shader (shader)
+  (= shader -1))
 
 (defun check-shader-error (shader)
   "Get the current error status of a shader, throw error if status"
@@ -366,71 +481,98 @@ void main()
         (format t "~A~%" error-string)
         (error 'compile-error :message error-string)))))
 
-(defun is-invalid-shader (shader)
-  (= shader -1))
-
 (defun setup-shader ()
   (loop
-    while (is-invalid-shader *shader-prog*) do
+    while (is-invalid-shader *shader-program*) do
       (with-simple-restart
           (retry "Retry compiling shaders.")
-        (setf *vert-shader* (gl:create-shader :vertex-shader))
-        (setf *frag-shader* (gl:create-shader :fragment-shader))
-
-        (gl:shader-source *vert-shader*
+        (setf *vertex-shader* (gl:create-shader :vertex-shader))
+        (setf *fragment-shader* (gl:create-shader :fragment-shader))
+        (gl:shader-source *vertex-shader*
                           (uiop:read-file-string
                            "/home/johannes/common-lisp/arcimoog/lisp/basic-vertex-shader.vert"))
-        (gl:shader-source *frag-shader*
+        (gl:shader-source *fragment-shader*
                           (uiop:read-file-string
                            "/home/johannes/common-lisp/arcimoog/lisp/basic-fragment-shader.frag"))
-
-        (gl:compile-shader *vert-shader*)
-        (gl:compile-shader *frag-shader*)
-
-        (check-shader-error *vert-shader*)
-        (check-shader-error *frag-shader*)
-
-        (setf *shader-prog* (gl:create-program))
-
-        (gl:attach-shader *shader-prog* *vert-shader*)
-        (gl:attach-shader *shader-prog* *frag-shader*)
-
-        (gl:link-program *shader-prog*)
-
-        (gl:use-program *shader-prog*))))
+        (gl:compile-shader *vertex-shader*)
+        (gl:compile-shader *fragment-shader*)
+        (check-shader-error *vertex-shader*)
+        (check-shader-error *fragment-shader*)
+        (setf *shader-program* (gl:create-program))
+        (gl:attach-shader *shader-program* *vertex-shader*)
+        (gl:attach-shader *shader-program* *fragment-shader*)
+        (gl:link-program *shader-program*)
+        (gl:use-program *shader-program*)
+        (gl:delete-shader *vertex-shader*)
+        (gl:delete-shader *fragment-shader*))))
 
 
-(glfw:def-key-callback quit-on-escape (window key scancode action mod-keys)
-  (declare (ignore window scancode mod-keys))
-  (when (and (eq key :escape) (eq action :press))
-    (glfw:set-window-should-close)))
+(defparameter *vertices* (list -0.5 -0.5 0.0
+                               0.5 -0.5 0.0
+                               0.0 0.5 0.0))
 
-(defun set-viewport (width height)
-  (gl:clear-color 0.2 0.2 0.2 0.2)
-  (gl:viewport 0 0 width height)
-  (gl:matrix-mode :projection)
-  (gl:load-identity)
+(defparameter *vbo* -1)
 
-  (let ((h (/ height width)))
-    (gl:frustum -1 1 (- h) h 9 50000))
+(defparameter *vao* -1)
 
-  (gl:matrix-mode :modelview)
-  (gl:load-identity))
+(defun store-data-to-gl-buffer (data-list buffer-id &optional
+                                                      (data-type :float)
+                                                      (target :array-buffer)
+                                                      (usage :static-draw))
+  (let ((arr (gl:alloc-gl-array data-type (length data-list))))
+    (loop for item in data-list
+          for i from 0
+          do (setf (gl:glaref arr i) item))
 
-(glfw:def-window-size-callback update-viewport (window w h)
-  (declare (ignore window))
-  (set-viewport w h))
+    (gl:bind-buffer target buffer-id)
+    (gl:buffer-data target usage arr)
+    (gl:free-gl-array arr)
+    (gl:bind-buffer target 0)))
 
-(defun fragment-shader-example ()
+(defun setup ()
+  (setf *vbo* (gl:gen-buffer))
+  (log:debug "Created VBO")
+  (store-data-to-gl-buffer *vertices* *vbo*)
+  (log:debug "Copied data into GL buffer.")
+
+  (setup-shader)
+  (log:debug "Made shader program.")
+
+  (setf *vao* (gl:gen-vertex-array))
+  (gl:bind-vertex-array *vao*)
+  (gl:bind-buffer :array-buffer *vbo*)
+  (gl:vertex-attrib-pointer 0 3 :float nil 0 (cffi:null-pointer))
+  (gl:enable-vertex-attrib-array 0)
+  (log:debug "Set up VAO."))
+
+(defun draw ()
+  (gl:draw-arrays :triangles 0 3))
+
+(defun render ()
+  (gl:use-program *shader-program*)
+  (gl:bind-vertex-array *vao*)
+  (draw)
+  (gl:use-program 0)
+  (gl:bind-vertex-array 0))
+
+(defun fundamentals ()
+  (log:debug "Starting window creation.")
   (glfw:with-init-window (:title "OpenGL test" :width 600 :height 400)
     (glfw:set-key-callback 'quit-on-escape)
-
     (glfw:set-window-size-callback 'update-viewport)
     (set-viewport 800 400)
 
-    (setup-shader)
+    (log:debug "Starting GL setup.")
+    (setup)
 
     (loop until (glfw:window-should-close-p)
           do (render)
           do (glfw:swap-buffers)
-          do (glfw:poll-events))))
+          do (glfw:poll-events)))
+  (gl:delete-vertex-arrays (list *vao*))
+  (gl:delete-buffers (list *vbo*))
+  (gl:delete-program *shader-program*)
+  (setf *shader-program* -1 *vbo* -1 *vao* -1)
+  (log:info "OpenGL successfully destroyed."))
+
+(log:config :debug)
