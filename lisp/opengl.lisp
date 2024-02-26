@@ -507,46 +507,52 @@
         (gl:delete-shader *fragment-shader*))))
 
 
-(defparameter *vertices* (list -0.5 -0.5 0.0
+(defparameter *vertices* (list 0.5 0.5 0.0
                                0.5 -0.5 0.0
-                               0.0 0.5 0.0))
+                               -0.5 -0.5 0.0
+                               -0.5 0.5 0.0))
+
+(defparameter *vertices-gl-array* nil)
+
+(defparameter *indices* (list 0 1 3
+                              1 2 3))
+
+(defparameter *indices-gl-array* nil)
+
+(defparameter *ebo* -1)
 
 (defparameter *vbo* -1)
 
 (defparameter *vao* -1)
 
-(defun store-data-to-gl-buffer (data-list buffer-id &optional
-                                                      (data-type :float)
-                                                      (target :array-buffer)
-                                                      (usage :static-draw))
+(defun make-gl-array (data-list data-type)
   (let ((arr (gl:alloc-gl-array data-type (length data-list))))
     (loop for item in data-list
           for i from 0
           do (setf (gl:glaref arr i) item))
-
-    (gl:bind-buffer target buffer-id)
-    (gl:buffer-data target usage arr)
-    (gl:free-gl-array arr)
-    (gl:bind-buffer target 0)))
+    arr))
 
 (defun setup ()
-  (setf *vbo* (gl:gen-buffer))
-  (log:debug "Created VBO")
-  (store-data-to-gl-buffer *vertices* *vbo*)
-  (log:debug "Copied data into GL buffer.")
-
-  (setup-shader)
-  (log:debug "Made shader program.")
-
   (setf *vao* (gl:gen-vertex-array))
   (gl:bind-vertex-array *vao*)
+
+  (setf *vertices-gl-array* (make-gl-array *vertices* :float))
+  (setf *vbo* (gl:gen-buffer))
   (gl:bind-buffer :array-buffer *vbo*)
+  (gl:buffer-data :array-buffer :static-draw *vertices-gl-array*)
+
+  (setf *indices-gl-array* (make-gl-array *indices* :unsigned-int))
+  (setf *ebo* (gl:gen-buffer))
+  (gl:bind-buffer :element-array-buffer *ebo*)
+  (gl:buffer-data :element-array-buffer :static-draw *indices-gl-array*)
+
+  (setup-shader)
+
   (gl:vertex-attrib-pointer 0 3 :float nil 0 (cffi:null-pointer))
-  (gl:enable-vertex-attrib-array 0)
-  (log:debug "Set up VAO."))
+  (gl:enable-vertex-attrib-array 0))
 
 (defun draw ()
-  (gl:draw-arrays :triangles 0 3))
+  (gl:draw-elements :triangles *indices-gl-array*))
 
 (defun render ()
   (gl:use-program *shader-program*)
