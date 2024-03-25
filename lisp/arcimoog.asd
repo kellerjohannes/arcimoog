@@ -5,4 +5,5 @@
   :components ((:file "package")
                (:file "utilities")
                (:file "pitch-data")
+               (:file "shader-class")
                (:file "opengl")))
