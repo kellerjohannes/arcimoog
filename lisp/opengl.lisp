@@ -447,10 +447,6 @@
 ;; STARTING FROM BEGINNING ;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-(defparameter *shader-program* -1)
-(defparameter *vertex-shader* -1)
-(defparameter *fragment-shader* -1)
-
 
 (defun set-viewport (width height)
   (gl:viewport 0 0 width height)
@@ -469,49 +465,7 @@
   (declare (ignore window))
   (set-viewport w h))
 
-(define-condition compile-error (error)
-  ((message
-    :initform nil
-    :initarg :message
-    :reader compile-error-message
-    :documentation "The reason given for the error")))
-
-(defun is-invalid-shader (shader)
-  (= shader -1))
-
-(defun check-shader-error (shader)
-  "Get the current error status of a shader, throw error if status"
-  (let ((error-string (gl:get-shader-info-log shader)))
-    (unless (equalp error-string "")
-      (progn
-        (format t "~A~%" error-string)
-        (error 'compile-error :message error-string)))))
-
-(defun setup-shader ()
-  (loop
-    while (is-invalid-shader *shader-program*) do
-      (with-simple-restart
-          (retry "Retry compiling shaders.")
-        (setf *vertex-shader* (gl:create-shader :vertex-shader))
-        (setf *fragment-shader* (gl:create-shader :fragment-shader))
-        (gl:shader-source *vertex-shader*
-                          (uiop:read-file-string
-                           "/home/johannes/common-lisp/arcimoog/lisp/basic-vertex-shader.vert"))
-        (gl:shader-source *fragment-shader*
-                          (uiop:read-file-string
-                           "/home/johannes/common-lisp/arcimoog/lisp/basic-fragment-shader.frag"))
-        (gl:compile-shader *vertex-shader*)
-        (gl:compile-shader *fragment-shader*)
-        (check-shader-error *vertex-shader*)
-        (check-shader-error *fragment-shader*)
-        (setf *shader-program* (gl:create-program))
-        (gl:attach-shader *shader-program* *vertex-shader*)
-        (gl:attach-shader *shader-program* *fragment-shader*)
-        (gl:link-program *shader-program*)
-        (gl:use-program *shader-program*)
-        (gl:delete-shader *vertex-shader*)
-        (gl:delete-shader *fragment-shader*))))
-
+(defparameter *shader* nil)
 
 (defparameter *vertices* (list 0.4 0.4 0.0    1.0 0.0 0.0
                                0.4 -0.4 0.0   0.0 1.0 0.0
@@ -538,6 +492,8 @@
           do (setf (gl:glaref arr i) item))
     arr))
 
+
+
 (defun setup ()
   (setf *vao* (gl:gen-vertex-array))
   (gl:bind-vertex-array *vao*)
@@ -552,7 +508,10 @@
   (gl:bind-buffer :element-array-buffer *ebo*)
   (gl:buffer-data :element-array-buffer :static-draw *indices-gl-array*)
 
-  (setup-shader)
+  (setf *shader*
+        (make-instance 'shader-class
+                       :vertex-source "/home/johannes/common-lisp/arcimoog/lisp/basic-vertex-shader.vert"
+                       :fragment-source "/home/johannes/common-lisp/arcimoog/lisp/basic-fragment-shader.frag"))
 
   (gl:vertex-attrib-pointer 0 3 :float nil
                             (* 6 (cffi:foreign-type-size :float))
@@ -574,12 +533,10 @@
   )
 
 (defun render ()
-  (gl:use-program *shader-program*)
-  (gl:bind-vertex-array *vao*)
-  (draw)
-  (gl:bind-vertex-array 0)
-  (gl:use-program 0)
-  )
+  (with-shader *shader*
+    (gl:bind-vertex-array *vao*)
+    (draw)
+    (gl:bind-vertex-array 0)))
 
 (defun fundamentals ()
   (log:debug "Starting window creation.")
@@ -597,8 +554,8 @@
           do (glfw:poll-events)))
   (gl:delete-vertex-arrays (list *vao*))
   (gl:delete-buffers (list *vbo*))
-  (gl:delete-program *shader-program*)
-  (setf *shader-program* -1 *vbo* -1 *vao* -1)
+  (destroy *shader*)
+  (setf *vbo* -1 *vao* -1)
   (log:info "OpenGL successfully destroyed."))
 
 (log:config :debug)
