@@ -4,6 +4,12 @@
 
 (in-package :arcimoog)
 
+;; Necessary, because gl:draw-elements contains a problematic implementation of the offset
+;; parameter.
+(defun my-gl-draw-elements (mode count type &key (offset 0))
+  (%gl:draw-elements mode count type offset))
+
+
 ;; (defclass minimal-window (glut:window)
 ;;   ()
 ;;   (:default-initargs :width 500 :height 500 :pos-x 100 :pos-y 100
@@ -507,15 +513,10 @@
         (gl:delete-shader *fragment-shader*))))
 
 
-(defparameter *vertices* (list 0.5 0.5 0.0    1.0 0.0 0.0
-                               0.5 -0.5 0.0   1.0 1.0 0.0
-                               -0.5 -0.5 0.0  0.0 1.0 0.0
-                               -0.5 0.5 0.0   0.0 0.0 1.0))
-
-;; (defparameter *vertices* (list 0.5 0.5 0.0
-;;                                0.5 -0.5 0.0
-;;                                -0.5 -0.5 0.0
-;;                                -0.5 0.5 0.0   ))
+(defparameter *vertices* (list 0.4 0.4 0.0    1.0 0.0 0.0
+                               0.4 -0.4 0.0   0.0 1.0 0.0
+                               -0.4 -0.4 0.0  0.0 0.0 1.0
+                               -0.4 0.4 0.0   1.0 0.0 1.0))
 
 (defparameter *vertices-gl-array* nil)
 
@@ -559,26 +560,26 @@
   (gl:enable-vertex-attrib-array 0)
   (gl:vertex-attrib-pointer 1 3 :float nil
                             (* 6 (cffi:foreign-type-size :float))
-                            (cffi:inc-pointer
-                                (gl::gl-array-pointer *vertices-gl-array*)
-                                (* (cffi:foreign-type-size :float) 3))
-                            ;; (gl::gl-array-pointer-offset *vertices-gl-array* 3)
-                            )
-  (gl:enable-vertex-attrib-array 1))
+                            (cffi:inc-pointer (cffi:null-pointer)
+                                              (* 3 (cffi:foreign-type-size :float))))
+  (gl:enable-vertex-attrib-array 1)
+  (gl:bind-vertex-array 0)
+  )
+
+
 
 (defun draw ()
-  ;; (gl:uniformf (gl:get-uniform-location *shader-program* "vertexColor")
-  ;;              1.0 0.0 1.0 1.0)
-   (gl:draw-elements :triangles (gl:make-null-gl-array :unsigned-short))
-  ;; (gl:draw-arrays :triangles 0 3)
+  (my-gl-draw-elements :triangles 6 :unsigned-int)
+  ;;(gl:draw-arrays :triangles 0 3)
   )
 
 (defun render ()
   (gl:use-program *shader-program*)
   (gl:bind-vertex-array *vao*)
   (draw)
+  (gl:bind-vertex-array 0)
   (gl:use-program 0)
-  (gl:bind-vertex-array 0))
+  )
 
 (defun fundamentals ()
   (log:debug "Starting window creation.")
