@@ -507,10 +507,15 @@
         (gl:delete-shader *fragment-shader*))))
 
 
-(defparameter *vertices* (list 0.5 0.5 0.0
-                               0.5 -0.5 0.0
-                               -0.5 -0.5 0.0
-                               -0.5 0.5 0.0))
+(defparameter *vertices* (list 0.5 0.5 0.0    1.0 0.0 0.0
+                               0.5 -0.5 0.0   1.0 1.0 0.0
+                               -0.5 -0.5 0.0  0.0 1.0 0.0
+                               -0.5 0.5 0.0   0.0 0.0 1.0))
+
+;; (defparameter *vertices* (list 0.5 0.5 0.0
+;;                                0.5 -0.5 0.0
+;;                                -0.5 -0.5 0.0
+;;                                -0.5 0.5 0.0   ))
 
 (defparameter *vertices-gl-array* nil)
 
@@ -548,11 +553,25 @@
 
   (setup-shader)
 
-  (gl:vertex-attrib-pointer 0 3 :float nil 0 (cffi:null-pointer))
-  (gl:enable-vertex-attrib-array 0))
+  (gl:vertex-attrib-pointer 0 3 :float nil
+                            (* 6 (cffi:foreign-type-size :float))
+                            (cffi:null-pointer))
+  (gl:enable-vertex-attrib-array 0)
+  (gl:vertex-attrib-pointer 1 3 :float nil
+                            (* 6 (cffi:foreign-type-size :float))
+                            (cffi:inc-pointer
+                                (gl::gl-array-pointer *vertices-gl-array*)
+                                (* (cffi:foreign-type-size :float) 3))
+                            ;; (gl::gl-array-pointer-offset *vertices-gl-array* 3)
+                            )
+  (gl:enable-vertex-attrib-array 1))
 
 (defun draw ()
-  (gl:draw-elements :triangles *indices-gl-array*))
+  ;; (gl:uniformf (gl:get-uniform-location *shader-program* "vertexColor")
+  ;;              1.0 0.0 1.0 1.0)
+   (gl:draw-elements :triangles (gl:make-null-gl-array :unsigned-short))
+  ;; (gl:draw-arrays :triangles 0 3)
+  )
 
 (defun render ()
   (gl:use-program *shader-program*)
