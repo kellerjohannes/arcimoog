@@ -448,13 +448,54 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 
-(defun set-viewport (width height)
-  (gl:viewport 0 0 width height)
-  (gl:matrix-mode :projection)
-  (gl:load-identity)
-  (gl:ortho -50 50 -50 50 -1 1)
-  (gl:matrix-mode :modelview)
-  (gl:load-identity))
+;; old stuff, should be avoided
+;; (defun set-viewport (width height)
+;;   (gl:viewport 0 0 width height)
+;;   (gl:matrix-mode :projection)
+;;   (gl:load-identity)
+;;   (gl:ortho -50 50 -50 50 -1 1)
+;;   (gl:matrix-mode :modelview)
+;;   (gl:load-identity))
+
+(defparameter *character-set* (list "a" "b" "c" "d" "e" "f" "g" "h"))
+
+(defstruct gl-character
+  texture-id
+  size
+  bearing
+  advance)
+
+(defparameter *characters* nil)
+
+(defparameter *face* (ft2:new-face "/usr/share/fonts/TTF/DejaVuSans.ttf"))
+
+
+(defun generate-characters ()
+  (ft2:set-pixel-sizes *face* 0 48)
+  (dolist (character-candidate *character-set*)
+    (ft2:load-char *face* character-candidate :render)
+    (let ((texture-id (gl:gen-texture)))
+      (gl:bind-texture :texture2d texture-id)
+      (gl:tex-image-2d :texture-2d
+                       0
+                       :red
+                       (ft2-types:ft-bitmap-width *face*)
+                       (ft2-types:ft-bitmap-rows *face*)
+                       0
+                       :red
+                       :unsigned-byte
+                       (ft2-types:ft-bitmap-buffer *face*))
+      (gl:tex-parameter :texture-2d :texture-wrap-s :clamp-to-edge)
+      (gl:tex-parameter :texture-2d :texture-wrap-t :clamp-to-edge)
+      (gl:tex-parameter :texture-2d :texture-min-filter :linear)
+      (gl:tex-parameter :texture-2d :texture-mag-filter :linear)
+
+      ;; TODO: LESEZEICHEN, working on this, see https://learnopengl.com/In-Practice/Text-Rendering
+      ;;
+      ;; (push (make-gl-character :texture-id texture-id
+      ;;                          :size (glm:)))
+      )))
+
 
 (glfw:def-key-callback quit-on-escape (window key scancode action mod-keys)
   (declare (ignore window scancode mod-keys))
@@ -462,15 +503,16 @@
     (glfw:set-window-should-close)))
 
 (glfw:def-window-size-callback update-viewport (window w h)
-  (declare (ignore window))
-  (set-viewport w h))
+  (declare (ignore window w h))
+  ;; ??
+  )
 
 (defparameter *shader* nil)
 
-(defparameter *vertices* (list 0.4 0.4 0.0    1.0 0.0 0.0
-                               0.4 -0.4 0.0   0.0 1.0 0.0
-                               -0.4 -0.4 0.0  0.0 0.0 1.0
-                               -0.4 0.4 0.0   1.0 0.0 1.0))
+(defparameter *vertices* (list 0.4 0.4 0.0    1.0 0.0 0.0   1.0 1.0
+                               0.4 -0.4 0.0   0.0 1.0 0.0   1.0 0.0
+                               -0.4 -0.4 0.0  0.0 0.0 1.0   0.0 0.0
+                               -0.4 0.4 0.0   1.0 0.0 1.0   0.0 1.0))
 
 (defparameter *vertices-gl-array* nil)
 
@@ -485,6 +527,8 @@
 
 (defparameter *vao* -1)
 
+(defparameter *texture* -1)
+
 (defun make-gl-array (data-list data-type)
   (let ((arr (gl:alloc-gl-array data-type (length data-list))))
     (loop for item in data-list
@@ -495,6 +539,27 @@
 
 
 (defun setup ()
+  (gl:pixel-store :unpack-alignment 1)
+
+  (multiple-value-bind (data height width)
+      (cl-jpeg:decode-image "/home/johannes/common-lisp/arcimoog/lisp/vicentino-test.jpg")
+    (gl:active-texture :texture0)
+    (setf *texture* (gl:gen-texture))
+    (gl:bind-texture :texture-2d *texture*)
+
+    (gl:tex-parameter :texture-2d :texture-wrap-s :repeat)
+    (gl:tex-parameter :texture-2d :texture-wrap-t :repeat)
+    (gl:tex-parameter :texture-2d :texture-min-filter :linear-mipmap-linear)
+    (gl:tex-parameter :texture-2d :texture-mag-filter :linear)
+
+    (gl:tex-image-2d :texture-2d 0 :rgb width height 0 :rgb :unsigned-byte data)
+    (gl:generate-mipmap :texture-2d))
+
+  (setf *shader*
+        (make-instance 'shader-class
+                       :vertex-source "/home/johannes/common-lisp/arcimoog/lisp/basic-vertex-shader-texture.vert"
+                       :fragment-source "/home/johannes/common-lisp/arcimoog/lisp/basic-fragment-shader-texture.frag"))
+
   (setf *vao* (gl:gen-vertex-array))
   (gl:bind-vertex-array *vao*)
 
@@ -508,22 +573,23 @@
   (gl:bind-buffer :element-array-buffer *ebo*)
   (gl:buffer-data :element-array-buffer :static-draw *indices-gl-array*)
 
-  (setf *shader*
-        (make-instance 'shader-class
-                       :vertex-source "/home/johannes/common-lisp/arcimoog/lisp/basic-vertex-shader.vert"
-                       :fragment-source "/home/johannes/common-lisp/arcimoog/lisp/basic-fragment-shader.frag"))
 
   (gl:vertex-attrib-pointer 0 3 :float nil
-                            (* 6 (cffi:foreign-type-size :float))
+                            (* 8 (cffi:foreign-type-size :float))
                             (cffi:null-pointer))
   (gl:enable-vertex-attrib-array 0)
   (gl:vertex-attrib-pointer 1 3 :float nil
-                            (* 6 (cffi:foreign-type-size :float))
+                            (* 8 (cffi:foreign-type-size :float))
                             (cffi:inc-pointer (cffi:null-pointer)
                                               (* 3 (cffi:foreign-type-size :float))))
   (gl:enable-vertex-attrib-array 1)
-  (gl:bind-vertex-array 0)
-  )
+  (gl:vertex-attrib-pointer 2 2 :float nil
+                            (* 8 (cffi:foreign-type-size :float))
+                            (cffi:inc-pointer (cffi:null-pointer)
+                                              (* 6 (cffi:foreign-type-size :float))))
+  (gl:enable-vertex-attrib-array 2)
+  (gl:bind-vertex-array 0))
+
 
 
 
@@ -534,7 +600,10 @@
 
 (defun render ()
   (with-shader *shader*
+    (gl:active-texture :texture0)
+    (gl:bind-texture :texture-2d *texture*)
     (gl:bind-vertex-array *vao*)
+    (set-uniform *shader* "uniColor" :float 1.0 1.0 1.0 1.0)
     (draw)
     (gl:bind-vertex-array 0)))
 
@@ -542,12 +611,8 @@
   (log:debug "Starting window creation.")
   (glfw:with-init-window (:title "OpenGL test" :width 600 :height 400)
     (glfw:set-key-callback 'quit-on-escape)
-    (glfw:set-window-size-callback 'update-viewport)
-    (set-viewport 800 400)
-
     (log:debug "Starting GL setup.")
     (setup)
-
     (loop until (glfw:window-should-close-p)
           do (render)
           do (glfw:swap-buffers)
@@ -559,3 +624,10 @@
   (log:info "OpenGL successfully destroyed."))
 
 (log:config :debug)
+
+(defun test ()
+  (bt:make-thread (lambda () (fundamentals)) :name "test-window"))
+
+;; (defun minimal-test ()
+;;   (bt:make-thread (lambda () (minimal)) :name "minimal-window-test-1")
+;;   )

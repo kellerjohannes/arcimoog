@@ -26,7 +26,7 @@
 
 (defgeneric destroy (shader))
 
-(defgeneric set-uniform (shader type))
+(defgeneric set-uniform (shader name type &rest parameters))
 
 
 (defmethod initialize-instance :after ((shader shader-class) &key)
@@ -55,6 +55,10 @@
 (defmethod destroy ((shader shader-class))
   (gl:delete-program (id shader)))
 
+(defmethod set-uniform ((shader shader-class) name type &rest parameters)
+  (use shader)
+  (apply #'gl:uniformf (append (list (gl:get-uniform-location (id *shader*) name))
+                                 parameters)))
 
 (defmacro with-shader (shader &body body)
   `(progn
