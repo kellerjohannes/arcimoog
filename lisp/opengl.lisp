@@ -457,7 +457,9 @@
 ;;   (gl:matrix-mode :modelview)
 ;;   (gl:load-identity))
 
-(defparameter *character-set* (list "a" "b" "c" "d" "e" "f" "g" "h"))
+(defparameter *character-set* (mapcar (lambda (char-string)
+                                        (char-code (char char-string 0)))
+                                      (list "a" "b" "c" "d" "e" "f" "g" "h")))
 
 (defstruct gl-character
   texture-id
@@ -471,11 +473,12 @@
 
 
 (defun generate-characters ()
+  (setf *characters* nil)
   (ft2:set-pixel-sizes *face* 0 48)
   (dolist (character-candidate *character-set*)
     (ft2:load-char *face* character-candidate :render)
     (let ((texture-id (gl:gen-texture)))
-      (gl:bind-texture :texture2d texture-id)
+      (gl:bind-texture :texture-2d texture-id)
       (gl:tex-image-2d :texture-2d
                        0
                        :red
@@ -490,11 +493,13 @@
       (gl:tex-parameter :texture-2d :texture-min-filter :linear)
       (gl:tex-parameter :texture-2d :texture-mag-filter :linear)
 
-      ;; TODO: LESEZEICHEN, working on this, see https://learnopengl.com/In-Practice/Text-Rendering
-      ;;
-      ;; (push (make-gl-character :texture-id texture-id
-      ;;                          :size (glm:)))
-      )))
+      (push (make-gl-character :texture-id texture-id
+                               :size (cons (ft2-types:ft-bitmap-width *face*)
+                                           (ft2-types:ft-bitmap-rows *face*))
+                               :bearing (cons (ft2-types:ft-bitmapglyph-left *face*)
+                                              (ft2-types:ft-bitmapglyph-top *face*))
+                               :advance (ft2-types:ft-glyph-advance *face*))
+            *characters*))))
 
 
 (glfw:def-key-callback quit-on-escape (window key scancode action mod-keys)
@@ -627,7 +632,3 @@
 
 (defun test ()
   (bt:make-thread (lambda () (fundamentals)) :name "test-window"))
-
-;; (defun minimal-test ()
-;;   (bt:make-thread (lambda () (minimal)) :name "minimal-window-test-1")
-;;   )
