@@ -464,6 +464,11 @@
 ;;                                         (char-code (char char-string 0)))
 ;;                                       (list "a" "b" "c" "d" "e" "f" "g" "h")))
 
+
+(defparameter *screen-width* 800)
+
+(defparameter *screen-height* 600)
+
 (defparameter *character-set* "abcdefgh")
 
 (defparameter *face* (ft2:new-face "/usr/share/fonts/TTF/DejaVuSans.ttf"))
@@ -567,6 +572,47 @@
     arr))
 
 
+
+(defun create-identity-matrix (&optional (value 1.0))
+  (let ((result (make-array '(4 4) :initial-element 0.0)))
+    (setf (aref result 0 0) value)
+    (setf (aref result 1 1) value)
+    (setf (aref result 2 2) value)
+    (setf (aref result 3 3) value)
+    result))
+
+(defun print-matrix (matrix-4-4)
+  (format t "~&~a ~a ~a ~a~%~a ~a ~a ~a~%~a ~a ~a ~a~%~a ~a ~a ~a"
+          (aref matrix-4-4 0 0)
+          (aref matrix-4-4 0 1)
+          (aref matrix-4-4 0 2)
+          (aref matrix-4-4 0 3)
+          (aref matrix-4-4 1 0)
+          (aref matrix-4-4 1 1)
+          (aref matrix-4-4 1 2)
+          (aref matrix-4-4 1 3)
+          (aref matrix-4-4 2 0)
+          (aref matrix-4-4 2 1)
+          (aref matrix-4-4 2 2)
+          (aref matrix-4-4 2 3)
+          (aref matrix-4-4 3 0)
+          (aref matrix-4-4 3 1)
+          (aref matrix-4-4 3 2)
+          (aref matrix-4-4 3 3)))
+
+(defun print-vector (vec4)
+  (format t "~&~a~%~a~%~a~%~a"
+          (aref vec4 0)
+          (aref vec4 1)
+          (aref vec4 2)
+          (aref vec4 3)))
+
+(let* ((vec #(1.0 0.0 0.0 1.0))
+       (trans (create-identity-matrix)))
+  (setf trans (lla:mm trans #(1.0 1.0 0.0 1.0)))
+  (print-vector vec)
+  (print-matrix trans))
+
 (defun setup ()
   (gl:enable :cull-face)
   (gl:enable :blend)
@@ -594,6 +640,14 @@
 
 
   ;; projection-stuff
+
+  ;; glm::mat4 projection = glm::ortho(0.0f, static_cast<float>(SCR_WIDTH), 0.0f, static_cast<float>(SCR_HEIGHT));
+
+  ;;   shader.use();
+
+  ;;   glUniformMatrix4fv(glGetUniformLocation(shader.ID, "projection"), 1, GL_FALSE, glm::value_ptr(projection));
+
+
 
   (generate-characters)
 
@@ -656,12 +710,12 @@
         (let ((vertices
                 (make-array '(6 4) :element-type 'float
                                    :initial-contents
-                                   (list (list x-pos (+ scaled-height y-pos)         0.0 0.0)
-                                         (list x-pos y-pos                           0.0 1.0)
-                                         (list (+ x-pos scaled-width) y-pos                     1.0 1.0)
+                                   (list (list x-pos (+ scaled-height y-pos) 0.0 0.0)
+                                         (list x-pos y-pos 0.0 1.0)
+                                         (list (+ x-pos scaled-width) y-pos 1.0 1.0)
 
-                                         (list x-pos (+ y-pos scaled-height)         0.0 0.0)
-                                         (list (+ x-pos scaled-width) y-pos          1.0 1.0)
+                                         (list x-pos (+ y-pos scaled-height) 0.0 0.0)
+                                         (list (+ x-pos scaled-width) y-pos 1.0 1.0)
                                          (list (+ x-pos scaled-width) (+ y-pos scaled-height) 1.0 0.0)))))
 
           (gl:bind-texture :texture-2d texture-id)
@@ -690,7 +744,7 @@
 
 (defun fundamentals ()
   (log:debug "Starting window creation.")
-  (glfw:with-init-window (:title "OpenGL test" :width 600 :height 400)
+  (glfw:with-init-window (:title "OpenGL test" :width *screen-width* :height *screen-height*)
     (glfw:set-key-callback 'quit-on-escape)
     (log:debug "Starting GL setup.")
     (setup)
