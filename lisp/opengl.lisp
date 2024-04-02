@@ -457,49 +457,67 @@
 ;;   (gl:matrix-mode :modelview)
 ;;   (gl:load-identity))
 
-(defparameter *character-set* (mapcar (lambda (char-string)
-                                        (char-code (char char-string 0)))
-                                      (list "a" "b" "c" "d" "e" "f" "g" "h")))
 
-(defstruct gl-character
-  texture-id
-  size
-  bearing
-  advance)
 
-(defparameter *characters* nil)
+
+;; (defparameter *character-set* (mapcar (lambda (char-string)
+;;                                         (char-code (char char-string 0)))
+;;                                       (list "a" "b" "c" "d" "e" "f" "g" "h")))
+
+(defparameter *character-set* "abcdefgh")
 
 (defparameter *face* (ft2:new-face "/usr/share/fonts/TTF/DejaVuSans.ttf"))
 
+(defparameter *texture-ids* nil)
+
+(defun lookup-texture-ids (character)
+  (let ((result (cdr (assoc character *texture-ids*))))
+    (values (first result) ; texture-id
+            (second result) ; width
+            (third result) ; height
+            )))
+
+;; (let ((result))
+;;   (ft2:do-string-render (*face* "M" bitmap x y :with-char i)
+;;     (declare (ignore x y))
+;;     (setf result (ft2:bitmap-to-array bitmap))
+;;     (format t "~&~a" (type-of i)))
+;;   (let ((dims (array-dimensions result)))
+;;     (format t "~&: height=~a, width=~a" (first dims) (second dims)))
+;;   result)
+
 
 (defun generate-characters ()
-  (setf *characters* nil)
+  (gl:pixel-store :unpack-alignment 1)
+
+  (setf *texture-ids* nil)
   (ft2:set-pixel-sizes *face* 0 48)
-  (dolist (character-candidate *character-set*)
-    (ft2:load-char *face* character-candidate :render)
-    (let ((texture-id (gl:gen-texture)))
+  (ft2:do-string-render (*face* *character-set* bitmap x y :with-char character)
+    (declare (ignore x y))
+    (let* ((texture-id (gl:gen-texture))
+           (texture-data (ft2:bitmap-to-array bitmap))
+           (dimensions (array-dimensions texture-data)))
       (gl:bind-texture :texture-2d texture-id)
       (gl:tex-image-2d :texture-2d
                        0
                        :red
-                       (ft2-types:ft-bitmap-width *face*)
-                       (ft2-types:ft-bitmap-rows *face*)
+                       (second dimensions)
+                       (first dimensions)
                        0
                        :red
                        :unsigned-byte
-                       (ft2-types:ft-bitmap-buffer *face*))
+                       (aops:flatten texture-data))
+
       (gl:tex-parameter :texture-2d :texture-wrap-s :clamp-to-edge)
       (gl:tex-parameter :texture-2d :texture-wrap-t :clamp-to-edge)
       (gl:tex-parameter :texture-2d :texture-min-filter :linear)
       (gl:tex-parameter :texture-2d :texture-mag-filter :linear)
 
-      (push (make-gl-character :texture-id texture-id
-                               :size (cons (ft2-types:ft-bitmap-width *face*)
-                                           (ft2-types:ft-bitmap-rows *face*))
-                               :bearing (cons (ft2-types:ft-bitmapglyph-left *face*)
-                                              (ft2-types:ft-bitmapglyph-top *face*))
-                               :advance (ft2-types:ft-glyph-advance *face*))
-            *characters*))))
+      (push (cons character (list texture-id
+                                  (coerce (second dimensions) 'float)
+                                  (coerce (first dimensions) 'float)))
+            *texture-ids*))))
+
 
 
 (glfw:def-key-callback quit-on-escape (window key scancode action mod-keys)
@@ -541,74 +559,132 @@
           do (setf (gl:glaref arr i) item))
     arr))
 
+(defun make-gl-array-from-array (data-list data-type)
+  (let ((arr (gl:alloc-gl-array data-type (length data-list))))
+    (loop for item across data-list
+          for i from 0
+          do (setf (gl:glaref arr i) item))
+    arr))
 
 
 (defun setup ()
-  (gl:pixel-store :unpack-alignment 1)
+  (gl:enable :cull-face)
+  (gl:enable :blend)
+  (gl:blend-func :src-alpha :one-minus-src-alpha)
 
-  (multiple-value-bind (data height width)
-      (cl-jpeg:decode-image "/home/johannes/common-lisp/arcimoog/lisp/vicentino-test.jpg")
-    (gl:active-texture :texture0)
-    (setf *texture* (gl:gen-texture))
-    (gl:bind-texture :texture-2d *texture*)
 
-    (gl:tex-parameter :texture-2d :texture-wrap-s :repeat)
-    (gl:tex-parameter :texture-2d :texture-wrap-t :repeat)
-    (gl:tex-parameter :texture-2d :texture-min-filter :linear-mipmap-linear)
-    (gl:tex-parameter :texture-2d :texture-mag-filter :linear)
+  ;; (multiple-value-bind (data height width)
+  ;;     (cl-jpeg:decode-image "/home/johannes/common-lisp/arcimoog/lisp/vicentino-test.jpg")
+  ;;   (gl:active-texture :texture0)
+  ;;   (setf *texture* (gl:gen-texture))
+  ;;   (gl:bind-texture :texture-2d *texture*)
 
-    (gl:tex-image-2d :texture-2d 0 :rgb width height 0 :rgb :unsigned-byte data)
-    (gl:generate-mipmap :texture-2d))
+  ;;   (gl:tex-parameter :texture-2d :texture-wrap-s :repeat)
+  ;;   (gl:tex-parameter :texture-2d :texture-wrap-t :repeat)
+  ;;   (gl:tex-parameter :texture-2d :texture-min-filter :linear-mipmap-linear)
+  ;;   (gl:tex-parameter :texture-2d :texture-mag-filter :linear)
+
+  ;;   (gl:tex-image-2d :texture-2d 0 :rgb width height 0 :rgb :unsigned-byte data)
+  ;;   (gl:generate-mipmap :texture-2d))
 
   (setf *shader*
         (make-instance 'shader-class
-                       :vertex-source "/home/johannes/common-lisp/arcimoog/lisp/basic-vertex-shader-texture.vert"
-                       :fragment-source "/home/johannes/common-lisp/arcimoog/lisp/basic-fragment-shader-texture.frag"))
+                       :vertex-source "/home/johannes/common-lisp/arcimoog/lisp/vertex-shader-font.vert"
+                       :fragment-source "/home/johannes/common-lisp/arcimoog/lisp/fragment-shader-font.frag"))
+
+
+  ;; projection-stuff
+
+  (generate-characters)
+
 
   (setf *vao* (gl:gen-vertex-array))
-  (gl:bind-vertex-array *vao*)
-
-  (setf *vertices-gl-array* (make-gl-array *vertices* :float))
   (setf *vbo* (gl:gen-buffer))
+  (gl:bind-vertex-array *vao*)
   (gl:bind-buffer :array-buffer *vbo*)
-  (gl:buffer-data :array-buffer :static-draw *vertices-gl-array*)
-
-  (setf *indices-gl-array* (make-gl-array *indices* :unsigned-int))
-  (setf *ebo* (gl:gen-buffer))
-  (gl:bind-buffer :element-array-buffer *ebo*)
-  (gl:buffer-data :element-array-buffer :static-draw *indices-gl-array*)
-
-
-  (gl:vertex-attrib-pointer 0 3 :float nil
-                            (* 8 (cffi:foreign-type-size :float))
-                            (cffi:null-pointer))
+  (gl:buffer-data :array-buffer
+                  :dynamic-draw
+                  (make-gl-array (make-list (* 6 4) :initial-element 0.0) :float))
   (gl:enable-vertex-attrib-array 0)
-  (gl:vertex-attrib-pointer 1 3 :float nil
-                            (* 8 (cffi:foreign-type-size :float))
-                            (cffi:inc-pointer (cffi:null-pointer)
-                                              (* 3 (cffi:foreign-type-size :float))))
-  (gl:enable-vertex-attrib-array 1)
-  (gl:vertex-attrib-pointer 2 2 :float nil
-                            (* 8 (cffi:foreign-type-size :float))
-                            (cffi:inc-pointer (cffi:null-pointer)
-                                              (* 6 (cffi:foreign-type-size :float))))
-  (gl:enable-vertex-attrib-array 2)
-  (gl:bind-vertex-array 0))
+  (gl:vertex-attrib-pointer 0 4 :float nil (* 4 (cffi:foreign-type-size :float)) (cffi:null-pointer))
+  (gl:bind-buffer :array-buffer 0)
+  (gl:bind-vertex-array 0)
+
+  ;; (setf *vertices-gl-array* (make-gl-array *vertices* :float))
+  ;; (setf *vbo* (gl:gen-buffer))
+  ;; (gl:bind-buffer :array-buffer *vbo*)
+  ;; (gl:buffer-data :array-buffer :static-draw *vertices-gl-array*)
+
+  ;; (setf *indices-gl-array* (make-gl-array *indices* :unsigned-int))
+  ;; (setf *ebo* (gl:gen-buffer))
+  ;; (gl:bind-buffer :element-array-buffer *ebo*)
+  ;; (gl:buffer-data :element-array-buffer :static-draw *indices-gl-array*)
 
 
+  ;; (gl:vertex-attrib-pointer 0 3 :float nil
+  ;;                           (* 8 (cffi:foreign-type-size :float))
+  ;;                           (cffi:null-pointer))
+  ;; (gl:enable-vertex-attrib-array 0)
+  ;; (gl:vertex-attrib-pointer 1 3 :float nil
+  ;;                           (* 8 (cffi:foreign-type-size :float))
+  ;;                           (cffi:inc-pointer (cffi:null-pointer)
+  ;;                                             (* 3 (cffi:foreign-type-size :float))))
+  ;; (gl:enable-vertex-attrib-array 1)
+  ;; (gl:vertex-attrib-pointer 2 2 :float nil
+  ;;                           (* 8 (cffi:foreign-type-size :float))
+  ;;                           (cffi:inc-pointer (cffi:null-pointer)
+  ;;                                             (* 6 (cffi:foreign-type-size :float))))
+  ;; (gl:enable-vertex-attrib-array 2)
+  ;; (gl:bind-vertex-array 0)
+  )
+
+
+(defmethod render-text ((shader shader-class) text-string global-x global-y scale r g b)
+  (declare (type float global-x global-y scale r g b))
+  (use shader)
+  (set-uniform shader "textColor" :float r g b)
+  (gl:active-texture :texture0)
+  (gl:bind-vertex-array *vao*)
+  (ft2:do-string-render (*face* text-string bitmap local-x local-y :with-char current-character)
+    (multiple-value-bind (texture-id original-width original-height)
+        (lookup-texture-ids current-character)
+      (declare (type float original-width original-height))
+      (let ((x-pos (* scale (+ global-x local-x)))
+            (y-pos (* scale (- global-y local-y)))
+            (scaled-width (* scale original-width))
+            (scaled-height (* scale original-height)))
+        (let ((vertices
+                (make-array '(6 4) :element-type 'float
+                                   :initial-contents
+                                   (list (list x-pos (+ scaled-height y-pos)         0.0 0.0)
+                                         (list x-pos y-pos                           0.0 1.0)
+                                         (list (+ x-pos scaled-width) y-pos                     1.0 1.0)
+
+                                         (list x-pos (+ y-pos scaled-height)         0.0 0.0)
+                                         (list (+ x-pos scaled-width) y-pos          1.0 1.0)
+                                         (list (+ x-pos scaled-width) (+ y-pos scaled-height) 1.0 0.0)))))
+
+          (gl:bind-texture :texture-2d texture-id)
+          (gl:bind-buffer :array-buffer *vbo*)
+          (gl:buffer-sub-data :array-buffer (make-gl-array-from-array (aops:flatten vertices) :float))
+          (gl:bind-buffer :array-buffer 0)
+          (gl:draw-arrays :triangles 0 6)))))
+  (gl:bind-vertex-array 0)
+  (gl:bind-texture :texture-2d 0))
 
 
 (defun draw ()
-  (my-gl-draw-elements :triangles 6 :unsigned-int)
+  (render-text *shader* "ab" 0.0 0.0 1.0 1.0 1.0 1.0)
+  ;; (my-gl-draw-elements :triangles 6 :unsigned-int)
   ;;(gl:draw-arrays :triangles 0 3)
   )
 
 (defun render ()
   (with-shader *shader*
-    (gl:active-texture :texture0)
-    (gl:bind-texture :texture-2d *texture*)
+    ;; (gl:active-texture :texture0)
+    ;; (gl:bind-texture :texture-2d *texture*)
     (gl:bind-vertex-array *vao*)
-    (set-uniform *shader* "uniColor" :float 1.0 1.0 1.0 1.0)
+    ;; (set-uniform *shader* "uniColor" :float 1.0 1.0 1.0 1.0)
     (draw)
     (gl:bind-vertex-array 0)))
 
@@ -632,3 +708,38 @@
 
 (defun test ()
   (bt:make-thread (lambda () (fundamentals)) :name "test-window"))
+
+
+
+;; from here: experimental
+
+;; (cffi:load-foreign-library "libgl.so" :search-path "/usr/lib/")
+
+;; (defun glm:ortho (left right bottom top near far)
+;;   (cffi:defcfun ortho :void
+;;     (left :float)
+;;     (right :float)
+;;     (bottom :float)
+;;     (top :float)
+;;     (near :float)
+;;     (far :float)
+;;     :name "glm_ortho"
+;;     :library "libm.so"))
+
+
+
+
+;; (cffi:defcffi-module glm
+;;     (:default "libglm")
+
+;;   (:include "glm/glm.hpp")
+;;   (:include "glm/gtc/matrix_transform.hpp"))
+
+;; (cffi:defcfun "glm::ortho" :void
+;;   ((left :float)
+;;    (right :float)
+;;    (bottom :float)
+;;    (top :float)
+;;    (near :float)
+;;    (far :float))
+;;   :library "libglm")
