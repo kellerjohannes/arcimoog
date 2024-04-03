@@ -60,6 +60,10 @@
   (apply #'gl:uniformf (append (list (gl:get-uniform-location (id *shader*) name))
                                  parameters)))
 
+(defmethod set-uniform-matrix ((shader shader-class) name matrix-array)
+  (use shader)
+  (gl:program-uniform-matrix-4fv shader name matrix-array))
+
 (defmacro with-shader (shader &body body)
   `(progn
      (use ,shader)

@@ -647,7 +647,7 @@
 
   ;;   glUniformMatrix4fv(glGetUniformLocation(shader.ID, "projection"), 1, GL_FALSE, glm::value_ptr(projection));
 
-
+  (set-uniform-matrix *shader* "projection" (ortho 0.0 *screen-width* 0.0 *screen-height*))
 
   (generate-characters)
 
