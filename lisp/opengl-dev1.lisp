@@ -3,8 +3,8 @@
 
 (in-package :opengl-dev1)
 
-(defparameter *shader-path* "/home/johannes/common-lisp/arcimoog/lisp/")
-(defparameter *texture-path* "/home/johannes/common-lisp/arcimoog/lisp/")
+(defparameter *shader-path* "/home/johannes/common-lisp/arcimoog/lisp/shaders/")
+(defparameter *texture-path* "/home/johannes/common-lisp/arcimoog/lisp/textures/")
 
 
 (defun array-to-gl-array (lisp-array data-type)
@@ -94,7 +94,11 @@
 
 (defmethod set-uniform ((shader shader-class) name type &rest parameters)
   (use shader)
-  (apply #'gl:uniformf (append (list (gl:get-uniform-location (id shader) name)) parameters)))
+  (ecase type
+    (float (apply #'gl:uniformf (append (list (gl:get-uniform-location (id shader) name))
+                                        parameters)))
+    (int (apply #'gl:uniformi (append (list (gl:get-uniform-location (id shader) name))
+                                        parameters)))))
 
 (defmethod set-uniform-matrix ((shader shader-class) name matrix-array)
   (use shader)
@@ -236,11 +240,11 @@
 
           ;;     glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, EBO);
 
-          (gl:bind-buffer :element-array ebo)
+          (gl:bind-buffer :element-array-buffer ebo)
 
           ;;     glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(indices), indices, GL_STATIC_DRAW);
 
-          (gl:buffer-data :element-array :static-draw (array-to-gl-array indices :unsigned-int))
+          (gl:buffer-data :element-array-buffer :static-draw (array-to-gl-array indices :unsigned-int))
 
           ;;     // position attribute
           ;;     glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 8 * sizeof(float), (void*)0);
@@ -358,9 +362,9 @@
             ;;     data = stbi_load(FileSystem::getPath("resources/textures/awesomeface.png").c_str(), &width, &height, &nrChannels, 0);
 
             (multiple-value-bind (data width height)
-                (cl-jpeg:decode-image (concatenate 'string *texture-path* "vicentino-test.jpg"))
+                (cl-jpeg:decode-image (concatenate 'string *texture-path* "aron.jpg"))
               (cond (data
-                     (gl:tex-image-2d :texture-2d 0 :rgb width height 0 :rgb :unsigend-byte data)
+                     (gl:tex-image-2d :texture-2d 0 :rgb width height 0 :rgb :unsigned-byte data)
                      (gl:generate-mipmap :texture-2d))
                     ;;     if (data)
                     ;;     {
@@ -389,7 +393,7 @@
             ;;     // or set it via the texture class
             ;;     ourShader.setInt("texture2", 1);
 
-            (set-uniform our-shader "texture2" :unsigned-int 1)
+            (set-uniform our-shader "texture2" 'int 1)
 
 
 
