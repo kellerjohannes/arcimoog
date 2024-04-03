@@ -571,16 +571,6 @@
           do (setf (gl:glaref arr i) item))
     arr))
 
-
-
-(defun create-identity-matrix (&optional (value 1.0))
-  (let ((result (make-array '(4 4) :initial-element 0.0)))
-    (setf (aref result 0 0) value)
-    (setf (aref result 1 1) value)
-    (setf (aref result 2 2) value)
-    (setf (aref result 3 3) value)
-    result))
-
 (defun print-matrix (matrix-4-4)
   (format t "~&~a ~a ~a ~a~%~a ~a ~a ~a~%~a ~a ~a ~a~%~a ~a ~a ~a"
           (aref matrix-4-4 0 0)
@@ -606,12 +596,6 @@
           (aref vec4 1)
           (aref vec4 2)
           (aref vec4 3)))
-
-(let* ((vec #(1.0 0.0 0.0 1.0))
-       (trans (create-identity-matrix)))
-  (setf trans (lla:mm trans #(1.0 1.0 0.0 1.0)))
-  (print-vector vec)
-  (print-matrix trans))
 
 (defun setup ()
   (gl:enable :cull-face)
@@ -647,10 +631,9 @@
 
   ;;   glUniformMatrix4fv(glGetUniformLocation(shader.ID, "projection"), 1, GL_FALSE, glm::value_ptr(projection));
 
-  (set-uniform-matrix *shader* "projection" (ortho 0.0 *screen-width* 0.0 *screen-height*))
+  (set-uniform-matrix *shader* "projection" (aops:flatten (ortho 0.0 *screen-width* 0.0 *screen-height* -1.0 1.0)))
 
   (generate-characters)
-
 
   (setf *vao* (gl:gen-vertex-array))
   (setf *vbo* (gl:gen-buffer))
@@ -728,7 +711,7 @@
 
 
 (defun draw ()
-  (render-text *shader* "ab" 0.0 0.0 1.0 1.0 1.0 1.0)
+  (render-text *shader* "ab" 100.0 100.0 1.0 1.0 1.0 1.0)
   ;; (my-gl-draw-elements :triangles 6 :unsigned-int)
   ;;(gl:draw-arrays :triangles 0 3)
   )
@@ -737,6 +720,8 @@
   (with-shader *shader*
     ;; (gl:active-texture :texture0)
     ;; (gl:bind-texture :texture-2d *texture*)
+    (gl:clear-color 0.2 0.2 0.2 1.0)
+    (gl:clear :color-buffer-bit)
     (gl:bind-vertex-array *vao*)
     ;; (set-uniform *shader* "uniColor" :float 1.0 1.0 1.0 1.0)
     (draw)

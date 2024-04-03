@@ -83,3 +83,23 @@
     (loop-across-matrix result
       (setf (aref result i j) (reduce reducing-operation
                                       (loop ))))))
+
+
+(defun ortho (left right bottom top near far)
+  (let ((result (make-array '(4 4) :element-type 'float :initial-element 1.0)))
+    (setf (aref result 0 0) (/ 2.0 (- right left))
+          (aref result 1 1) (/ 2.0 (- top bottom))
+          (aref result 2 2) (/ -2.0 (- far near))
+          (aref result 3 0) (/ (- (+ right left)) (- right left))
+          (aref result 3 1) (/ (- (+ top bottom)) (- top bottom))
+          (aref result 3 1) (/ (- (+ far near)) (- near far)))
+    result))
+
+
+(defun create-identity-matrix (&optional (value 1.0))
+  (let ((result (make-array '(4 4) :initial-element 0.0)))
+    (setf (aref result 0 0) value)
+    (setf (aref result 1 1) value)
+    (setf (aref result 2 2) value)
+    (setf (aref result 3 3) value)
+    result))
