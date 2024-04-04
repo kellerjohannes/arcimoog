@@ -1,10 +1,12 @@
-(defpackage :opengl-dev1
+(defpackage :opengl-dev2
   (:use :cl))
 
-(in-package :opengl-dev1)
+(in-package :opengl-dev2)
 
 (defparameter *shader-path* "/home/johannes/common-lisp/arcimoog/lisp/shaders/")
 (defparameter *texture-path* "/home/johannes/common-lisp/arcimoog/lisp/textures/")
+
+(asdf:load-system "array-operations")
 
 ;; #include <glad/glad.h>
 
@@ -108,6 +110,7 @@
      (gl:use-program 0)))
 
 (defparameter *mix-amount* 0.5)
+(defparameter *transformation-matrix* nil)
 
 ;; #include <iostream>
 
@@ -144,6 +147,14 @@
   (when (and (> *mix-amount* 0.0)
              (eq (glfw:get-key :down) :press))
     (decf *mix-amount* 0.01))
+  (when (eq (glfw:get-key :h) :press)
+    (decf (car *root-position*) 0.1))
+  (when (eq (glfw:get-key :l) :press)
+    (incf (car *root-position*) 0.1))
+  (when (eq (glfw:get-key :j) :press)
+    (decf (cdr *root-position*) 0.1))
+  (when (eq (glfw:get-key :k) :press)
+    (incf (cdr *root-position*) 0.1))
   )
 
 
@@ -155,10 +166,13 @@
 
 (defparameter *screen-width* 800)
 (defparameter *screen-height* 600)
+(defparameter *root-position* (cons 0.0 0.0))
 
 ;; int main()
 (defun main ()
+  (setf *root-position* (cons 0.0 0.0))
   (setf *mix-amount* 0.5)
+
   ;; {
   ;;     // glfw: initialize and configure
   ;;     // ------------------------------
@@ -451,6 +465,19 @@
                        ;;         glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
 
                        (set-uniform our-shader "mixAmount" 'float *mix-amount*)
+                       (setf *transformation-matrix* (create-identity-matrix 4))
+                       (transform *transformation-matrix* translate (vector (car *root-position*) (cdr *root-position*) 0.0))
+                       ;; (transform *transformation-matrix* scale (vector (car *root-position*) (cdr *root-position*) 1.0))
+                       ;; (transform *transformation-matrix* rotate (car *root-position*) #(0 0 1))
+                       ;; (transform *transformation-matrix* rotate (cdr *root-position*) #(0 1 0))
+                       (set-uniform-matrix our-shader "transform" (lisp-to-gl-matrix *transformation-matrix*))
+                       (my-gl-draw-elements :triangles 6 :unsigned-int)
+
+
+                       (setf *transformation-matrix* (create-identity-matrix 4))
+                       (transform *transformation-matrix* scale (vector (car *root-position*) (cdr *root-position*) 1.0))
+
+                       (set-uniform-matrix our-shader "transform" (lisp-to-gl-matrix *transformation-matrix*))
                        (my-gl-draw-elements :triangles 6 :unsigned-int)
 
                        ;;         // glfw: swap buffers and poll IO events (keys pressed/released, mouse moved etc.)
@@ -490,3 +517,8 @@
 ;; // process all input: query GLFW whether relevant keys are pressed/released this frame and react accordingly
 ;; // ---------------------------------------------------------------------------------------------------------
 ;; void processInput(GLFWwindow *window)
+
+
+
+
+;;; experimental stage

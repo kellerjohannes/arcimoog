@@ -85,6 +85,16 @@
                                       (loop ))))))
 
 
+
+
+;;; from here serious
+
+(defun rad->deg (rad)
+  (* 180 (/ rad PI)))
+
+(defun deg->rad (deg)
+  (* PI (/ deg 180)))
+
 (defun ortho (left right bottom top near far)
   (let ((result (make-array '(4 4) :element-type 'float :initial-element 1.0)))
     (setf (aref result 0 0) (/ 2.0 (- right left))
@@ -95,11 +105,62 @@
           (aref result 3 1) (/ (- (+ far near)) (- near far)))
     result))
 
-
-(defun create-identity-matrix (&optional (value 1.0))
-  (let ((result (make-array '(4 4) :initial-element 0.0)))
-    (setf (aref result 0 0) value)
-    (setf (aref result 1 1) value)
-    (setf (aref result 2 2) value)
-    (setf (aref result 3 3) value)
+(defun create-identity-matrix (dimension)
+  (let ((result (make-array (list dimension dimension) :initial-element 0.0)))
+    (loop for i from 0 below dimension do
+      (setf (aref result i i) 1.0))
     result))
+
+(defun translate (matrix vector)
+  (let ((translation-matrix (create-identity-matrix 4)))
+    (setf (aref translation-matrix 3 0) (aref vector 0)
+          (aref translation-matrix 3 1) (aref vector 1)
+          (aref translation-matrix 3 2) (aref vector 2))
+    (lla:mm matrix translation-matrix)))
+
+(defun scale (matrix vector)
+  (let ((scale-matrix (make-array '(4 4) :initial-element 0.0)))
+    (setf (aref scale-matrix 0 0) (aref vector 0)
+          (aref scale-matrix 1 1) (aref vector 1)
+          (aref scale-matrix 2 2) (aref vector 2)
+          (aref scale-matrix 3 3) 1.0)
+    (lla:mm matrix scale-matrix)))
+
+(defun rotate (matrix angle-deg vector)
+  (let ((rotate-matrix (create-identity-matrix 4))
+        (angle-rad (coerce (deg->rad angle-deg) 'single-float)))
+    (unless (zerop (aref vector 0))
+      (setf (aref rotate-matrix 1 1) (cos angle-rad)
+            (aref rotate-matrix 2 1) (- (sin angle-rad))
+            (aref rotate-matrix 1 2) (sin angle-rad)
+            (aref rotate-matrix 2 2) (cos angle-rad)))
+    (unless (zerop (aref vector 1))
+      (setf (aref rotate-matrix 0 0) (cos angle-rad)
+            (aref rotate-matrix 0 2) (- (sin angle-rad))
+            (aref rotate-matrix 2 0) (sin angle-rad)
+            (aref rotate-matrix 2 2) (cos angle-rad)))
+    (unless (zerop (aref vector 2))
+      (setf (aref rotate-matrix 0 0) (cos angle-rad)
+            (aref rotate-matrix 1 0) (- (sin angle-rad))
+            (aref rotate-matrix 0 1) (sin angle-rad)
+            (aref rotate-matrix 1 1) (cos angle-rad)))
+    (lla:mm matrix rotate-matrix)))
+
+
+(defmacro loop-across-matrix (matrix &body body)
+  "Only works for 2-dimensionsl matrices."
+  (let ((n (gensym))
+        (m (gensym)))
+    `(destructuring-bind (,n ,m) (array-dimensions ,matrix)
+       (loop for i from 0 below ,n do
+             (loop for j from 0 below ,m do
+                   ,@body)))))
+
+(defun lisp-to-gl-matrix (lisp-matrix)
+  (let ((result (make-array (array-dimensions lisp-matrix))))
+    (loop-across-matrix lisp-matrix
+      (setf (aref result j i) (aref lisp-matrix i j)))
+    (aops:flatten result)))
+
+(defmacro transform (matrix transformation &rest parameters)
+  `(setf ,matrix (,transformation ,matrix ,@parameters)))
