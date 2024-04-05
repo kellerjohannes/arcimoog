@@ -1,7 +1,6 @@
 (in-package :arcimoog)
 
-
-(defun validp (shader)
+(defun valid-shader-p (shader)
   (> shader -1))
 
 (defun check-shader-error (shader)
@@ -32,7 +31,7 @@
 (defmethod initialize-instance :after ((shader shader-class) &key)
   (let ((vertex-shader (gl:create-shader :vertex-shader))
         (fragment-shader (gl:create-shader :fragment-shader)))
-    (loop while (not (validp (id shader))) do
+    (loop while (not (valid-shader-p (id shader))) do
         (with-simple-restart
             (retry "Retry compiling shaders.")
           (gl:shader-source vertex-shader (uiop:read-file-string (vertex-source-path shader)))
@@ -57,7 +56,11 @@
 
 (defmethod set-uniform ((shader shader-class) name type &rest parameters)
   (use shader)
-  (apply #'gl:uniformf (append (list (gl:get-uniform-location (id shader) name)) parameters)))
+  (ecase type
+    (float (apply #'gl:uniformf (append (list (gl:get-uniform-location (id shader) name))
+                                        parameters)))
+    (int (apply #'gl:uniformi (append (list (gl:get-uniform-location (id shader) name))
+                                        parameters)))))
 
 (defmethod set-uniform-matrix ((shader shader-class) name matrix-array)
   (use shader)

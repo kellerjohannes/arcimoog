@@ -1,6 +1,7 @@
 (asdf:defsystem "arcimoog"
-  :depends-on (:uiop :alexandria :log4cl :bordeaux-threads
-               :cl-opengl :cl-glfw3 :cl-freetype2 :incudine :cl-jpeg :array-operations :lla)
+  :depends-on (:uiop :alexandria :log4cl :bordeaux-threads :array-operations
+                     :cl-opengl :cl-glfw3 :cl-freetype2 :lla :cl-jpeg
+                     :incudine)
   :serial t
   :components ((:file "package")
                (:file "utilities")
