@@ -12,6 +12,7 @@
 (defparameter *view-matrix* nil)
 (defparameter *model-matrix* nil)
 (defparameter *root-position* (cons 0.0 0.0))
+(defparameter *font-matrix* nil)
 
 (asdf:load-system "array-operations")
 (asdf:load-system "cl-freetype2")
@@ -303,50 +304,55 @@
 
               (gl:bind-vertex-array font-vao)
 
-              (let* ((glyph-width 26.0)
-                     (glyph-height 37.0)
-                     (x-pos (+ 200.0 17.0))
-                     (y-pos (+ 200.0 5.0))
-                     (font-matrix (create-identity-matrix 4))
-                     (quad-vertices (vector
-                                     x-pos (+ y-pos glyph-height)    0.0 0.0
-                                     x-pos y-pos                     0.0 1.0
-                                     (+ x-pos glyph-width) y-pos     1.0 1.0
-                                     x-pos (+ y-pos glyph-height)    0.0 0.0
-                                     (+ x-pos glyph-width) y-pos     1.0 1.0
-                                     (+ x-pos glyph-width) (+ y-pos glyph-height) 1.0 0.0)))
-                (transform font-matrix translate #(0.0 0.0 -0.5))
-                (set-uniform-matrix font-shader "fontMatrix" (lisp-to-gl-matrix font-matrix))
-                (set-uniform-matrix font-shader "projection" (lisp-to-gl-matrix *projection-matrix*))
-                (gl:bind-buffer :array-buffer font-vbo)
-                (gl:buffer-sub-data :array-buffer (array-to-gl-array quad-vertices :float))
-                (gl:draw-arrays :triangles 0 6)
-                (gl:bind-buffer :array-buffer 0)
-                (gl:bind-vertex-array 0)
-                )
+              ;; (let* ((glyph-width 26.0)
+              ;;        (glyph-height 37.0)
+              ;;        (x-pos (+ 200.0 17.0))
+              ;;        (y-pos (+ 200.0 5.0))
+              ;;        (font-matrix (create-identity-matrix 4))
+              ;;        (quad-vertices (vector
+              ;;                        x-pos (+ y-pos glyph-height)    0.0 0.0
+              ;;                        x-pos y-pos                     0.0 1.0
+              ;;                        (+ x-pos glyph-width) y-pos     1.0 1.0
+              ;;                        x-pos (+ y-pos glyph-height)    0.0 0.0
+              ;;                        (+ x-pos glyph-width) y-pos     1.0 1.0
+              ;;                        (+ x-pos glyph-width) (+ y-pos glyph-height) 1.0 0.0)))
+              ;;   (transform font-matrix translate #(0.0 0.0 -0.5))
+              ;;   (set-uniform-matrix font-shader "fontMatrix" (lisp-to-gl-matrix font-matrix))
+              ;;   (set-uniform-matrix font-shader "projection" (lisp-to-gl-matrix *projection-matrix*))
+              ;;   (gl:bind-buffer :array-buffer font-vbo)
+              ;;   (gl:buffer-sub-data :array-buffer (array-to-gl-array quad-vertices :float))
+              ;;   (gl:draw-arrays :triangles 0 6)
+              ;;   (gl:bind-buffer :array-buffer 0)
+              ;;   (gl:bind-vertex-array 0)
+              ;;   )
 
-              ;; (let ((font-scale 1.0))
-              ;;   (ft2:do-string-render (*face* "abc" bitmap x y :with-char character)
-              ;;     (multiple-value-bind (texture-id texture-width texture-height)
-              ;;         (lookup-texture-ids character)
-              ;;       (let* ((glyph-width (* font-scale texture-width))
-              ;;              (glyph-height (* font-scale texture-height))
-              ;;              (x-pos (+ 200.0 (coerce x 'single-float)))
-              ;;              (y-pos (+ 200.0 (coerce y 'single-float)))
-              ;;              (quad-vertices (vector
-              ;;                              x-pos (+ y-pos glyph-height)    0.0 0.0
-              ;;                              x-pos y-pos                     0.0 1.0
-              ;;                              (+ x-pos glyph-width) y-pos     1.0 1.0
-              ;;                              x-pos (+ y-pos glyph-height)    0.0 0.0
-              ;;                              (+ x-pos glyph-width) y-pos     1.0 1.0
-              ;;                              (+ x-pos glyph-width) (+ y-pos glyph-height) 1.0 0.0)))
-              ;;         (gl:bind-texture :texture-2d texture-id)
-              ;;         (gl:bind-buffer :array-buffer font-vbo)
-              ;;         (gl:buffer-data :array-buffer
-              ;;                         :dynamic-draw
-              ;;                         (array-to-gl-array quad-vertices :float))
-              ;;         (gl:bind-buffer :array-buffer 0)
-              ;;         (gl:draw-arrays :triangles 0 6)))))
+              (let ((font-scale 1.0))
+                (ft2:do-string-render (*face* "abc" bitmap x y :with-char character)
+                  (multiple-value-bind (texture-id texture-width texture-height)
+                      (lookup-texture-ids character)
+                    (let* ((glyph-width (* font-scale texture-width))
+                           (glyph-height (* font-scale texture-height))
+                           (x-pos (+ 200.0 (coerce x 'single-float)))
+                           (y-pos (+ 200.0 (coerce y 'single-float)))
+                           (quad-vertices (vector
+                                           x-pos (+ y-pos glyph-height)    0.0 0.0
+                                           x-pos y-pos                     0.0 1.0
+                                           (+ x-pos glyph-width) y-pos     1.0 1.0
+                                           x-pos (+ y-pos glyph-height)    0.0 0.0
+                                           (+ x-pos glyph-width) y-pos     1.0 1.0
+                                           (+ x-pos glyph-width) (+ y-pos glyph-height) 1.0 0.0)))
+
+                      (setf *font-matrix* (create-identity-matrix 4))
+                      (transform *font-matrix* translate #(0.0 0.0 -0.5))
+                      (set-uniform-matrix font-shader "fontMatrix" (lisp-to-gl-matrix *font-matrix*))
+                      (set-uniform-matrix font-shader "projection" (lisp-to-gl-matrix *projection-matrix*))
+                      (gl:bind-texture :texture-2d texture-id)
+                      (gl:bind-buffer :array-buffer font-vbo)
+                      (gl:buffer-data :array-buffer
+                                      :dynamic-draw
+                                      (array-to-gl-array quad-vertices :float))
+                      (gl:bind-buffer :array-buffer 0)
+                      (gl:draw-arrays :triangles 0 6)))))
               (gl:bind-vertex-array 0)
               (gl:bind-texture :texture-2d 0)
 
