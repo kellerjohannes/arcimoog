@@ -3,6 +3,27 @@
 
 (in-package :opengl-dev5)
 
+(asdf:load-system "incudine")
+
+(incudine:rt-start)
+
+(pm:initialize)
+
+(defparameter *midi-in* (pm:open (pm:get-device-id-by-name "Faderfox EC4 MIDI 1" :input)))
+
+(incudine:recv-start *midi-in*)
+
+(defun midi-responder (a b c)
+  (declare (ignore a b c)))
+
+
+(defvar resp5
+  (incudine:make-responder *midi-in* (lambda (a b c) (midi-responder a b c))))
+
+
+
+
+
 (defparameter *shader-path* "/home/johannes/common-lisp/arcimoog/lisp/shaders/")
 (defparameter *texture-path* "/home/johannes/common-lisp/arcimoog/lisp/textures/")
 
@@ -133,8 +154,24 @@
   (when (eq (glfw:get-key :k) :press)
     (incf (cdr *root-position*) 1.0)))
 
+
+(defparameter *amount-of-copies* 1)
+
+(defun midi-responder (channel-raw controller-raw value-raw)
+  ;; (format t "~&raw: ~d ~d ~d~%" channel-raw controller-raw value-raw)
+  (case (- channel-raw 176)
+    (2 (case controller-raw
+         (0 (decf (car *root-position*) (- 64.0 value-raw)))
+         (1 (decf (cdr *root-position*) (- 64.0 value-raw)))
+         (3 (setf *amount-of-copies* value-raw))
+         (otherwise (format t "~&Unknown Faderfox controller in setup page 2."))))
+    (otherwise (format t "~&Unknown Faderfox setup page.")))
+
+  )
+
+
 (defparameter *texture-ids* nil)
-(defparameter *character-set* "abcdefg")
+(defparameter *character-set* "ᴀʙᴄ»«❜'➚ſꝑ➙ȧȦ♯♭♮abcdefghijklmnopqrstuvwxyzäöüABCDEFGHIJKLMNOPQRSTUVWXYZÄÖÜ")
 (defparameter *face* (ft2:new-face "/usr/share/fonts/TTF/DejaVuSans.ttf"))
 
 (defun lookup-texture-ids (character)
@@ -172,6 +209,12 @@
                                   (coerce (second dimensions) 'single-float)
                                   (coerce (first dimensions) 'single-float)))
             *texture-ids*))))
+
+(defun render-vicentinos (shader)
+  (dotimes (i *amount-of-copies*)
+    (transform *model-matrix* translate #(10.1 10.1 0.0))
+    (set-uniform-matrix shader "model" (lisp-to-gl-matrix *model-matrix*))
+    (my-gl-draw-elements :triangles 6 :unsigned-int)))
 
 (defun main ()
   (setf *root-position* (cons 0.0 0.0))
@@ -289,51 +332,30 @@
               (transform *model-matrix* translate (vector (car *root-position*)
                                                           (cdr *root-position*)
                                                           0.0))
-              (dotimes (i 10)
-                (transform *model-matrix* translate #(10.1 10.1 0.0))
-                (set-uniform-matrix our-shader "model" (lisp-to-gl-matrix *model-matrix*))
-                (my-gl-draw-elements :triangles 6 :unsigned-int))
+
+
+              (render-vicentinos our-shader)
 
               (gl:enable :blend)
               (gl:blend-func :src-alpha :one-minus-src-alpha)
 
               (use font-shader)
-              (set-uniform font-shader "textColor" 'float 1.0 0.9 0.9)
+              (set-uniform font-shader "textColor" 'float 1.0 0.5 0.2)
               (set-uniform-matrix font-shader "projection" (lisp-to-gl-matrix *projection-matrix*))
               (gl:active-texture :texture0)
 
               (gl:bind-vertex-array font-vao)
 
-              ;; (let* ((glyph-width 26.0)
-              ;;        (glyph-height 37.0)
-              ;;        (x-pos (+ 200.0 17.0))
-              ;;        (y-pos (+ 200.0 5.0))
-              ;;        (font-matrix (create-identity-matrix 4))
-              ;;        (quad-vertices (vector
-              ;;                        x-pos (+ y-pos glyph-height)    0.0 0.0
-              ;;                        x-pos y-pos                     0.0 1.0
-              ;;                        (+ x-pos glyph-width) y-pos     1.0 1.0
-              ;;                        x-pos (+ y-pos glyph-height)    0.0 0.0
-              ;;                        (+ x-pos glyph-width) y-pos     1.0 1.0
-              ;;                        (+ x-pos glyph-width) (+ y-pos glyph-height) 1.0 0.0)))
-              ;;   (transform font-matrix translate #(0.0 0.0 -0.5))
-              ;;   (set-uniform-matrix font-shader "fontMatrix" (lisp-to-gl-matrix font-matrix))
-              ;;   (set-uniform-matrix font-shader "projection" (lisp-to-gl-matrix *projection-matrix*))
-              ;;   (gl:bind-buffer :array-buffer font-vbo)
-              ;;   (gl:buffer-sub-data :array-buffer (array-to-gl-array quad-vertices :float))
-              ;;   (gl:draw-arrays :triangles 0 6)
-              ;;   (gl:bind-buffer :array-buffer 0)
-              ;;   (gl:bind-vertex-array 0)
-              ;;   )
-
-              (let ((font-scale 1.0))
-                (ft2:do-string-render (*face* "abc" bitmap x y :with-char character)
+              (let ((font-scale 0.5))
+                (ft2:do-string-render (*face* *character-set* bitmap x y :with-char character)
                   (multiple-value-bind (texture-id texture-width texture-height)
                       (lookup-texture-ids character)
                     (let* ((glyph-width (* font-scale texture-width))
                            (glyph-height (* font-scale texture-height))
-                           (x-pos (+ 200.0 (coerce x 'single-float)))
-                           (y-pos (+ 200.0 (coerce y 'single-float)))
+                           (x-pos (* font-scale (+ 20.0 (coerce x 'single-float))))
+                           (y-pos (* font-scale (- 100.0
+                                                   texture-height
+                                                   (coerce y 'single-float))))
                            (quad-vertices (vector
                                            x-pos (+ y-pos glyph-height)    0.0 0.0
                                            x-pos y-pos                     0.0 1.0
@@ -346,6 +368,8 @@
                       (transform *font-matrix* translate #(0.0 0.0 -0.5))
                       (set-uniform-matrix font-shader "fontMatrix" (lisp-to-gl-matrix *font-matrix*))
                       (set-uniform-matrix font-shader "projection" (lisp-to-gl-matrix *projection-matrix*))
+
+
                       (gl:bind-texture :texture-2d texture-id)
                       (gl:bind-buffer :array-buffer font-vbo)
                       (gl:buffer-data :array-buffer
