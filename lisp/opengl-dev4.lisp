@@ -1,10 +1,17 @@
-(defpackage :opengl-dev2
+(defpackage :opengl-dev4
   (:use :cl))
 
-(in-package :opengl-dev2)
+(in-package :opengl-dev4)
 
 (defparameter *shader-path* "/home/johannes/common-lisp/arcimoog/lisp/shaders/")
 (defparameter *texture-path* "/home/johannes/common-lisp/arcimoog/lisp/textures/")
+
+(defparameter *screen-width* 800)
+(defparameter *screen-height* 600)
+(defparameter *projection-matrix* nil)
+(defparameter *view-matrix* nil)
+(defparameter *model-matrix* nil)
+(defparameter *root-position* (cons 0.0 0.0))
 
 (asdf:load-system "array-operations")
 
@@ -110,7 +117,6 @@
      (gl:use-program 0)))
 
 (defparameter *mix-amount* 0.5)
-(defparameter *transformation-matrix* nil)
 
 ;; #include <iostream>
 
@@ -127,7 +133,9 @@
 
 (glfw:def-window-size-callback framebuffer-size-callback (window width height)
   (declare (ignore window))
-  (gl:viewport 0 0 width height))
+  (gl:viewport 0 0 width height)
+  (setf *projection-matrix* (ortho 0.0 width 0.0 height 0.1 100.0))
+  )
 
 ;; void processInput(GLFWwindow *window);
 
@@ -148,13 +156,13 @@
              (eq (glfw:get-key :down) :press))
     (decf *mix-amount* 0.01))
   (when (eq (glfw:get-key :h) :press)
-    (decf (car *root-position*) 0.1))
+    (decf (car *root-position*) 1.0))
   (when (eq (glfw:get-key :l) :press)
-    (incf (car *root-position*) 0.1))
+    (incf (car *root-position*) 1.0))
   (when (eq (glfw:get-key :j) :press)
-    (decf (cdr *root-position*) 0.1))
+    (decf (cdr *root-position*) 1.0))
   (when (eq (glfw:get-key :k) :press)
-    (incf (cdr *root-position*) 0.1))
+    (incf (cdr *root-position*) 1.0))
   )
 
 
@@ -164,14 +172,12 @@
 ;; const unsigned int SCR_WIDTH = 800;
 ;; const unsigned int SCR_HEIGHT = 600;
 
-(defparameter *screen-width* 800)
-(defparameter *screen-height* 600)
-(defparameter *root-position* (cons 0.0 0.0))
 
 ;; int main()
 (defun main ()
   (setf *root-position* (cons 0.0 0.0))
   (setf *mix-amount* 0.5)
+
 
   ;; {
   ;;     // glfw: initialize and configure
@@ -199,6 +205,8 @@
     ;;     glfwSetFramebufferSizeCallback(window, framebuffer_size_callback);
 
     (glfw:set-framebuffer-size-callback 'framebuffer-size-callback)
+    (gl:viewport 0 0 *screen-width* *screen-height*)
+    (setf *projection-matrix* (ortho 0.0 *screen-width* 0.0 *screen-height* 0.1 100.0))
 
     ;;     // glad: load all OpenGL function pointers
     ;;     // ---------------------------------------
@@ -335,165 +343,181 @@
             ;;     // The FileSystem::getPath(...) is part of the GitHub repository so we can find files on any IDE/platform; replace it with your own image path.
             ;;     unsigned char *data = stbi_load(FileSystem::getPath("resources/textures/container.jpg").c_str(), &width, &height, &nrChannels, 0);
 
-            (multiple-value-bind (data height width)
-                (cl-jpeg:decode-image (concatenate 'string *texture-path* "vicentino-test.jpg"))
+            (let ((image-size nil))
+              (multiple-value-bind (data height width)
+                  (cl-jpeg:decode-image (concatenate 'string *texture-path* "vicentino-test.jpg"))
+                (setf image-size (cons width height))
 
-              (cond (data
-                     (gl:tex-image-2d :texture-2d 0 :rgb width height 0 :rgb :unsigned-byte data)
-                     (gl:generate-mipmap :texture-2d))
+                (cond (data
+                       (gl:tex-image-2d :texture-2d 0 :rgb width height 0 :rgb :unsigned-byte data)
+                       (gl:generate-mipmap :texture-2d))
 
-                    ;;     if (data)
-                    ;;     {
-                    ;;         glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, width, height, 0, GL_RGB, GL_UNSIGNED_BYTE, data);
-                    ;;         glGenerateMipmap(GL_TEXTURE_2D);
-                    ;;     }
-                    ;;     else
-                    ;;     {
-                    ;;         std::cout << "Failed to load texture" << std::endl;
+                      ;;     if (data)
+                      ;;     {
+                      ;;         glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, width, height, 0, GL_RGB, GL_UNSIGNED_BYTE, data);
+                      ;;         glGenerateMipmap(GL_TEXTURE_2D);
+                      ;;     }
+                      ;;     else
+                      ;;     {
+                      ;;         std::cout << "Failed to load texture" << std::endl;
 
-                    (t (format t "~&Failed to load texture.")))
+                      (t (format t "~&Failed to load texture.")))
 
-              ;;     }
-              ;;     stbi_image_free(data);
-              )
-            ;;     // texture 2
-            ;;     // ---------
-            ;;     glGenTextures(1, &texture2);
-            ;;     glBindTexture(GL_TEXTURE_2D, texture2);
+                ;;     }
+                ;;     stbi_image_free(data);
+                )
+              ;;     // texture 2
+              ;;     // ---------
+              ;;     glGenTextures(1, &texture2);
+              ;;     glBindTexture(GL_TEXTURE_2D, texture2);
 
-            (gl:bind-texture :texture-2d texture2)
+              (gl:bind-texture :texture-2d texture2)
 
-            ;;     // set the texture wrapping parameters
-            ;;     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);	// set texture wrapping to GL_REPEAT (default wrapping method)
+              ;;     // set the texture wrapping parameters
+              ;;     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);	// set texture wrapping to GL_REPEAT (default wrapping method)
 
-            (gl:tex-parameter :texture-2d :texture-wrap-s :repeat)
+              (gl:tex-parameter :texture-2d :texture-wrap-s :repeat)
 
-            ;;     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
+              ;;     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
 
-            (gl:tex-parameter :texture-2d :texture-wrap-t :repeat)
+              (gl:tex-parameter :texture-2d :texture-wrap-t :repeat)
 
-            ;;     // set texture filtering parameters
-            ;;     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+              ;;     // set texture filtering parameters
+              ;;     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
 
-            (gl:tex-parameter :texture-2d :texture-min-filter :linear)
+              (gl:tex-parameter :texture-2d :texture-min-filter :linear)
 
-            ;;     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+              ;;     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
 
-            (gl:tex-parameter :texture-2d :texture-mag-filter :linear)
+              (gl:tex-parameter :texture-2d :texture-mag-filter :linear)
 
-            ;;     // load image, create texture and generate mipmaps
-            ;;     data = stbi_load(FileSystem::getPath("resources/textures/awesomeface.png").c_str(), &width, &height, &nrChannels, 0);
+              ;;     // load image, create texture and generate mipmaps
+              ;;     data = stbi_load(FileSystem::getPath("resources/textures/awesomeface.png").c_str(), &width, &height, &nrChannels, 0);
 
-            (multiple-value-bind (data width height)
-                (cl-jpeg:decode-image (concatenate 'string *texture-path* "aron.jpg"))
-              (cond (data
-                     (gl:tex-image-2d :texture-2d 0 :rgb width height 0 :rgb :unsigned-byte data)
-                     (gl:generate-mipmap :texture-2d))
-                    ;;     if (data)
-                    ;;     {
-                    ;;         // note that the awesomeface.png has transparency and thus an alpha channel, so make sure to tell OpenGL the data type is of GL_RGBA
-                    ;;         glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, width, height, 0, GL_RGBA, GL_UNSIGNED_BYTE, data);
-                    ;;         glGenerateMipmap(GL_TEXTURE_2D);
-                    ;;     }
-                    ;;     else
-                    ;;     {
-                    ;;         std::cout << "Failed to load texture" << std::endl;
-                    (t (format t "~&Failed to load texture2."))
-                    ;;     }
-                    ;;     stbi_image_free(data);
+              (multiple-value-bind (data width height)
+                  (cl-jpeg:decode-image (concatenate 'string *texture-path* "aron.jpg"))
+                (cond (data
+                       (gl:tex-image-2d :texture-2d 0 :rgb width height 0 :rgb :unsigned-byte data)
+                       (gl:generate-mipmap :texture-2d))
+                      ;;     if (data)
+                      ;;     {
+                      ;;         // note that the awesomeface.png has transparency and thus an alpha channel, so make sure to tell OpenGL the data type is of GL_RGBA
+                      ;;         glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, width, height, 0, GL_RGBA, GL_UNSIGNED_BYTE, data);
+                      ;;         glGenerateMipmap(GL_TEXTURE_2D);
+                      ;;     }
+                      ;;     else
+                      ;;     {
+                      ;;         std::cout << "Failed to load texture" << std::endl;
+                      (t (format t "~&Failed to load texture2."))
+                      ;;     }
+                      ;;     stbi_image_free(data);
 
-                    ))
+                      ))
 
-            ;;     // tell opengl for each sampler to which texture unit it belongs to (only has to be done once)
-            ;;     // -------------------------------------------------------------------------------------------
-            ;;     ourShader.use(); // don't forget to activate/use the shader before setting uniforms!
-            ;;     // either set it manually like so:
-            ;;     glUniform1i(glGetUniformLocation(ourShader.ID, "texture1"), 0);
+              ;;     // tell opengl for each sampler to which texture unit it belongs to (only has to be done once)
+              ;;     // -------------------------------------------------------------------------------------------
+              ;;     ourShader.use(); // don't forget to activate/use the shader before setting uniforms!
+              ;;     // either set it manually like so:
+              ;;     glUniform1i(glGetUniformLocation(ourShader.ID, "texture1"), 0);
 
-            (use our-shader)
-            (gl:uniformi (gl:get-uniform-location (id our-shader) "texture1") 0)
+              (use our-shader)
+              (gl:uniformi (gl:get-uniform-location (id our-shader) "texture1") 0)
 
-            ;;     // or set it via the texture class
-            ;;     ourShader.setInt("texture2", 1);
+              ;;     // or set it via the texture class
+              ;;     ourShader.setInt("texture2", 1);
 
-            (set-uniform our-shader "texture2" 'int 1)
-
-
-
-
-            ;;     // render loop
-            ;;     // -----------
-            ;;     while (!glfwWindowShouldClose(window))
-            ;;     {
-            (loop until (glfw:window-should-close-p)
-                  do (progn
-
-                       ;;         // input
-                       ;;         // -----
-                       ;;         processInput(window);
-
-                       (process-input)
-
-                       ;;         // render
-                       ;;         // ------
-                       ;;         glClearColor(0.2f, 0.3f, 0.3f, 1.0f);
-                       ;;         glClear(GL_COLOR_BUFFER_BIT);
-
-                       (gl:clear-color 0.2 0.3 0.3 1.0)
-                       (gl:clear :color-buffer-bit)
-
-                       ;;         // bind textures on corresponding texture units
-                       ;;         glActiveTexture(GL_TEXTURE0);
-                       ;;         glBindTexture(GL_TEXTURE_2D, texture1);
-                       ;;         glActiveTexture(GL_TEXTURE1);
-                       ;;         glBindTexture(GL_TEXTURE_2D, texture2);
-
-                       (gl:active-texture :texture0)
-                       (gl:bind-texture :texture-2d texture1)
-                       (gl:active-texture :texture1)
-                       (gl:bind-texture :texture-2d texture2)
-
-                       ;;         // render container
-                       ;;         ourShader.use();
-
-                       (use our-shader)
-
-                       ;;         glBindVertexArray(VAO);
-
-                       (gl:bind-vertex-array vao)
-
-                       ;;         glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
-
-                       (set-uniform our-shader "mixAmount" 'float *mix-amount*)
-
-                       (setf *transformation-matrix* (create-identity-matrix 4))
-                       (transform *transformation-matrix* translate (vector (car *root-position*) (cdr *root-position*) 0.0))
-                       ;; (transform *transformation-matrix* scale (vector (car *root-position*) (cdr *root-position*) 1.0))
-                       ;; (transform *transformation-matrix* rotate (car *root-position*) #(0 0 1))
-                       ;; (transform *transformation-matrix* rotate (cdr *root-position*) #(0 1 0))
-                       (set-uniform-matrix our-shader "transform" (lisp-to-gl-matrix *transformation-matrix*))
-                       (my-gl-draw-elements :triangles 6 :unsigned-int)
+              (set-uniform our-shader "texture2" 'int 1)
 
 
-                       (setf *transformation-matrix* (create-identity-matrix 4))
-                       (transform *transformation-matrix* scale (vector (car *root-position*) (cdr *root-position*) 1.0))
 
-                       (set-uniform-matrix our-shader "transform" (lisp-to-gl-matrix *transformation-matrix*))
-                       (my-gl-draw-elements :triangles 6 :unsigned-int)
 
-                       ;;         // glfw: swap buffers and poll IO events (keys pressed/released, mouse moved etc.)
-                       ;;         // -------------------------------------------------------------------------------
-                       ;;         glfwSwapBuffers(window);
+              ;;     // render loop
+              ;;     // -----------
+              ;;     while (!glfwWindowShouldClose(window))
+              ;;     {
+              (loop until (glfw:window-should-close-p)
+                    do (progn
 
-                       (glfw:swap-buffers)
+                         ;;         // input
+                         ;;         // -----
+                         ;;         processInput(window);
 
-                       ;;         glfwPollEvents();
+                         (process-input)
 
-                       (glfw:poll-events)
+                         ;;         // render
+                         ;;         // ------
+                         ;;         glClearColor(0.2f, 0.3f, 0.3f, 1.0f);
+                         ;;         glClear(GL_COLOR_BUFFER_BIT);
 
-                       ;;     }
+                         (gl:clear-color 0.2 0.3 0.3 1.0)
+                         (gl:clear :color-buffer-bit)
 
-                       ))
+                         ;;         // bind textures on corresponding texture units
+                         ;;         glActiveTexture(GL_TEXTURE0);
+                         ;;         glBindTexture(GL_TEXTURE_2D, texture1);
+                         ;;         glActiveTexture(GL_TEXTURE1);
+                         ;;         glBindTexture(GL_TEXTURE_2D, texture2);
+
+                         (gl:active-texture :texture0)
+                         (gl:bind-texture :texture-2d texture1)
+                         (gl:active-texture :texture1)
+                         (gl:bind-texture :texture-2d texture2)
+
+                         ;;         // render container
+                         ;;         ourShader.use();
+
+                         (use our-shader)
+
+                         ;;         glBindVertexArray(VAO);
+
+                         (gl:bind-vertex-array vao)
+
+                         ;;         glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
+
+                         (set-uniform our-shader "mixAmount" 'float *mix-amount*)
+
+                         ;;(setf *projection-matrix* (create-identity-matrix 4))
+                         ;;(setf *view-matrix* (create-identity-matrix 4))
+
+
+                         (setf *view-matrix* (create-identity-matrix 4))
+                         (transform *view-matrix* translate #(0.0 0.0 -0.5))
+
+                         (set-uniform-matrix our-shader "projection" (lisp-to-gl-matrix *projection-matrix*))
+                         (set-uniform-matrix our-shader "view" (lisp-to-gl-matrix *view-matrix*))
+
+                         (setf *model-matrix* (create-identity-matrix 4))
+                         (transform *model-matrix*
+                                    scale
+                                    (vector (* 0.2 (car image-size))
+                                            (* 0.2 (cdr image-size))
+                                            1.0))
+                         (transform *model-matrix* translate #(400.0 300.0 0.0))
+                         (transform *model-matrix* translate (vector (car *root-position*)
+                                                                     (cdr *root-position*)
+                                                                     0.0))
+                         ;; (transform *model-matrix* scale (vector (car *root-position*) (cdr *root-position*) 1.0))
+                         ;; (transform *model-matrix* rotate (car *root-position*) #(0 0 1))
+                         ;; (transform *model-matrix* rotate (cdr *root-position*) #(0 1 0))
+
+                         (dotimes (i 10)
+                           (transform *model-matrix* translate #(0.01 0.01 0.0))
+                           (set-uniform-matrix our-shader "model" (lisp-to-gl-matrix *model-matrix*))
+                           (my-gl-draw-elements :triangles 6 :unsigned-int))
+
+                         ;;         // glfw: swap buffers and poll IO events (keys pressed/released, mouse moved etc.)
+                         ;;         // -------------------------------------------------------------------------------
+                         ;;         glfwSwapBuffers(window);
+
+                         (glfw:swap-buffers)
+
+                         ;;         glfwPollEvents();
+
+                         (glfw:poll-events)
+
+                         ;;     }
+
+                         )))
 
 
             ;;     // optional: de-allocate all resources once they've outlived their purpose:

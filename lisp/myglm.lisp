@@ -95,14 +95,26 @@
 (defun deg->rad (deg)
   (* PI (/ deg 180)))
 
+;;;; Taken from https://stackoverflow.com/questions/12230312/is-glmortho-actually-wrong
+;;
+;; This matches that: https://en.wikipedia.org/wiki/Orthographic_projection
+;; Result[0][0] = valType(2) / (right - left);
+;; Result[1][1] = valType(2) / (top - bottom);
+;; Result[2][2] = - valType(2) / (zFar - zNear);
+;; Result[3][0] = - (right + left) / (right - left);
+;; Result[3][1] = - (top + bottom) / (top - bottom);
+;; Result[3][2] = - (zFar + zNear) / (zFar - zNear);
+;;;; ➙ doesn't work, because row-first vs. column-first
 (defun ortho (left right bottom top near far)
-  (let ((result (make-array '(4 4) :element-type 'float :initial-element 1.0)))
+  (let ((result (make-array '(4 4) :element-type 'float :initial-element 0.0)))
     (setf (aref result 0 0) (/ 2.0 (- right left))
           (aref result 1 1) (/ 2.0 (- top bottom))
-          (aref result 2 2) (/ -2.0 (- far near))
-          (aref result 3 0) (/ (- (+ right left)) (- right left))
-          (aref result 3 1) (/ (- (+ top bottom)) (- top bottom))
-          (aref result 3 1) (/ (- (+ far near)) (- near far)))
+          (aref result 2 2) (- (/ 2.0 (- far near)))
+          (aref result 3 3) 1.0
+          (aref result 3 0) (- (/ (+ right left) (- right left)))
+          (aref result 3 1) (- (/ (+ top bottom) (- top bottom)))
+          (aref result 3 2) (- (/ (+ far near) (- far near)))
+          )
     result))
 
 (defun create-identity-matrix (dimension)

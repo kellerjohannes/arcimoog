@@ -1,7 +1,7 @@
-(defpackage :opengl-dev2
+(defpackage :opengl-dev3
   (:use :cl))
 
-(in-package :opengl-dev2)
+(in-package :opengl-dev3)
 
 (defparameter *shader-path* "/home/johannes/common-lisp/arcimoog/lisp/shaders/")
 (defparameter *texture-path* "/home/johannes/common-lisp/arcimoog/lisp/textures/")
@@ -467,19 +467,16 @@
                        (set-uniform our-shader "mixAmount" 'float *mix-amount*)
 
                        (setf *transformation-matrix* (create-identity-matrix 4))
+                       (transform *transformation-matrix* scale #(0.1 0.1 1.0))
                        (transform *transformation-matrix* translate (vector (car *root-position*) (cdr *root-position*) 0.0))
                        ;; (transform *transformation-matrix* scale (vector (car *root-position*) (cdr *root-position*) 1.0))
                        ;; (transform *transformation-matrix* rotate (car *root-position*) #(0 0 1))
                        ;; (transform *transformation-matrix* rotate (cdr *root-position*) #(0 1 0))
-                       (set-uniform-matrix our-shader "transform" (lisp-to-gl-matrix *transformation-matrix*))
-                       (my-gl-draw-elements :triangles 6 :unsigned-int)
 
-
-                       (setf *transformation-matrix* (create-identity-matrix 4))
-                       (transform *transformation-matrix* scale (vector (car *root-position*) (cdr *root-position*) 1.0))
-
-                       (set-uniform-matrix our-shader "transform" (lisp-to-gl-matrix *transformation-matrix*))
-                       (my-gl-draw-elements :triangles 6 :unsigned-int)
+                       (dotimes (i 1000)
+                         (transform *transformation-matrix* translate #(0.01 0.01 0.0))
+                         (set-uniform-matrix our-shader "transform" (lisp-to-gl-matrix *transformation-matrix*))
+                         (my-gl-draw-elements :triangles 6 :unsigned-int))
 
                        ;;         // glfw: swap buffers and poll IO events (keys pressed/released, mouse moved etc.)
                        ;;         // -------------------------------------------------------------------------------
