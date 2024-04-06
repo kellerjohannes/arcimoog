@@ -23,6 +23,15 @@
 
 (defparameter *shader-path* "/home/johannes/common-lisp/arcimoog/lisp/shaders/")
 (defparameter *texture-path* "/home/johannes/common-lisp/arcimoog/lisp/textures/")
+(defparameter *global-character-set*
+  " abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZȧḃċḋėḟġȦḂĊḊĖḞĠ♯♭♮❜ʼ'\"«»[]#{}/\\,.!?:;➙➚➘")
+(defparameter *global-background-color* (vector 0.0 0.0 0.0))
+(defparameter *global-projection-scaling* 1.0)
+(defparameter *global-projection-translation* (vector 0.0 0.0 0.0))
+
+(defun reset-global-projection-parameters ()
+  (setf *global-projection-scaling* 1.0)
+  (setf *global-projection-translation* (vector 0.0 0.0 0.0)))
 
 (defparameter *screen-width* 800)
 (defparameter *screen-height* 600)
@@ -50,41 +59,42 @@
 
 (defparameter *mix-amount* 0.5)
 
+(defun update-global-projection ()
+  (setf *projection-matrix* (ortho 0.0 *screen-width* 0.0 *screen-height* 0.1 100.0))
+  (transform-matrix *projection-matrix* translate *global-projection-translation*)
+  (transform-matrix *projection-matrix* scale (vector *global-projection-scaling*
+                                                      *global-projection-scaling*
+                                                      1.0)))
+
 (glfw:def-window-size-callback framebuffer-size-callback (window width height)
   (declare (ignore window))
+  (setf *screen-width* width)
+  (setf *screen-height* height)
   (gl:viewport 0 0 width height)
-  (setf *projection-matrix* (ortho 0.0 width 0.0 height 0.1 100.0))
-  )
+  (update-global-projection))
 
 (defun process-input ()
   (when (or (eq (glfw:get-key :escape) :press)
             (eq (glfw:get-key :q) :press))
-    (glfw:set-window-should-close))
-  (when (and (< *mix-amount* 1.0)
-             (eq (glfw:get-key :up) :press))
-    (incf *mix-amount* 0.01))
-  (when (and (> *mix-amount* 0.0)
-             (eq (glfw:get-key :down) :press))
-    (decf *mix-amount* 0.01))
-  (when (eq (glfw:get-key :h) :press)
-    (decf (car *root-position*) 1.0))
-  (when (eq (glfw:get-key :l) :press)
-    (incf (car *root-position*) 1.0))
-  (when (eq (glfw:get-key :j) :press)
-    (decf (cdr *root-position*) 1.0))
-  (when (eq (glfw:get-key :k) :press)
-    (incf (cdr *root-position*) 1.0)))
+    (glfw:set-window-should-close)))
 
 
 (defparameter *amount-of-copies* 1)
+
+(defun midi-scale (value lower upper)
+  (+ (* (/ value 127.0) (- upper lower)) lower))
 
 (defun midi-responder (channel-raw controller-raw value-raw)
   ;;(format t "~&raw: ~d ~d ~d~%" channel-raw controller-raw value-raw)
   (case (- channel-raw 176)
     (2 (case controller-raw
-         (0 (decf (car *root-position*) (- 64.0 value-raw)))
-         (1 (decf (cdr *root-position*) (- 64.0 value-raw)))
-         (3 (setf *amount-of-copies* value-raw))
+         (0 (incf (aref *global-projection-translation* 0) (* -0.005 (- 64.0 value-raw))))
+         (1 (incf (aref *global-projection-translation* 1) (* -0.005 (- 64.0 value-raw))))
+         (2 (incf *global-projection-scaling* (* -0.01 (- 64.0 value-raw))))
+         (3 (reset-global-projection-parameters))
+         (4 (setf (aref *global-background-color* 0) (midi-scale value-raw 0.0 1.0)))
+         (5 (setf (aref *global-background-color* 1) (midi-scale value-raw 0.0 1.0)))
+         (6 (setf (aref *global-background-color* 2) (midi-scale value-raw 0.0 1.0)))
          (otherwise (format t "~&Unknown Faderfox controller in setup page 2."))))
     (otherwise (format t "~&Unknown Faderfox setup page."))))
 
@@ -100,7 +110,6 @@ width of the texture and the third its height.")
    (glyph-vbo :initform -1 :accessor glyph-vbo)
    (shader-instance :initarg :shader-instance :accessor shader-instance)))
 
-
 (defmethod lookup-texture ((renderer font-render-class) character)
   "Return values: 1. texture ID, 2. width, 3. height."
   (let ((result (gethash character (textures renderer))))
@@ -112,6 +121,7 @@ width of the texture and the third its height.")
             (third result))))
 
 (defmethod generate-textures ((renderer font-render-class))
+  (gl:pixel-store :unpack-alignment 1)
   (with-accessors ((face ft-face)
                    (character-set character-set))
       renderer
@@ -174,7 +184,7 @@ width of the texture and the third its height.")
     (gl:bind-vertex-array 0)))
 
 (defmethod render-string ((renderer font-render-class) text x-origin y-origin
-                          &key (scale-factor 1.0) (rgb-vector #(1.0 1.0 1.0)))
+                          &key (scale-factor 1.0) (rgb-vector (vector 1.0 1.0 1.0)))
   (gl:pixel-store :unpack-alignment 1)
   (gl:enable :blend)
   (gl:blend-func :src-alpha :one-minus-src-alpha)
@@ -212,11 +222,95 @@ width of the texture and the third its height.")
     (gl:bind-vertex-array 0)
     (gl:bind-texture :texture-2d 0)))
 
+(defclass graphics-renderer ()
+  ((shader :initform nil :accessor shader)
+   (vao :initform nil :accessor vao)
+   (vbo :initform nil :accessor vbo)
+   (default-color :initform (vector 1.0 1.0 1.0) :initarg :color :accessor default-color)
+   (view-matrix :initform nil :accessor view-matrix)
+   (model-matrix :initform nil :accessor model-matrix)))
+
+(defmethod initialize-instance :after ((renderer graphics-renderer) &key)
+  (with-accessors ((shader shader)
+                   (view view-matrix)
+                   (model model-matrix)
+                   (vao vao)
+                   (vbo vbo))
+      renderer
+    (setf shader (make-instance 'shader-class
+                                :vertex-source (concatenate 'string *shader-path*
+                                                            "shape-shader.vert")
+                                :fragment-source (concatenate 'string *shader-path*
+                                                              "shape-shader.frag")))
+    (setf model (create-identity-matrix 4))
+
+    ;; view matrix is constant for now. Later it could be used to represent different layers of a 2d
+    ;; display
+    (setf view (create-identity-matrix 4))
+    (transform-matrix view translate (vector 0.0 0.0 -0.5))
+    (set-uniform-matrix shader "view" (lisp-to-gl-matrix view))
+
+    (setf vao (gl:gen-vertex-array))
+    (setf vbo (gl:gen-buffer))
+    (gl:bind-vertex-array vao)
+    (gl:bind-buffer :array-buffer vbo)
+    (gl:buffer-data :array-buffer
+                    :static-draw
+                    (array-to-gl-array (make-array 2000 :initial-element 0.0) :float))
+    (gl:vertex-attrib-pointer 0
+                              3
+                              :float
+                              nil
+                              (* 3 (cffi:foreign-type-size :float))
+                              (cffi:null-pointer))
+    (gl:enable-vertex-attrib-array 0)
+    (gl:bind-buffer :array-buffer 0)
+    (gl:bind-vertex-array 0)))
+
+(defmethod render ((renderer graphics-renderer) vertex-data
+                   &key scaling translation rotation (color (default-color renderer)))
+  (with-accessors ((vao vao)
+                   (vbo vbo)
+                   (model model-matrix)
+                   (shader shader))
+      renderer
+    (gl:bind-vertex-array vao)
+    (gl:bind-buffer :array-buffer vbo)
+    (gl:buffer-sub-data :array-buffer (array-to-gl-array vertex-data :float))
+    (gl:bind-buffer :array-buffer 0)
+    (set-uniform-matrix shader "projection" (lisp-to-gl-matrix *projection-matrix*))
+    (setf model (create-identity-matrix 4))
+    (when scaling (transform-matrix model scale scaling))
+    (when translation (transform-matrix model translate translation))
+    (when rotation (transform-matrix model rotate (car rotation) (cdr rotation)))
+    (set-uniform-matrix shader "model" (lisp-to-gl-matrix model))
+    (set-uniform shader "vertexColor" 'float (aref color 0) (aref color 1) (aref color 2))
+
+    (gl:draw-arrays :triangles 0 3)
+
+    (gl:bind-vertex-array 0)
+    ))
+
+
 (defun render-vicentinos (shader)
   (dotimes (i *amount-of-copies*)
-    (transform-matrix *model-matrix* translate #(10.1 10.1 0.0))
+    (transform-matrix *model-matrix* translate (vector 10.1 10.1 0.0))
     (set-uniform-matrix shader "model" (lisp-to-gl-matrix *model-matrix*))
     (my-gl-draw-elements :triangles 6 :unsigned-int)))
+
+(defun render-all-texts (font-instance)
+  (render-string font-instance "Arcimoog visual interface" 20.0 1200.0)
+  (render-string font-instance "Hi there♮, Ċ♭ is actually B♯."
+                 (+ (car *root-position*) 50.0)
+                 (+ (cdr *root-position*) 100.0)))
+
+
+(defun clear-global-background ()
+  (gl:clear-color (aref *global-background-color* 0)
+                  (aref *global-background-color* 1)
+                  (aref *global-background-color* 2)
+                  1.0)
+  (gl:clear :color-buffer-bit))
 
 (defun main ()
   (init-faderfox-communication)
@@ -226,16 +320,17 @@ width of the texture and the third its height.")
     (glfw:set-framebuffer-size-callback 'framebuffer-size-callback)
     (gl:viewport 0 0 *screen-width* *screen-height*)
 
-    (setf *projection-matrix* (ortho 0.0 *screen-width* 0.0 *screen-height* 0.1 100.0))
+    (update-global-projection)
 
     (let* ((font-shader (make-instance 'shader-class
-                                        :vertex-source (concatenate 'string *shader-path*
-                                                                    "font-shader.vert")
-                                        :fragment-source (concatenate 'string *shader-path*
-                                                                      "font-shader.frag")))
+                                       :vertex-source (concatenate 'string *shader-path*
+                                                                   "font-shader.vert")
+                                       :fragment-source (concatenate 'string *shader-path*
+                                                                     "font-shader.frag")))
            (font (make-instance 'font-render-class
-                                :character-set " abcdefghijklmnopqrstuvwxyz"
-                                :shader-instance font-shader)))
+                                :character-set *global-character-set*
+                                :shader-instance font-shader))
+           (shape-drawer (make-instance 'graphics-renderer)))
 
       (let ((our-shader (make-instance 'shader-class
                                        :vertex-source (concatenate 'string *shader-path*
@@ -243,12 +338,12 @@ width of the texture and the third its height.")
                                        :fragment-source (concatenate 'string *shader-path*
                                                                      "shader-texture.fs"))))
 
-        (let ((vertices #(0.5 0.5 0.0    1.0 0.0 0.0    1.0 1.0
-                          0.5 -0.5 0.0   0.0 1.0 0.0    1.0 0.0
-                          -0.5 -0.5 0.0  0.0 0.0 1.0    0.0 0.0
-                          -0.5 0.5 0.0   1.0 1.0 0.0    0.0 1.0))
-              (indices #(0 1 3
-                         1 2 3))
+        (let ((vertices (vector 0.5 0.5 0.0    1.0 0.0 0.0    1.0 1.0
+                                0.5 -0.5 0.0   0.0 1.0 0.0    1.0 0.0
+                                -0.5 -0.5 0.0  0.0 0.0 1.0    0.0 0.0
+                                -0.5 0.5 0.0   1.0 1.0 0.0    0.0 1.0))
+              (indices (vector 0 1 3
+                               1 2 3))
               (vao (gl:gen-vertex-array))
               (vbo (gl:gen-buffer))
               (ebo (gl:gen-buffer)))
@@ -307,8 +402,8 @@ width of the texture and the third its height.")
             (loop until (glfw:window-should-close-p) do
               (progn
                 (process-input)
-                (gl:clear-color 0.2 0.3 0.3 1.0)
-                (gl:clear :color-buffer-bit)
+                (clear-global-background)
+                (update-global-projection)
                 (gl:active-texture :texture0)
                 (gl:bind-texture :texture-2d texture1)
                 (gl:active-texture :texture1)
@@ -317,14 +412,15 @@ width of the texture and the third its height.")
                 (gl:bind-vertex-array vao)
                 (set-uniform our-shader "mixAmount" 'float *mix-amount*)
                 (setf *view-matrix* (create-identity-matrix 4))
-                (transform-matrix *view-matrix* translate #(0.0 0.0 -0.5))
+                (transform-matrix *view-matrix* translate (vector 0.0 0.0 -0.5))
+                (update-global-projection)
                 (set-uniform-matrix our-shader "projection" (lisp-to-gl-matrix *projection-matrix*))
                 (set-uniform-matrix our-shader "view" (lisp-to-gl-matrix *view-matrix*))
                 (setf *model-matrix* (create-identity-matrix 4))
                 (transform-matrix *model-matrix* scale (vector (* 0.2 (car image-size))
                                                                (* 0.2 (cdr image-size))
                                                                1.0))
-                (transform-matrix *model-matrix* translate #(400.0 300.0 0.0))
+                (transform-matrix *model-matrix* translate (vector 400.0 300.0 0.0))
                 (transform-matrix *model-matrix* translate (vector (car *root-position*)
                                                                    (cdr *root-position*)
                                                                    0.0))
@@ -332,12 +428,11 @@ width of the texture and the third its height.")
 
                 (render-vicentinos our-shader)
 
-                (render-string font "abcdefghijklmnopqrstuvwxyz"
-                               (+ (car *root-position*) 50.0)
-                               (+ (cdr *root-position*) 100.0)
-                               :rgb-vector #(0.9 0.2 0.2)
-                               :scale-factor 2.0)
+                (render-all-texts font)
 
+                (render shape-drawer (vector -1.0 -1.0 0.0
+                                               1.0 0.0 0.0
+                                               0.0 2.0 0.0))
 
 
                 (glfw:swap-buffers)
@@ -345,3 +440,6 @@ width of the texture and the third its height.")
             (gl:delete-vertex-arrays (list vao))
             (gl:delete-buffers (list vbo ebo))
             (destroy our-shader)))))))
+
+(defun test ()
+  (bt:make-thread (lambda () (main)) :name "test-window"))
