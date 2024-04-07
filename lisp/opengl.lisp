@@ -1,5 +1,16 @@
 (in-package :arcimoog)
 
+;; TODO
+;;
+;; * explore Bravura usage
+;;
+;; * move opengl stuff to separate package - start implementing an abstraction layer for graphics on top of opengl package, in its own package
+;;
+;; * create another abstraction layer for 'panels', representing the configuration and real time values for each arcimoog module
+;;
+;; * think about a way to organise panels and the connection to the faderfox slots. some are hardwired (global projection), others need to be changed dynamically (parameters for multiple (polyphonic) pipelines)
+
+
 ;; dummy
 (defun midi-responder (a b c)
   (declare (ignore a b c)))
@@ -24,7 +35,7 @@
 (defparameter *shader-path* "/home/johannes/common-lisp/arcimoog/lisp/shaders/")
 (defparameter *texture-path* "/home/johannes/common-lisp/arcimoog/lisp/textures/")
 (defparameter *global-character-set*
-  " abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZȧḃċḋėḟġȦḂĊḊĖḞĠ♯♭♮❜ʼ'\"«»[]#{}/\\,.!?:;➙➚➘")
+  " abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZȧḃċḋėḟġȦḂĊḊĖḞĠ♯♭♮❜ʼ'\"«»[]#{}/\\,.!?:;➙➚➘12345674890-+*·")
 (defparameter *global-background-color* (vector 0.0 0.0 0.0))
 (defparameter *global-projection-scaling* 1.0)
 (defparameter *global-projection-translation* (vector 0.0 0.0 0.0))
@@ -84,6 +95,14 @@
 (defun midi-scale (value lower upper)
   (+ (* (/ value 127.0) (- upper lower)) lower))
 
+(defparameter *parameter-slots* (make-array 256 :initial-element 0))
+
+(defun set-slot (slot-number value)
+  (setf (aref *parameter-slots* slot-number) value))
+
+(defun slot (slot-number)
+  (aref *parameter-slots* slot-number))
+
 (defun midi-responder (channel-raw controller-raw value-raw)
   ;;(format t "~&raw: ~d ~d ~d~%" channel-raw controller-raw value-raw)
   (case (- channel-raw 176)
@@ -95,6 +114,22 @@
          (4 (setf (aref *global-background-color* 0) (midi-scale value-raw 0.0 1.0)))
          (5 (setf (aref *global-background-color* 1) (midi-scale value-raw 0.0 1.0)))
          (6 (setf (aref *global-background-color* 2) (midi-scale value-raw 0.0 1.0)))
+         (50 (set-slot 0 (midi-scale value-raw 0.0 1.0)))
+         (51 (set-slot 1 (midi-scale value-raw 0.0 1.0)))
+         (52 (set-slot 2 (midi-scale value-raw 0.0 1.0)))
+         (53 (set-slot 3 (midi-scale value-raw 0.0 1.0)))
+         (54 (set-slot 4 (midi-scale value-raw 0.0 1.0)))
+         (55 (set-slot 5 (midi-scale value-raw 0.0 1.0)))
+         (56 (set-slot 6 (midi-scale value-raw 0.0 1.0)))
+         (57 (set-slot 7 (midi-scale value-raw 0.0 1.0)))
+         (58 (set-slot 8 (midi-scale value-raw 0.0 1.0)))
+         (59 (set-slot 9 (midi-scale value-raw 0.0 1.0)))
+         (60 (set-slot 10 (midi-scale value-raw 0.0 1.0)))
+         (61 (set-slot 11 (midi-scale value-raw 0.0 1.0)))
+         (62 (set-slot 12 (midi-scale value-raw 0.0 1.0)))
+         (63 (set-slot 13 (midi-scale value-raw 0.0 1.0)))
+         (64 (set-slot 14 (midi-scale value-raw 0.0 1.0)))
+         (65 (set-slot 15 (midi-scale value-raw 0.0 1.0)))
          (otherwise (format t "~&Unknown Faderfox controller in setup page 2."))))
     (otherwise (format t "~&Unknown Faderfox setup page."))))
 
@@ -155,7 +190,11 @@ width of the texture and the third its height.")
                    (character-set character-set))
       renderer
     (unless source
-      (setf source "/usr/share/fonts/TTF/DejaVuSans.ttf"))
+      (setf source
+            "/usr/share/fonts/TTF/DejaVuSans.ttf"
+            ;; "/usr/share/fonts/OTF/BravuraText.otf"
+            ;; "/usr/share/fonts/OTF/Bravura.otf"
+            ))
     (setf (ft-face renderer) (ft2:new-face source))
 
     (unless (position #\⸮ character-set)
@@ -222,15 +261,17 @@ width of the texture and the third its height.")
     (gl:bind-vertex-array 0)
     (gl:bind-texture :texture-2d 0)))
 
-(defclass graphics-renderer ()
+(defclass graphics-renderer-2d ()
   ((shader :initform nil :accessor shader)
    (vao :initform nil :accessor vao)
    (vbo :initform nil :accessor vbo)
    (default-color :initform (vector 1.0 1.0 1.0) :initarg :color :accessor default-color)
    (view-matrix :initform nil :accessor view-matrix)
-   (model-matrix :initform nil :accessor model-matrix)))
+   (model-matrix :initform nil :accessor model-matrix)
+   (vbo-allocation-size :initform 1000 :initarg :vbo-size :accessor vbo-allocation-size
+                        :documentation "Max number of 2d-coordinates that will be allocated in the VBO.")))
 
-(defmethod initialize-instance :after ((renderer graphics-renderer) &key)
+(defmethod initialize-instance :after ((renderer graphics-renderer-2d) &key)
   (with-accessors ((shader shader)
                    (view view-matrix)
                    (model model-matrix)
@@ -239,9 +280,9 @@ width of the texture and the third its height.")
       renderer
     (setf shader (make-instance 'shader-class
                                 :vertex-source (concatenate 'string *shader-path*
-                                                            "shape-shader.vert")
+                                                            "shader-2d.vert")
                                 :fragment-source (concatenate 'string *shader-path*
-                                                              "shape-shader.frag")))
+                                                              "shader-2d.frag")))
     (setf model (create-identity-matrix 4))
 
     ;; view matrix is constant for now. Later it could be used to represent different layers of a 2d
@@ -256,19 +297,25 @@ width of the texture and the third its height.")
     (gl:bind-buffer :array-buffer vbo)
     (gl:buffer-data :array-buffer
                     :static-draw
-                    (array-to-gl-array (make-array 2000 :initial-element 0.0) :float))
+                    (array-to-gl-array (make-array (* 2 (vbo-allocation-size renderer))
+                                                   :initial-element 0.0)
+                                       :float))
     (gl:vertex-attrib-pointer 0
-                              3
+                              2
                               :float
                               nil
-                              (* 3 (cffi:foreign-type-size :float))
+                              (* 2 (cffi:foreign-type-size :float))
                               (cffi:null-pointer))
     (gl:enable-vertex-attrib-array 0)
     (gl:bind-buffer :array-buffer 0)
     (gl:bind-vertex-array 0)))
 
-(defmethod render ((renderer graphics-renderer) vertex-data
-                   &key scaling translation rotation (color (default-color renderer)))
+(defmethod render ((renderer graphics-renderer-2d) vertex-data
+                   &key (mode :line-strip)
+                     scaling
+                     translation
+                     rotation
+                     (color (default-color renderer)))
   (with-accessors ((vao vao)
                    (vbo vbo)
                    (model model-matrix)
@@ -285,11 +332,8 @@ width of the texture and the third its height.")
     (when rotation (transform-matrix model rotate (car rotation) (cdr rotation)))
     (set-uniform-matrix shader "model" (lisp-to-gl-matrix model))
     (set-uniform shader "vertexColor" 'float (aref color 0) (aref color 1) (aref color 2))
-
-    (gl:draw-arrays :triangles 0 3)
-
-    (gl:bind-vertex-array 0)
-    ))
+    (gl:draw-arrays mode 0 (floor (/ (length vertex-data) 2)))
+    (gl:bind-vertex-array 0)))
 
 
 (defun render-vicentinos (shader)
@@ -299,11 +343,57 @@ width of the texture and the third its height.")
     (my-gl-draw-elements :triangles 6 :unsigned-int)))
 
 (defun render-all-texts (font-instance)
-  (render-string font-instance "Arcimoog visual interface" 20.0 1200.0)
-  (render-string font-instance "Hi there♮, Ċ♭ is actually B♯."
-                 (+ (car *root-position*) 50.0)
-                 (+ (cdr *root-position*) 100.0)))
+  (loop for y from 0.0 by 55.0 repeat 16
+        for i from 0 do
+          (render-string font-instance (format nil "Slot ~a: ~,2f" i (slot i)) 10.0 (- 1000.0 y))))
 
+(defun render-scale (renderer-instance font-renderer-instance offset tick-offsets helper-lines-p)
+  (let ((main-line (vector 0.0 0.0 0.0 100.0))
+        (tick-labels (vector "C" "D" "E" "F𝄡𝃅" "G♭♯" "A♯" "B♮" "C" "D" "E" "F"))
+        (scale (vector 10.0 10.0 1.0))
+        (origin (vector (+ 800.0 offset) 50.0 0.0))
+        (tick-width 5.0)
+        (label-padding 3.0)
+        (helper-line-min -10.0)
+        (helper-line-max 50.0)
+        (helper-lines (make-array 44 :initial-element 0.0))
+        (ticks (make-array 44 :initial-element 0.0)))
+    (loop for y from 0.0 by 10.0 to 100.0
+          for i from 0 do
+            (let ((y-trimmed (+ y (aref tick-offsets i))))
+              (setf (aref ticks (+ 0 (* 4 i))) 0.0
+                    (aref ticks (+ 1 (* 4 i))) y-trimmed
+                    (aref ticks (+ 2 (* 4 i))) tick-width
+                    (aref ticks (+ 3 (* 4 i))) y-trimmed
+                    (aref helper-lines (+ 0 (* 4 i))) helper-line-min
+                    (aref helper-lines (+ 1 (* 4 i))) y-trimmed
+                    (aref helper-lines (+ 2 (* 4 i))) helper-line-max
+                    (aref helper-lines (+ 3 (* 4 i))) y-trimmed)))
+    (loop for i from 0 to 10 do
+      (render-string font-renderer-instance
+                     (aref tick-labels i)
+                     (+ offset 800.0 (* 10.0 (+ label-padding tick-width)))
+                     (+ 25.0 50.0 (* 10.0 (aref ticks (+ 1 (* i 4)))))
+                     :rgb-vector #(0.0 1.0 1.0)))
+    (render renderer-instance main-line :mode :lines :scaling scale :translation origin)
+    (when helper-lines-p
+      (render renderer-instance helper-lines :mode :lines :scaling scale :translation origin :color #(1.0 1.0 0.0)))
+    (render renderer-instance ticks :mode :lines :scaling scale :translation origin :color #(0.0 1.0 1.0))
+    ))
+
+(defun render-shapes (renderer-instance font-renderer-instance)
+  (render-scale renderer-instance font-renderer-instance 0.0
+                (let ((offsets (make-array 11 :initial-element 0.0)))
+                  (loop for i from 0 to 10 do
+                        (setf (aref offsets i) (* 10.0 (- (slot (+ 4 i)) 0.5))))
+                  offsets)
+                t)
+  (render-scale renderer-instance
+                font-renderer-instance
+                200.0
+                (make-array 11 :initial-element 0.0)
+                nil)
+  )
 
 (defun clear-global-background ()
   (gl:clear-color (aref *global-background-color* 0)
@@ -330,7 +420,7 @@ width of the texture and the third its height.")
            (font (make-instance 'font-render-class
                                 :character-set *global-character-set*
                                 :shader-instance font-shader))
-           (shape-drawer (make-instance 'graphics-renderer)))
+           (shape-drawer (make-instance 'graphics-renderer-2d)))
 
       (let ((our-shader (make-instance 'shader-class
                                        :vertex-source (concatenate 'string *shader-path*
@@ -430,9 +520,7 @@ width of the texture and the third its height.")
 
                 (render-all-texts font)
 
-                (render shape-drawer (vector -1.0 -1.0 0.0
-                                               1.0 0.0 0.0
-                                               0.0 2.0 0.0))
+                (render-shapes shape-drawer font)
 
 
                 (glfw:swap-buffers)

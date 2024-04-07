@@ -935,9 +935,118 @@ Testing the validity test:
 #+RESULTS:
 : T
 
+
+* Subplot: graphical interface
+I got distracted by the increasingly urgent need to have the
+possibility of a graphical output. This would be very precious, not
+only for the interaction with the system once it is usable, but also
+for the development of tuning models and other components. I would
+need the possibility to easily draw geometric primitives such as
+lines, arcs, circles, and to render text, ideally unicode compatible,
+since I'd need symbols like ♯, ♭, Ȧ, etc.
+
+There are many ways to implement graphic output, ranging from GUI
+systems like [[https://www.qt.io/product/qt6][Qt]] to browser based applications to a custom
+implementation of computer graphics using APIs like OpenGL or Vulkan.
+
+After some reading and tinkering, I came to the following preliminary
+conclusions:
+- There are more or less complete, more or less up to date bindings of
+  full blown GUI systems for Common Lisp. They seem to bring too much
+  functionality and complexity to a rather simple task of efficiently
+  rendering simple but potentially large graphics. I don't need a
+  complex GUI system, since I plan to mainly interact with my program
+  via the REPL and maybe hardware controllers. I need mainly a
+  display, not an interactive interface.
+- For browser based applications there is [[https://github.com/rabbibotton/clog][CLOG]], which was a lot of fun
+  to explore and runs without problems. While this seems to be a great
+  choice for user-friendly, publicly available projects, I didn't like
+  the dependency of a browser for my needs. Again, a simple display of
+  computer graphics is all I need. I experimented a bit with HTML
+  canvas and even WebGL, both worked fine. I was a bit disappointed
+  that the canvas approach doesn't allow for user interaction (in case
+  I would have liked to use the mouse occasionally).
+- Finally I dared to try OpenGL, which was surprisingly smooth to set
+  up. I use [[https://github.com/3b/cl-opengl][CL-OPENGL]] with [[https://github.com/AlexCharlton/cl-glfw3][CL-GLFW3]], and followed the first chapters
+  of [[https://learnopengl.com/][learnopengl.com]] (VAOs, shaders, transformations). It was a bit
+  trickier to get font rendering to work. Following the
+  [[https://learnopengl.com/In-Practice/Text-Rendering][text rendering tutorial]] I used [[https://kagi.com/search?q=freetype2][FreeType 2]] and its bindings for
+  Common Lisp, [[https://github.com/rpav/cl-freetype2][CL-FREETYPE2]]. In order to successfully combine FreeType
+  and OpenGL I needed to learn a bit about [[https://cffi.common-lisp.dev/][CFFI]] bindings in Common
+  Lisp, which is still a bit of a mystery to me.
+
+** The rabbit hole of music symbols
+See Smufl and Bravura.
+
+Necessary to input unicode with ALT Q:
+
+#+begin_src emacs-lisp
+(setq read-quoted-char-radix 16)
+#+end_src
+
+* Subplot: haptic interface
+The main interaction with the system I always imagined as text
+based. Either directly in the REPL, modifying the Common Lisp image,
+or maybe with a custom promt that allows to use an even more compact
+syntax or shorthand notation (label:idea-custom-prompt). But I realise
+that the manipulation of continuous things like frequencies are hard
+to manipulate by typing in numbers. I imagine that a hardware
+controller could be much more efficient and intuitive to set certain
+parameters. It would be ideal to find a controller that is not limited
+to MIDI ranges and offers many knobs that can be freely assigned. I
+ended up with a choice between two products: The [[https://www.midifighter.com/#Twister][MIDI Fighter Twister]]
+and the [[https://faderfox.de/ec4.html][Faderfox EC4]]. They seem to be the only available Controllers
+that offer exclusively endless encoders. I checked the Twister in a
+music store and found it very convincing. Eventually I bought the EC4
+though. The main argument was personal taste (I like the design and
+general product philosophy of Faderfox more, plus it's hand made and
+the developer and producer can easily be reached in Germany). The
+secondary argument was that the EC4 doesn't require any software to be
+configured. The dependence of a software reduces the product's
+lifespan drastically, in my opinion.
+
+The EC4 works perfectly for my needs. I can use the knobs in relative
+mode, which allows to modify a value that is stored in the memory of
+my program relatively. I can use different knobs for different amounts
+of modification. In some supeficial tests I could microtune digitally
+generated drones with a precision that is definitely high enough for
+my purposes. Quickly switching between 'groups' and 'setups' on the
+EC4 allows me to control several thousand parameters with only one
+device, in arbitrary precision and without any dependence on third
+party software.
+
+To read the output of the EC4 I use [[https://incudine.sourceforge.net/][Incudine]] that provides bindings to
+[[https://github.com/PortMidi/portmidi][PortMIDI]]. Incudine requires a running [[https://jackaudio.org/][Jack audio server]]. Playing
+around with the EC4 and a rudimentary implementation of the OpenGL
+renderer I already understand that the combination of typing and
+turning knobs is remarkably efficient. Both devices I can use
+blindly. The EC4 requires only one hand to operate. Setting the push
+funcionality of the encoders to 'Group selection' I can even select
+one of 16 layouts without changing the position of my hand.
+
+I also became clear that a consistent and smart handling of the many
+parameters is going to be a challenge. Do I set up the EC4 for very
+specific parameters (for example 'the size of the fifth in the tuning
+model of the audio pipeline of the second voice') or do I set up
+generic controllers ('the control of four relative values with four
+different precision levels in one group'). The first solution focuses
+on the configuration of the EC4 and needs hard wired routing in the
+software. The second solution requires to dynamically reroute the EC4
+output to various parameters or parameter groups in the software (by
+typing or some sort of selecting), before the EC4 can meaningfully be
+used. This will need more exploraion.
+
+
 * Representing musical thinking
 
 * Ideas for the future
 - ref:idea-dsl
 - ref:idea-stage-visualisation
 - ref:idea-reverse-pipeline
+- ref:idea-custom-prompt Concerning the interaction with the system: A
+  thin wrapper around the REPL could allow shorthand notation and
+  standard Common Lisp syntax simultaneously: A custom prompt would
+  treat any input starting with a '(' as a regular Common Lisp
+  expression and send it to the standard REPL, anything else would be
+  treated as part of a DSL that is streamlined for fast live
+  interaction.
