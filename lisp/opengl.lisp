@@ -11,26 +11,8 @@
 ;; * think about a way to organise panels and the connection to the faderfox slots. some are hardwired (global projection), others need to be changed dynamically (parameters for multiple (polyphonic) pipelines)
 
 
-;; dummy
-(defun midi-responder (a b c)
-  (declare (ignore a b c)))
+(incudine:enable-sharp-square-bracket-syntax)
 
-(defparameter *midi-in* nil)
-(defparameter *midi-responder* nil)
-
-(defun init-faderfox-communication ()
-  (incudine:rt-start)
-
-  (pm:initialize)
-
-  (unless *midi-in*
-    (setf *midi-in* (pm:open (pm:get-device-id-by-name "Faderfox EC4 MIDI 1" :input))))
-
-  (incudine:recv-start *midi-in*)
-
-  (unless *midi-responder*
-    (setf *midi-responder* (incudine:make-responder *midi-in* (lambda (a b c)
-                                                                (midi-responder a b c))))))
 
 (defparameter *shader-path* "/home/johannes/common-lisp/arcimoog/lisp/shaders/")
 (defparameter *texture-path* "/home/johannes/common-lisp/arcimoog/lisp/textures/")
@@ -134,6 +116,27 @@
          (65 (set-slot 15 (midi-scale value-raw 0.0 1.0)))
          (otherwise (format t "~&Unknown Faderfox controller ~a in setup page 2." controller-raw))))
     (otherwise (format t "~&Unknown Faderfox setup page."))))
+
+
+(defparameter *midi-in* nil)
+(defparameter *midi-responder* nil)
+
+(defun init-faderfox-communication ()
+  (incudine:rt-start)
+
+  (pm:initialize)
+
+  (unless *midi-in*
+    (setf *midi-in* (pm:open (pm:get-device-id-by-name "Faderfox EC4 MIDI 1" :input))))
+
+  (incudine:recv-start *midi-in*)
+
+  (unless *midi-responder*
+    (setf *midi-responder* (incudine:make-responder *midi-in* (lambda (a b c)
+                                                                (midi-responder a b c))))))
+
+
+
 
 (defclass font-render-class ()
   ((character-set :initform "⸮" :initarg :character-set :accessor character-set)
@@ -509,7 +512,7 @@ width of the texture and the third its height.")
 
             (loop until (glfw:window-should-close-p) do
                   (render-loop font shape-drawer)
-                  (sleep (/ 1 10)))
+                  (sleep (/ 1 20)))
 
             ;; (loop until (glfw:window-should-close-p) do
               ;; (progn
