@@ -11,26 +11,8 @@
 ;; * think about a way to organise panels and the connection to the faderfox slots. some are hardwired (global projection), others need to be changed dynamically (parameters for multiple (polyphonic) pipelines)
 
 
-;; dummy
-(defun midi-responder (a b c)
-  (declare (ignore a b c)))
+(incudine:enable-sharp-square-bracket-syntax)
 
-(defparameter *midi-in* nil)
-(defparameter *midi-responder* nil)
-
-(defun init-faderfox-communication ()
-  (incudine:rt-start)
-
-  (pm:initialize)
-
-  (unless *midi-in*
-    (setf *midi-in* (pm:open (pm:get-device-id-by-name "Faderfox EC4 MIDI 1" :input))))
-
-  (incudine:recv-start *midi-in*)
-
-  (unless *midi-responder*
-    (setf *midi-responder* (incudine:make-responder *midi-in* (lambda (a b c)
-                                                                (midi-responder a b c))))))
 
 (defparameter *shader-path* "/home/johannes/common-lisp/arcimoog/lisp/shaders/")
 (defparameter *texture-path* "/home/johannes/common-lisp/arcimoog/lisp/textures/")
@@ -134,6 +116,29 @@
          (65 (set-slot 15 (midi-scale value-raw 0.0 1.0)))
          (otherwise (format t "~&Unknown Faderfox controller ~a in setup page 2." controller-raw))))
     (otherwise (format t "~&Unknown Faderfox setup page."))))
+
+
+(defparameter *midi-in* nil)
+(defparameter *midi-responder* nil)
+
+
+
+(defun init-faderfox-communication ()
+  (incudine:rt-start)
+
+  (pm:initialize)
+
+  (unless *midi-in*
+    (setf *midi-in* (pm:open (pm:get-device-id-by-name "Faderfox EC4 MIDI 1" :input))))
+
+  (incudine:recv-start *midi-in*)
+
+  (unless *midi-responder*
+    (setf *midi-responder* (incudine:make-responder *midi-in* (lambda (a b c)
+                                                                (midi-responder a b c))))))
+
+
+
 
 (defclass font-render-class ()
   ((character-set :initform "⸮" :initarg :character-set :accessor character-set)
@@ -510,27 +515,26 @@ width of the texture and the third its height.")
 
             ;;; Scheduling-based loop, in the INCUDINE real time thread:
 
-            (format t "~&Starting scheduling based render loop.")
-            (let ((frame-counter 0))
-              (labels ((loop-trigger ()
-                         (cond ((glfw:window-should-close-p)
-                                (gl:delete-vertex-arrays (list vao))
-                                (gl:delete-buffers (list vbo ebo))
-                                (destroy our-shader)
-                                (format t "~&Rendering terminated."))
-                               (t (render-loop font shape-drawer)
-                                  (format t "~&Frame counter: ~a." frame-counter)
-                                  (incudine:at (+ (incudine:now) #[0.5 s]) #'loop-trigger)))))
-                (loop-trigger)))
+            ;; (format t "~&Starting scheduling based render loop.")
+            ;; (let ((frame-counter 0))
+            ;;   (labels ((loop-trigger ()
+            ;;              (cond ((glfw:window-should-close-p)
+            ;;                     (gl:delete-vertex-arrays (list vao))
+            ;;                     (gl:delete-buffers (list vbo ebo))
+            ;;                     (destroy our-shader)
+            ;;                     (format t "~&Rendering terminated."))
+            ;;                    (t (render-loop font shape-drawer)
+            ;;                       (format t "~&Frame counter: ~a." frame-counter)
+            ;;                       (incudine:at (+ (incudine:now) #[0.5 s]) #'loop-trigger)))))
+            ;;     (loop-trigger)))
 
 ;;; Gentle loop, with SLEEP
-            ;; (loop until (glfw:window-should-close-p) do
-            ;;       (render-loop font shape-drawer)
-            ;;       (sleep (/ 1 10)))
+            (loop until (glfw:window-should-close-p) do
+                  (render-loop font shape-drawer)
+                  (sleep (/ 1 30)))
 
 
 ;;; Hardcore loop, max FPS
-
             ;; (loop until (glfw:window-should-close-p) do
             ;; (progn
             ;;   (process-input)
@@ -573,5 +577,5 @@ width of the texture and the third its height.")
 (defun test ()
   (bt:make-thread (lambda () (main)) :name "test-window"))
 
-(defun test ()
-  (incudine:at (+ (incudine:now) #[1 s]) #'main))
+;; (defun test ()
+;;   (incudine:at (+ (incudine:now) #[1 s]) #'main))
