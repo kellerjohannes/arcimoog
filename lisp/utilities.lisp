@@ -22,3 +22,11 @@
   (cond ((zerop number) number)
         ((plusp number) (1- number))
         (t (1+ number))))
+
+(defun coerce-vector (vec type)
+  (declare (type simple-vector vec))
+  (let ((result (make-array (length vec) :element-type type)))
+    (loop for element across vec
+          for i from 0 do
+          (setf (aref result i) (coerce element type)))
+    result))

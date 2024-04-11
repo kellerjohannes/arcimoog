@@ -10,14 +10,8 @@
 ;;
 ;; * think about a way to organise panels and the connection to the faderfox slots. some are hardwired (global projection), others need to be changed dynamically (parameters for multiple (polyphonic) pipelines)
 
-
-(incudine:enable-sharp-square-bracket-syntax)
-
-
 (defparameter *shader-path* "/home/johannes/common-lisp/arcimoog/lisp/shaders/")
 (defparameter *texture-path* "/home/johannes/common-lisp/arcimoog/lisp/textures/")
-(defparameter *global-character-set*
-  " abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZȧḃċḋėḟġȦḂĊḊĖḞĠ♯♭♮❜ʼ'\"«»[]#{}/\\,.!?:;➙➚➘12345674890-+*·")
 (defparameter *global-background-color* (vector 0.0 0.0 0.0))
 (defparameter *global-projection-scaling* 1.0)
 (defparameter *global-projection-translation* (vector 0.0 0.0 0.0))
@@ -37,7 +31,7 @@
 ;;;; helper stuff, not in the original c code
 
 (defun array-to-gl-array (lisp-array data-type)
-  (declare (type simple-vector lisp-array))
+  (declare (type simple-array lisp-array))
   (let ((gl-array (gl:alloc-gl-array data-type (length lisp-array))))
     (loop for item across lisp-array
           for i from 0 do
@@ -74,74 +68,9 @@
 
 (defparameter *amount-of-copies* 1)
 
-(defun midi-scale (value lower upper)
-  (+ (* (/ value 127.0) (- upper lower)) lower))
-
-(defparameter *parameter-slots* (make-array 256 :initial-element 0))
-
-(defun set-slot (slot-number value)
-  (setf (aref *parameter-slots* slot-number) value))
-
-(defun slot (slot-number)
-  (aref *parameter-slots* slot-number))
-
-(defun midi-responder (channel-raw controller-raw value-raw)
-  ;;(format t "~&raw: ~d ~d ~d~%" channel-raw controller-raw value-raw)
-  (case (- channel-raw 176)
-    (2 (case controller-raw
-         (0 (incf (aref *global-projection-translation* 0) (* -0.005 (- 64.0 value-raw))))
-         (1 (incf (aref *global-projection-translation* 1) (* -0.005 (- 64.0 value-raw))))
-         (2 (incf *global-projection-scaling* (* -0.01 (- 64.0 value-raw))))
-         (3 (reset-global-projection-parameters))
-         (4 (setf (aref *global-background-color* 0) (midi-scale value-raw 0.0 1.0)))
-         (5 (setf (aref *global-background-color* 1) (midi-scale value-raw 0.0 1.0)))
-         (6 (setf (aref *global-background-color* 2) (midi-scale value-raw 0.0 1.0)))
-         (16 (incudine:set-control 1 :rate (midi-scale value-raw 0.1 8.0)))
-         (17 (incudine:set-control 1 :start-position #[(midi-scale value-raw 0 30) s]))
-         (50 (set-slot 0 (midi-scale value-raw 0.0 1.0)))
-         (51 (set-slot 1 (midi-scale value-raw 0.0 1.0)))
-         (52 (set-slot 2 (midi-scale value-raw 0.0 1.0)))
-         (53 (set-slot 3 (midi-scale value-raw 0.0 1.0)))
-         (54 (set-slot 4 (midi-scale value-raw 0.0 1.0)))
-         (55 (set-slot 5 (midi-scale value-raw 0.0 1.0)))
-         (56 (set-slot 6 (midi-scale value-raw 0.0 1.0)))
-         (57 (set-slot 7 (midi-scale value-raw 0.0 1.0)))
-         (58 (set-slot 8 (midi-scale value-raw 0.0 1.0)))
-         (59 (set-slot 9 (midi-scale value-raw 0.0 1.0)))
-         (60 (set-slot 10 (midi-scale value-raw 0.0 1.0)))
-         (61 (set-slot 11 (midi-scale value-raw 0.0 1.0)))
-         (62 (set-slot 12 (midi-scale value-raw 0.0 1.0)))
-         (63 (set-slot 13 (midi-scale value-raw 0.0 1.0)))
-         (64 (set-slot 14 (midi-scale value-raw 0.0 1.0)))
-         (65 (set-slot 15 (midi-scale value-raw 0.0 1.0)))
-         (otherwise (format t "~&Unknown Faderfox controller ~a in setup page 2." controller-raw))))
-    (otherwise (format t "~&Unknown Faderfox setup page."))))
-
-
-(defparameter *midi-in* nil)
-(defparameter *midi-responder* nil)
-
-
-
-(defun init-faderfox-communication ()
-  (incudine:rt-start)
-
-  (pm:initialize)
-
-  (unless *midi-in*
-    (setf *midi-in* (pm:open (pm:get-device-id-by-name "Faderfox EC4 MIDI 1" :input))))
-
-  (incudine:recv-start *midi-in*)
-
-  (unless *midi-responder*
-    (setf *midi-responder* (incudine:make-responder *midi-in* (lambda (a b c)
-                                                                (midi-responder a b c))))))
-
-
-
 
 (defclass font-render-class ()
-  ((character-set :initform "⸮" :initarg :character-set :accessor character-set)
+  ((character-set :initform "" :initarg :character-set :accessor character-set)
    (font-source :initform nil :initarg :font-source :accessor font-source)
    (pixel-size :initform 48 :initarg :pixel-size :accessor pixel-size)
    (ft-face :accessor ft-face)
@@ -150,7 +79,7 @@
 width of the texture and the third its height.")
    (glyph-vao :initform -1 :accessor glyph-vao)
    (glyph-vbo :initform -1 :accessor glyph-vbo)
-   (shader-instance :initarg :shader-instance :accessor shader-instance)))
+   (shader-instance :initform nil :initarg :shader-instance :accessor shader-instance)))
 
 (defmethod lookup-texture ((renderer font-render-class) character)
   "Return values: 1. texture ID, 2. width, 3. height."
@@ -204,8 +133,17 @@ width of the texture and the third its height.")
             ))
     (setf (ft-face renderer) (ft2:new-face source))
 
+    (when (zerop (length character-set))
+      (setf character-set *global-character-set*))
+
     (unless (position #\⸮ character-set)
-      (setf character-set (concatenate 'string character-set "⸮"))))
+      (setf character-set (concatenate 'string character-set "⸮")))
+
+    (unless (shader-instance renderer)
+      (setf (shader-instance renderer)
+            (make-instance 'shader-class
+                           :vertex-source (concatenate 'string *shader-path* "font-shader.vert")
+                           :fragment-source (concatenate 'string *shader-path* "font-shader.frag")))))
 
   (generate-textures renderer)
 
@@ -267,6 +205,10 @@ width of the texture and the third its height.")
           (gl:draw-arrays :triangles 0 6))))
     (gl:bind-vertex-array 0)
     (gl:bind-texture :texture-2d 0)))
+
+
+
+
 
 (defclass graphics-renderer-2d ()
   ((shader :initform nil :accessor shader)
@@ -330,7 +272,10 @@ width of the texture and the third its height.")
       renderer
     (gl:bind-vertex-array vao)
     (gl:bind-buffer :array-buffer vbo)
-    (gl:buffer-sub-data :array-buffer (array-to-gl-array vertex-data :float))
+    (gl:buffer-sub-data :array-buffer (array-to-gl-array (if (typep vertex-data '(vector single-float *))
+                                                             vertex-data
+                                                             (coerce-vector vertex-data 'single-float))
+                                                         :float))
     (gl:bind-buffer :array-buffer 0)
     (set-uniform-matrix shader "projection" (lisp-to-gl-matrix *projection-matrix*))
     (setf model (create-identity-matrix 4))
@@ -424,6 +369,7 @@ width of the texture and the third its height.")
 
   (glfw:swap-buffers)
   (glfw:poll-events))
+
 
 
 (defun main ()
@@ -530,8 +476,8 @@ width of the texture and the third its height.")
 
 ;;; Gentle loop, with SLEEP
             (loop until (glfw:window-should-close-p) do
-                  (render-loop font shape-drawer)
-                  (sleep (/ 1 30)))
+              (render-loop font shape-drawer)
+              (sleep (/ 1 30)))
 
 
 ;;; Hardcore loop, max FPS
@@ -572,6 +518,12 @@ width of the texture and the third its height.")
             ;;   (glfw:swap-buffers)
             ;;   (glfw:poll-events))
             ;; )
+
+
+            (gl:delete-vertex-arrays (list vao))
+            (gl:delete-buffers (list vbo ebo))
+            (destroy our-shader)
+
             ))))))
 
 (defun test ()
@@ -579,3 +531,91 @@ width of the texture and the third its height.")
 
 ;; (defun test ()
 ;;   (incudine:at (+ (incudine:now) #[1 s]) #'main))
+
+
+
+
+(defclass display-element ()
+  ((color :initform (vector 1.0 1.0 1.0) :initarg :color :accessor color)))
+
+(defgeneric draw (display-element renderer font-renderer))
+
+
+(defclass display-element-panel (display-element)
+  ((width :initform 300 :initarg :width :accessor width)
+   (height :initform 500 :initarg :height :accessor height)
+   (x-position :initform 0 :initarg :x-position :accessor x-position)
+   (y-position :initform 0 :initarg :y-position :accessor y-position)
+   (title :initform "[no title]" :initarg :title :accessor title)
+   (title-x-padding :initform 12 :initarg :title-x-padding :accessor title-x-padding)
+   (title-y-padding :initform 3 :initarg :title-y-padding :accessor title-y-padding)
+   (selectedp :initform nil :initarg :selectedp :accessor selectedp)
+   (selected-color :initform (vector 0.3 1.0 1.0) :initarg :selected-color :accessor selected-color)
+   (selected-margin :initform 5 :initarg :selected-margin :accessor selected-margin)))
+
+
+(defmethod draw ((element display-element-panel) (renderer graphics-renderer-2d) (font-renderer font-render-class))
+  (with-accessors ((x x-position)
+                   (y y-position)
+                   (w width)
+                   (h height)
+                   (m selected-margin))
+      element
+    (when (selectedp element)
+      (render renderer (vector (- x m) (- y m)
+                               (+ x w m) (- y m)
+                               (+ x w m) (+ y h m)
+                               (- x m) (- y m)
+                               (+ x w m) (+ y h m)
+                               (- x m) (+ y h m))
+              :mode :triangles
+              :color (selected-color element)))
+    (render renderer (vector x y
+                             (+ x w) y
+                             (+ x w) (+ y h)
+                             x y
+                             (+ x w) (+ y h)
+                             x (+ y h))
+            :mode :triangles
+            :color (color element))
+    (render-string font-renderer
+                   (title element)
+                   (+ x (title-x-padding element))
+                   (+ y h (- (title-y-padding element))))))
+
+
+
+(defun display-render-loop (element renderer font-renderer)
+  (process-input)
+  (clear-global-background)
+  (update-global-projection)
+  (setf *view-matrix* (create-identity-matrix 4))
+  (transform-matrix *view-matrix* translate (vector 0.0 0.0 -0.5))
+  (setf *model-matrix* (create-identity-matrix 4))
+
+  (draw element renderer font-renderer)
+
+  (glfw:swap-buffers)
+  (glfw:poll-events))
+
+(defun display ()
+  (glfw:with-init-window (:title "Arcimoog" :width *screen-width* :height *screen-height*)
+    (glfw:set-framebuffer-size-callback 'framebuffer-size-callback)
+    (gl:viewport 0 0 *screen-width* *screen-height*)
+
+    (update-global-projection)
+
+    (let ((renderer (make-instance 'graphics-renderer-2d))
+          (font-renderer (make-instance 'font-render-class))
+          (panel (make-instance 'display-element-panel
+                                :width 500 :height 400
+                                :x-position 20 :y-position 20
+                                :color (vector 0.4 0.5 0.9)
+                                :selectedp t
+                                :title "Arcimoog main")))
+      (loop until (glfw:window-should-close-p) do
+        (display-render-loop panel renderer font-renderer)
+        (sleep (/ 1 30))))))
+
+(defun test-display ()
+  (bt:make-thread (lambda () (display)) :name "test-window"))
