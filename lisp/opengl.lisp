@@ -507,50 +507,71 @@ width of the texture and the third its height.")
             (set-uniform our-shader "texture1" 'int 0)
             (set-uniform our-shader "texture2" 'int 1)
 
-            (loop until (glfw:window-should-close-p) do
-                  (render-loop font shape-drawer)
-                  (sleep (/ 1 10)))
+
+            ;;; Scheduling-based loop, in the INCUDINE real time thread:
+
+            (format t "~&Starting scheduling based render loop.")
+            (let ((frame-counter 0))
+              (labels ((loop-trigger ()
+                         (cond ((glfw:window-should-close-p)
+                                (gl:delete-vertex-arrays (list vao))
+                                (gl:delete-buffers (list vbo ebo))
+                                (destroy our-shader)
+                                (format t "~&Rendering terminated."))
+                               (t (render-loop font shape-drawer)
+                                  (format t "~&Frame counter: ~a." frame-counter)
+                                  (incudine:at (+ (incudine:now) #[0.5 s]) #'loop-trigger)))))
+                (loop-trigger)))
+
+;;; Gentle loop, with SLEEP
+            ;; (loop until (glfw:window-should-close-p) do
+            ;;       (render-loop font shape-drawer)
+            ;;       (sleep (/ 1 10)))
+
+
+;;; Hardcore loop, max FPS
 
             ;; (loop until (glfw:window-should-close-p) do
-              ;; (progn
-              ;;   (process-input)
-              ;;   (clear-global-background)
-              ;;   (update-global-projection)
-              ;;   (gl:active-texture :texture0)
-              ;;   (gl:bind-texture :texture-2d texture1)
-              ;;   (gl:active-texture :texture1)
-              ;;   (gl:bind-texture :texture-2d texture2)
-              ;;   (use our-shader)
-              ;;   (gl:bind-vertex-array vao)
-              ;;   (set-uniform our-shader "mixAmount" 'float *mix-amount*)
-              ;;   (setf *view-matrix* (create-identity-matrix 4))
-              ;;   (transform-matrix *view-matrix* translate (vector 0.0 0.0 -0.5))
-              ;;   (update-global-projection)
-              ;;   (set-uniform-matrix our-shader "projection" (lisp-to-gl-matrix *projection-matrix*))
-              ;;   (set-uniform-matrix our-shader "view" (lisp-to-gl-matrix *view-matrix*))
-              ;;   (setf *model-matrix* (create-identity-matrix 4))
-              ;;   (transform-matrix *model-matrix* scale (vector (* 0.2 (car image-size))
-              ;;                                                  (* 0.2 (cdr image-size))
-              ;;                                                  1.0))
-              ;;   (transform-matrix *model-matrix* translate (vector 400.0 300.0 0.0))
-              ;;   (transform-matrix *model-matrix* translate (vector (car *root-position*)
-              ;;                                                      (cdr *root-position*)
-              ;;                                                      0.0))
+            ;; (progn
+            ;;   (process-input)
+            ;;   (clear-global-background)
+            ;;   (update-global-projection)
+            ;;   (gl:active-texture :texture0)
+            ;;   (gl:bind-texture :texture-2d texture1)
+            ;;   (gl:active-texture :texture1)
+            ;;   (gl:bind-texture :texture-2d texture2)
+            ;;   (use our-shader)
+            ;;   (gl:bind-vertex-array vao)
+            ;;   (set-uniform our-shader "mixAmount" 'float *mix-amount*)
+            ;;   (setf *view-matrix* (create-identity-matrix 4))
+            ;;   (transform-matrix *view-matrix* translate (vector 0.0 0.0 -0.5))
+            ;;   (update-global-projection)
+            ;;   (set-uniform-matrix our-shader "projection" (lisp-to-gl-matrix *projection-matrix*))
+            ;;   (set-uniform-matrix our-shader "view" (lisp-to-gl-matrix *view-matrix*))
+            ;;   (setf *model-matrix* (create-identity-matrix 4))
+            ;;   (transform-matrix *model-matrix* scale (vector (* 0.2 (car image-size))
+            ;;                                                  (* 0.2 (cdr image-size))
+            ;;                                                  1.0))
+            ;;   (transform-matrix *model-matrix* translate (vector 400.0 300.0 0.0))
+            ;;   (transform-matrix *model-matrix* translate (vector (car *root-position*)
+            ;;                                                      (cdr *root-position*)
+            ;;                                                      0.0))
 
 
-              ;;   (render-vicentinos our-shader)
+            ;;   (render-vicentinos our-shader)
 
-              ;;   (render-all-texts font)
+            ;;   (render-all-texts font)
 
-              ;;   (render-shapes shape-drawer font)
+            ;;   (render-shapes shape-drawer font)
 
 
-              ;;   (glfw:swap-buffers)
-              ;;   (glfw:poll-events))
-                  ;; )
-            (gl:delete-vertex-arrays (list vao))
-            (gl:delete-buffers (list vbo ebo))
-            (destroy our-shader)))))))
+            ;;   (glfw:swap-buffers)
+            ;;   (glfw:poll-events))
+            ;; )
+            ))))))
 
 (defun test ()
   (bt:make-thread (lambda () (main)) :name "test-window"))
+
+(defun test ()
+  (incudine:at (+ (incudine:now) #[1 s]) #'main))
