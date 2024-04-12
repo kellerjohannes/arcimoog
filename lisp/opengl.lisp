@@ -584,8 +584,42 @@ width of the texture and the third its height.")
                    (+ y h (- (title-y-padding element))))))
 
 
+(defclass display-class ()
+  ((renderer :initform nil :accessor renderer)
+   (font-renderer :initform nil :accessor font-renderer)
+   (display-elements :initform (make-hash-table) :accessor display-elements)
+   (window-title :initform "Arcimoog" :accessor window-title)
+   (screen-width :initform 800 :accessor screen-width)
+   (screen-height :initform 600 :accessor screen-height)))
 
-(defun display-render-loop (element renderer font-renderer)
+(defmethod initialize-instance :after ((display display-class) &key)
+  (setf (renderer display) (make-instance 'graphics-renderer-2d))
+  (setf (font-renderer display) (make-instance 'font-render-class)))
+
+(defmethod start-render-loop ((display display-class))
+  (glfw:with-init-window (:title (title display)
+                          :width (width display)
+                          :height (height display))
+    (glfw:set-framebuffer-size-callback 'framebuffer-size-callback)
+    (gl:viewport 0 0 (width display) (height display))
+
+    (update-global-projection)
+    (loop until (glfw:window-should-close-p) do
+      (render-display-elements renderer font-renderer)
+      (sleep (/ 1 30)))))
+
+;; chaos here
+
+(panel (make-instance 'display-element-panel
+                                :width 500 :height 400
+                                :x-position 20 :y-position 20
+                                :color (vector 0.4 0.5 0.9)
+                                :selectedp t
+                                :title "Arcimoog main"))
+
+
+
+(defun render-display-elements (renderer font-renderer)
   (process-input)
   (clear-global-background)
   (update-global-projection)
@@ -593,7 +627,8 @@ width of the texture and the third its height.")
   (transform-matrix *view-matrix* translate (vector 0.0 0.0 -0.5))
   (setf *model-matrix* (create-identity-matrix 4))
 
-  (draw element renderer font-renderer)
+  (dolist (element *display-elements*)
+    (draw element renderer font-renderer))
 
   (glfw:swap-buffers)
   (glfw:poll-events))
@@ -613,9 +648,18 @@ width of the texture and the third its height.")
                                 :color (vector 0.4 0.5 0.9)
                                 :selectedp t
                                 :title "Arcimoog main")))
+      (push panel *display-elements*)
       (loop until (glfw:window-should-close-p) do
-        (display-render-loop panel renderer font-renderer)
+        (render-display-elements renderer font-renderer)
         (sleep (/ 1 30))))))
 
 (defun test-display ()
   (bt:make-thread (lambda () (display)) :name "test-window"))
+
+(defun populate-display ()
+  (push (make-instance 'display-element-panel
+                       :color (vector 0.4 0.6 0.9)
+                       :title "Secondary panel")
+        *display-elements*))
+
+(defparameter *display-elements* (make-hash-table))
