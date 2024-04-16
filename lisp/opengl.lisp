@@ -337,7 +337,7 @@ width of the texture and the third its height.")
   (render-scale renderer-instance font-renderer-instance 0.0
                 (let ((offsets (make-array 11 :initial-element 0.0)))
                   (loop for i from 0 to 10 do
-                        (setf (aref offsets i) (* 10.0 (- (slot (+ 4 i)) 0.5))))
+                    (setf (aref offsets i) (* 10.0 (- (slot (+ 4 i)) 0.5))))
                   offsets)
                 t)
   (render-scale renderer-instance
@@ -590,36 +590,28 @@ width of the texture and the third its height.")
    (display-elements :initform (make-hash-table) :accessor display-elements)
    (window-title :initform "Arcimoog" :accessor window-title)
    (screen-width :initform 800 :accessor screen-width)
-   (screen-height :initform 600 :accessor screen-height)))
+   (screen-height :initform 600 :accessor screen-height)
+   (global-translation :initform (vector 0.0 0.0 0.0) :accessor global-translation)
+   (global-scaling :initform 1.0 :accessor global-scaling)
+   (global-projection-matrix :initform nil :accessor global-projection-matrix)))
 
 (defmethod initialize-instance :after ((display display-class) &key)
   (setf (renderer display) (make-instance 'graphics-renderer-2d))
   (setf (font-renderer display) (make-instance 'font-render-class)))
 
-(defmethod start-render-loop ((display display-class))
-  (glfw:with-init-window (:title (title display)
-                          :width (width display)
-                          :height (height display))
-    (glfw:set-framebuffer-size-callback 'framebuffer-size-callback)
-    (gl:viewport 0 0 (width display) (height display))
 
-    (update-global-projection)
-    (loop until (glfw:window-should-close-p) do
-      (render-display-elements renderer font-renderer)
-      (sleep (/ 1 30)))))
+(defmethod update-global-projection ((display display-class))
+  (with-accessors ((projection global-projection-matrix))
+    display
+    (setf projection (ortho 0.0 (width display) 0.0 (height display) 0.1 100.0))
+    (transform-matrix projection translate (global-translation display))
+    (transform-matrix projection scale (vector (global-scaling display)
+                                               (global-scaling display)
+                                               1.0))))
 
-;; chaos here
-
-(panel (make-instance 'display-element-panel
-                                :width 500 :height 400
-                                :x-position 20 :y-position 20
-                                :color (vector 0.4 0.5 0.9)
-                                :selectedp t
-                                :title "Arcimoog main"))
-
-
-
-(defun render-display-elements (renderer font-renderer)
+(defmethod render-display-elements ((display display-class)
+                                    (renderer graphics-renderer-2d)
+                                    (font-renderer font-render-class))
   (process-input)
   (clear-global-background)
   (update-global-projection)
@@ -632,6 +624,36 @@ width of the texture and the third its height.")
 
   (glfw:swap-buffers)
   (glfw:poll-events))
+
+
+(defmethod create-render-context ((display display-class))
+  (glfw:with-init-window (:title (title display)
+                          :width (width display)
+                          :height (height display))
+    (glfw:set-framebuffer-size-callback 'framebuffer-size-callback)
+    (gl:viewport 0 0 (width display) (height display))
+
+    (update-global-projection)
+
+    (loop until (glfw:window-should-close-p) do
+      (render-display-elements renderer font-renderer)
+      (sleep (/ 1 30)))
+
+    (gl:delete-vertex-arrays (list vao))
+    (gl:delete-buffers (list vbo ebo))
+    (destroy our-shader)))
+
+;; chaos here
+
+;; (panel (make-instance 'display-element-panel
+;;                                 :width 500 :height 400
+;;                                 :x-position 20 :y-position 20
+;;                                 :color (vector 0.4 0.5 0.9)
+;;                                 :selectedp t
+;;                                 :title "Arcimoog main"))
+
+
+
 
 (defun display ()
   (glfw:with-init-window (:title "Arcimoog" :width *screen-width* :height *screen-height*)
