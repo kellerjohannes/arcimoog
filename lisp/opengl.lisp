@@ -12,21 +12,6 @@
 
 (defparameter *shader-path* "/home/johannes/common-lisp/arcimoog/lisp/shaders/")
 (defparameter *texture-path* "/home/johannes/common-lisp/arcimoog/lisp/textures/")
-(defparameter *global-background-color* (vector 0.0 0.0 0.0))
-(defparameter *global-projection-scaling* 1.0)
-(defparameter *global-projection-translation* (vector 0.0 0.0 0.0))
-
-(defun reset-global-projection-parameters ()
-  (setf *global-projection-scaling* 1.0)
-  (setf *global-projection-translation* (vector 0.0 0.0 0.0)))
-
-(defparameter *screen-width* 800)
-(defparameter *screen-height* 600)
-(defparameter *projection-matrix* nil)
-(defparameter *view-matrix* nil)
-(defparameter *model-matrix* nil)
-(defparameter *root-position* (cons 0.0 0.0))
-(defparameter *font-matrix* nil)
 
 ;;;; helper stuff, not in the original c code
 
@@ -44,29 +29,18 @@
 (defun my-gl-draw-elements (mode count type &key (offset 0))
   (%gl:draw-elements mode count type offset))
 
-(defparameter *mix-amount* 0.5)
-
-(defun update-global-projection ()
-  (setf *projection-matrix* (ortho 0.0 *screen-width* 0.0 *screen-height* 0.1 100.0))
-  (transform-matrix *projection-matrix* translate *global-projection-translation*)
-  (transform-matrix *projection-matrix* scale (vector *global-projection-scaling*
-                                                      *global-projection-scaling*
-                                                      1.0)))
-
 (glfw:def-window-size-callback framebuffer-size-callback (window width height)
   (declare (ignore window))
-  (setf *screen-width* width)
-  (setf *screen-height* height)
   (gl:viewport 0 0 width height)
-  (update-global-projection))
+  (setf (screen-width *display*) width)
+  (setf (screen-height *display*) height)
+  (update-projection *display*))
 
 (defun process-input ()
   (when (or (eq (glfw:get-key :escape) :press)
             (eq (glfw:get-key :q) :press))
     (glfw:set-window-should-close)))
 
-
-(defparameter *amount-of-copies* 1)
 
 
 (defclass font-render-class ()
@@ -132,21 +106,16 @@ width of the texture and the third its height.")
             ;; "/usr/share/fonts/OTF/Bravura.otf"
             ))
     (setf (ft-face renderer) (ft2:new-face source))
-
     (when (zerop (length character-set))
       (setf character-set *global-character-set*))
-
     (unless (position #\⸮ character-set)
       (setf character-set (concatenate 'string character-set "⸮")))
-
     (unless (shader-instance renderer)
       (setf (shader-instance renderer)
             (make-instance 'shader-class
                            :vertex-source (concatenate 'string *shader-path* "font-shader.vert")
                            :fragment-source (concatenate 'string *shader-path* "font-shader.frag")))))
-
   (generate-textures renderer)
-
   (with-accessors ((vao glyph-vao)
                    (vbo glyph-vbo))
       renderer
@@ -167,7 +136,190 @@ width of the texture and the third its height.")
     (gl:bind-buffer :array-buffer 0)
     (gl:bind-vertex-array 0)))
 
-(defmethod render-string ((renderer font-render-class) text x-origin y-origin
+
+
+
+
+(defclass renderer-2d-class ()
+  ((shader :initform nil :accessor shader)
+   (vao :initform nil :accessor vao)
+   (vbo :initform nil :accessor vbo)
+   (default-color :initform (vector 1.0 1.0 1.0) :initarg :color :accessor default-color)
+   (view-matrix :initform nil :accessor view-matrix)
+   (model-matrix :initform nil :accessor model-matrix)
+   (vbo-allocation-size :initform 1000 :initarg :vbo-size :accessor vbo-allocation-size
+                        :documentation "Max number of 2d-coordinates that will be allocated in the VBO.")))
+
+(defmethod initialize-instance :after ((renderer renderer-2d-class) &key)
+  (with-accessors ((shader shader)
+                   (view view-matrix)
+                   (model model-matrix)
+                   (vao vao)
+                   (vbo vbo))
+      renderer
+    (setf shader (make-instance 'shader-class
+                                :vertex-source (concatenate 'string *shader-path*
+                                                            "shader-2d.vert")
+                                :fragment-source (concatenate 'string *shader-path*
+                                                              "shader-2d.frag")))
+    (setf model (create-identity-matrix 4))
+    ;; view matrix is constant for now. Later it could be used to represent different layers of a 2d
+    ;; display
+    (setf view (create-identity-matrix 4))
+    (transform-matrix view translate (vector 0.0 0.0 -0.5))
+    (set-uniform-matrix shader "view" (lisp-to-gl-matrix view))
+    (setf vao (gl:gen-vertex-array))
+    (setf vbo (gl:gen-buffer))
+    (gl:bind-vertex-array vao)
+    (gl:bind-buffer :array-buffer vbo)
+    (gl:buffer-data :array-buffer
+                    :static-draw
+                    (array-to-gl-array (make-array (* 2 (vbo-allocation-size renderer))
+                                                   :initial-element 0.0)
+                                       :float))
+    (gl:vertex-attrib-pointer 0
+                              2
+                              :float
+                              nil
+                              (* 2 (cffi:foreign-type-size :float))
+                              (cffi:null-pointer))
+    (gl:enable-vertex-attrib-array 0)
+    (gl:bind-buffer :array-buffer 0)
+    (gl:bind-vertex-array 0)))
+
+
+
+(defclass display-element ()
+  ((color :initform (vector 1.0 1.0 1.0) :initarg :color :accessor color)))
+
+
+
+(defclass display-element-panel (display-element)
+  ((width :initform 300 :initarg :width :accessor width)
+   (height :initform 500 :initarg :height :accessor height)
+   (x-position :initform 0 :initarg :x-position :accessor x-position)
+   (y-position :initform 0 :initarg :y-position :accessor y-position)
+   (title :initform "[no title]" :initarg :title :accessor title)
+   (title-x-padding :initform 12 :initarg :title-x-padding :accessor title-x-padding)
+   (title-y-padding :initform 3 :initarg :title-y-padding :accessor title-y-padding)
+   (selectedp :initform nil :initarg :selectedp :accessor selectedp)
+   (selected-color :initform (vector 0.3 1.0 1.0) :initarg :selected-color :accessor selected-color)
+   (selected-margin :initform 5 :initarg :selected-margin :accessor selected-margin)))
+
+
+(defclass display-class ()
+  ((renderer :initform nil :accessor renderer)
+   (font-renderer :initform nil :accessor font-renderer)
+   (display-elements :initform (make-hash-table) :accessor display-elements)
+   (window-title :initform "Arcimoog" :accessor window-title)
+   (screen-width :initform 800 :accessor screen-width)
+   (screen-height :initform 600 :accessor screen-height)
+   (global-translation :initform (vector 0.0 0.0 0.0) :accessor global-translation)
+   (global-scaling :initform 1.0 :accessor global-scaling)
+   (global-projection-matrix :initform nil :accessor global-projection-matrix)
+   (background-color :initform (vector 0.0 0.0 0.0) :accessor background-color)))
+
+(defmethod initialize-renderers ((display display-class))
+  (setf (renderer display) (make-instance 'renderer-2d-class))
+  (setf (font-renderer display) (make-instance 'font-render-class)))
+
+(defmethod clear-display ((display display-class))
+  (gl:clear-color (aref (background-color display) 0)
+                  (aref (background-color display) 1)
+                  (aref (background-color display) 2)
+                  1.0)
+  (gl:clear :color-buffer-bit))
+
+(defmethod update-projection ((display display-class))
+  (with-accessors ((projection global-projection-matrix))
+      display
+    (setf projection (ortho 0.0 (screen-width display) 0.0 (screen-height display) 0.1 100.0))
+    (transform-matrix projection translate (global-translation display))
+    (transform-matrix projection scale (vector (global-scaling display)
+                                               (global-scaling display)
+                                               1.0))))
+
+(defmethod reset-display-projection-parameters ((display display-class))
+  (setf (global-scaling display) 1.0)
+  (setf (global-translation display) (vector 0.0 0.0 0.0)))
+
+(defmethod render-display-elements ((display display-class))
+  (process-input)
+  (clear-display display)
+  (update-projection display)
+
+  (loop for element being the hash-values of (display-elements display) do
+    (draw display element (renderer display) (font-renderer display)))
+
+  (glfw:swap-buffers)
+  (glfw:poll-events))
+
+(defmethod create-render-context ((display display-class))
+  (glfw:with-init-window (:title (window-title display)
+                          :width (screen-width display)
+                          :height (screen-height display))
+    (initialize-renderers display)
+    (glfw:set-framebuffer-size-callback 'framebuffer-size-callback)
+    (gl:viewport 0 0 (screen-width display) (screen-height display))
+
+    (update-projection display)
+
+    (loop until (glfw:window-should-close-p) do
+      (render-display-elements display)
+      (sleep (/ 1 30)))
+
+    ;; TODO
+    ;; cleaning up needs to be implemented for all involved classes (destructors)
+    ;; (gl:delete-vertex-arrays (list vao))
+    ;; (gl:delete-buffers (list vbo ebo))
+    ;; (destroy our-shader)
+    ))
+
+;; (panel (make-instance 'display-element-panel
+;;                                 :width 500 :height 400
+;;                                 :x-position 20 :y-position 20
+;;                                 :color (vector 0.4 0.5 0.9)
+;;                                 :selectedp t
+;;                                 :title "Arcimoog main"))
+
+(defmethod boot ((display display-class))
+  (bt:make-thread (lambda () (create-render-context display)) :name "Arcimoog OpenGL display"))
+
+
+
+
+(defmethod render ((display display-class) (renderer renderer-2d-class) vertex-data
+                   &key (mode :line-strip)
+                     scaling
+                     translation
+                     rotation
+                     (color (default-color renderer)))
+  (with-accessors ((vao vao)
+                   (vbo vbo)
+                   (model model-matrix)
+                   (shader shader))
+      renderer
+    (gl:bind-vertex-array vao)
+    (gl:bind-buffer :array-buffer vbo)
+    (gl:buffer-sub-data :array-buffer
+                        (array-to-gl-array (if (typep vertex-data '(vector single-float *))
+                                               vertex-data
+                                               (coerce-vector vertex-data 'single-float))
+                                           :float))
+    (gl:bind-buffer :array-buffer 0)
+    (set-uniform-matrix shader "projection" (lisp-to-gl-matrix (global-projection-matrix display)))
+    (setf model (create-identity-matrix 4))
+    (when scaling (transform-matrix model scale scaling))
+    (when translation (transform-matrix model translate translation))
+    (when rotation (transform-matrix model rotate (car rotation) (cdr rotation)))
+    (set-uniform-matrix shader "model" (lisp-to-gl-matrix model))
+    (set-uniform shader "vertexColor" 'float (aref color 0) (aref color 1) (aref color 2))
+    (gl:draw-arrays mode 0 (floor (/ (length vertex-data) 2)))
+    (gl:bind-vertex-array 0)))
+
+
+(defmethod render-string ((display display-class)
+                          (renderer font-render-class) text x-origin y-origin
                           &key (scale-factor 1.0) (rgb-vector (vector 1.0 1.0 1.0)))
   (gl:pixel-store :unpack-alignment 1)
   (gl:enable :blend)
@@ -181,7 +333,7 @@ width of the texture and the third its height.")
       renderer
     (set-uniform shader "textColor" 'float
                  (aref rgb-vector 0) (aref rgb-vector 1) (aref rgb-vector 2))
-    (set-uniform-matrix shader "projection" (lisp-to-gl-matrix *projection-matrix*))
+    (set-uniform-matrix shader "projection" (lisp-to-gl-matrix (global-projection-matrix display)))
     (gl:active-texture :texture0)
     (gl:bind-vertex-array vao)
     (ft2:do-string-render (face text bitmap ft-x ft-y :with-char character)
@@ -207,354 +359,8 @@ width of the texture and the third its height.")
     (gl:bind-texture :texture-2d 0)))
 
 
-
-
-
-(defclass graphics-renderer-2d ()
-  ((shader :initform nil :accessor shader)
-   (vao :initform nil :accessor vao)
-   (vbo :initform nil :accessor vbo)
-   (default-color :initform (vector 1.0 1.0 1.0) :initarg :color :accessor default-color)
-   (view-matrix :initform nil :accessor view-matrix)
-   (model-matrix :initform nil :accessor model-matrix)
-   (vbo-allocation-size :initform 1000 :initarg :vbo-size :accessor vbo-allocation-size
-                        :documentation "Max number of 2d-coordinates that will be allocated in the VBO.")))
-
-(defmethod initialize-instance :after ((renderer graphics-renderer-2d) &key)
-  (with-accessors ((shader shader)
-                   (view view-matrix)
-                   (model model-matrix)
-                   (vao vao)
-                   (vbo vbo))
-      renderer
-    (setf shader (make-instance 'shader-class
-                                :vertex-source (concatenate 'string *shader-path*
-                                                            "shader-2d.vert")
-                                :fragment-source (concatenate 'string *shader-path*
-                                                              "shader-2d.frag")))
-    (setf model (create-identity-matrix 4))
-
-    ;; view matrix is constant for now. Later it could be used to represent different layers of a 2d
-    ;; display
-    (setf view (create-identity-matrix 4))
-    (transform-matrix view translate (vector 0.0 0.0 -0.5))
-    (set-uniform-matrix shader "view" (lisp-to-gl-matrix view))
-
-    (setf vao (gl:gen-vertex-array))
-    (setf vbo (gl:gen-buffer))
-    (gl:bind-vertex-array vao)
-    (gl:bind-buffer :array-buffer vbo)
-    (gl:buffer-data :array-buffer
-                    :static-draw
-                    (array-to-gl-array (make-array (* 2 (vbo-allocation-size renderer))
-                                                   :initial-element 0.0)
-                                       :float))
-    (gl:vertex-attrib-pointer 0
-                              2
-                              :float
-                              nil
-                              (* 2 (cffi:foreign-type-size :float))
-                              (cffi:null-pointer))
-    (gl:enable-vertex-attrib-array 0)
-    (gl:bind-buffer :array-buffer 0)
-    (gl:bind-vertex-array 0)))
-
-(defmethod render ((renderer graphics-renderer-2d) vertex-data
-                   &key (mode :line-strip)
-                     scaling
-                     translation
-                     rotation
-                     (color (default-color renderer)))
-  (with-accessors ((vao vao)
-                   (vbo vbo)
-                   (model model-matrix)
-                   (shader shader))
-      renderer
-    (gl:bind-vertex-array vao)
-    (gl:bind-buffer :array-buffer vbo)
-    (gl:buffer-sub-data :array-buffer (array-to-gl-array (if (typep vertex-data '(vector single-float *))
-                                                             vertex-data
-                                                             (coerce-vector vertex-data 'single-float))
-                                                         :float))
-    (gl:bind-buffer :array-buffer 0)
-    (set-uniform-matrix shader "projection" (lisp-to-gl-matrix *projection-matrix*))
-    (setf model (create-identity-matrix 4))
-    (when scaling (transform-matrix model scale scaling))
-    (when translation (transform-matrix model translate translation))
-    (when rotation (transform-matrix model rotate (car rotation) (cdr rotation)))
-    (set-uniform-matrix shader "model" (lisp-to-gl-matrix model))
-    (set-uniform shader "vertexColor" 'float (aref color 0) (aref color 1) (aref color 2))
-    (gl:draw-arrays mode 0 (floor (/ (length vertex-data) 2)))
-    (gl:bind-vertex-array 0)))
-
-
-(defun render-vicentinos (shader)
-  (dotimes (i *amount-of-copies*)
-    (transform-matrix *model-matrix* translate (vector 10.1 10.1 0.0))
-    (set-uniform-matrix shader "model" (lisp-to-gl-matrix *model-matrix*))
-    (my-gl-draw-elements :triangles 6 :unsigned-int)))
-
-(defun render-all-texts (font-instance)
-  (loop for y from 0.0 by 55.0 repeat 16
-        for i from 0 do
-          (render-string font-instance (format nil "Slot ~a: ~,2f" i (slot i)) 10.0 (- 1000.0 y))))
-
-(defun render-scale (renderer-instance font-renderer-instance offset tick-offsets helper-lines-p)
-  (let ((main-line (vector 0.0 0.0 0.0 100.0))
-        (tick-labels (vector "C" "D" "E" "F𝄡𝃅" "G♭♯" "A♯" "B♮" "C" "D" "E" "F"))
-        (scale (vector 10.0 10.0 1.0))
-        (origin (vector (+ 800.0 offset) 50.0 0.0))
-        (tick-width 5.0)
-        (label-padding 3.0)
-        (helper-line-min -10.0)
-        (helper-line-max 50.0)
-        (helper-lines (make-array 44 :initial-element 0.0))
-        (ticks (make-array 44 :initial-element 0.0)))
-    (loop for y from 0.0 by 10.0 to 100.0
-          for i from 0 do
-            (let ((y-trimmed (+ y (aref tick-offsets i))))
-              (setf (aref ticks (+ 0 (* 4 i))) 0.0
-                    (aref ticks (+ 1 (* 4 i))) y-trimmed
-                    (aref ticks (+ 2 (* 4 i))) tick-width
-                    (aref ticks (+ 3 (* 4 i))) y-trimmed
-                    (aref helper-lines (+ 0 (* 4 i))) helper-line-min
-                    (aref helper-lines (+ 1 (* 4 i))) y-trimmed
-                    (aref helper-lines (+ 2 (* 4 i))) helper-line-max
-                    (aref helper-lines (+ 3 (* 4 i))) y-trimmed)))
-    (loop for i from 0 to 10 do
-      (render-string font-renderer-instance
-                     (aref tick-labels i)
-                     (+ offset 800.0 (* 10.0 (+ label-padding tick-width)))
-                     (+ 25.0 50.0 (* 10.0 (aref ticks (+ 1 (* i 4)))))
-                     :rgb-vector #(0.0 1.0 1.0)))
-    (render renderer-instance main-line :mode :lines :scaling scale :translation origin)
-    (when helper-lines-p
-      (render renderer-instance helper-lines :mode :lines :scaling scale :translation origin :color #(1.0 1.0 0.0)))
-    (render renderer-instance ticks :mode :lines :scaling scale :translation origin :color #(0.0 1.0 1.0))
-    ))
-
-(defun render-shapes (renderer-instance font-renderer-instance)
-  (render-scale renderer-instance font-renderer-instance 0.0
-                (let ((offsets (make-array 11 :initial-element 0.0)))
-                  (loop for i from 0 to 10 do
-                    (setf (aref offsets i) (* 10.0 (- (slot (+ 4 i)) 0.5))))
-                  offsets)
-                t)
-  (render-scale renderer-instance
-                font-renderer-instance
-                200.0
-                (make-array 11 :initial-element 0.0)
-                nil)
-  )
-
-(defun clear-global-background ()
-  (gl:clear-color (aref *global-background-color* 0)
-                  (aref *global-background-color* 1)
-                  (aref *global-background-color* 2)
-                  1.0)
-  (gl:clear :color-buffer-bit))
-
-(defun render-loop (font-renderer shape-renderer)
-  (process-input)
-  (clear-global-background)
-  (update-global-projection)
-  (setf *view-matrix* (create-identity-matrix 4))
-  (transform-matrix *view-matrix* translate (vector 0.0 0.0 -0.5))
-  (update-global-projection)
-  (setf *model-matrix* (create-identity-matrix 4))
-
-  (render-all-texts font-renderer)
-
-  (render-shapes shape-renderer font-renderer)
-
-  (glfw:swap-buffers)
-  (glfw:poll-events))
-
-
-
-(defun main ()
-  (init-faderfox-communication)
-  (setf *root-position* (cons 0.0 0.0))
-  (setf *mix-amount* 0.5)
-  (glfw:with-init-window (:title "Arcimoog Display" :width *screen-width* :height *screen-height*)
-    (glfw:set-framebuffer-size-callback 'framebuffer-size-callback)
-    (gl:viewport 0 0 *screen-width* *screen-height*)
-
-    (update-global-projection)
-
-    (let* ((font-shader (make-instance 'shader-class
-                                       :vertex-source (concatenate 'string *shader-path*
-                                                                   "font-shader.vert")
-                                       :fragment-source (concatenate 'string *shader-path*
-                                                                     "font-shader.frag")))
-           (font (make-instance 'font-render-class
-                                :character-set *global-character-set*
-                                :shader-instance font-shader))
-           (shape-drawer (make-instance 'graphics-renderer-2d)))
-
-      (let ((our-shader (make-instance 'shader-class
-                                       :vertex-source (concatenate 'string *shader-path*
-                                                                   "shader-texture.vs")
-                                       :fragment-source (concatenate 'string *shader-path*
-                                                                     "shader-texture.fs"))))
-
-        (let ((vertices (vector 0.5 0.5 0.0    1.0 0.0 0.0    1.0 1.0
-                                0.5 -0.5 0.0   0.0 1.0 0.0    1.0 0.0
-                                -0.5 -0.5 0.0  0.0 0.0 1.0    0.0 0.0
-                                -0.5 0.5 0.0   1.0 1.0 0.0    0.0 1.0))
-              (indices (vector 0 1 3
-                               1 2 3))
-              (vao (gl:gen-vertex-array))
-              (vbo (gl:gen-buffer))
-              (ebo (gl:gen-buffer)))
-          (gl:bind-vertex-array vao)
-          (gl:bind-buffer :array-buffer vbo)
-          (gl:buffer-data :array-buffer :static-draw (array-to-gl-array vertices :float))
-          (gl:bind-buffer :element-array-buffer ebo)
-          (gl:buffer-data :element-array-buffer :static-draw (array-to-gl-array indices :unsigned-int))
-          (gl:vertex-attrib-pointer 0 3 :float nil (* 8 (cffi:foreign-type-size :float))
-                                    (cffi:null-pointer))
-          (gl:enable-vertex-attrib-array 0)
-          (gl:vertex-attrib-pointer 1 3 :float nil (* 8 (cffi:foreign-type-size :float))
-                                    (cffi:inc-pointer (cffi:null-pointer)
-                                                      (* 3 (cffi:foreign-type-size :float))))
-          (gl:enable-vertex-attrib-array 1)
-          (gl:vertex-attrib-pointer 2 2 :float nil (* 8 (cffi:foreign-type-size :float))
-                                    (cffi:inc-pointer (cffi:null-pointer)
-                                                      (* 6 (cffi:foreign-type-size :float))))
-          (gl:enable-vertex-attrib-array 2)
-          (gl:bind-buffer :array-buffer 0)
-          (gl:bind-vertex-array 0)
-
-
-          (let ((texture1 (gl:gen-texture))
-                (texture2 (gl:gen-texture))
-                (image-size))
-            (gl:bind-texture :texture-2d texture1)
-            (gl:tex-parameter :texture-2d :texture-wrap-s :repeat)
-            (gl:tex-parameter :texture-2d :texture-wrap-t :repeat)
-            (gl:tex-parameter :texture-2d :texture-min-filter :linear)
-            (gl:tex-parameter :texture-2d :texture-mag-filter :linear)
-            (multiple-value-bind (data height width)
-                (cl-jpeg:decode-image (concatenate 'string *texture-path* "vicentino-test.jpg"))
-              (cond (data
-                     (gl:tex-image-2d :texture-2d 0 :rgb width height 0 :rgb :unsigned-byte data)
-                     (gl:generate-mipmap :texture-2d))
-                    (t (format t "~&Failed to load texture."))))
-
-            (gl:bind-texture :texture-2d texture2)
-            (gl:tex-parameter :texture-2d :texture-wrap-s :repeat)
-            (gl:tex-parameter :texture-2d :texture-wrap-t :repeat)
-            (gl:tex-parameter :texture-2d :texture-min-filter :linear)
-            (gl:tex-parameter :texture-2d :texture-mag-filter :linear)
-            (multiple-value-bind (data height width)
-                (cl-jpeg:decode-image (concatenate 'string *texture-path* "aron.jpg"))
-              (setf image-size (cons width height))
-              (cond (data
-                     (gl:tex-image-2d :texture-2d 0 :rgb width height 0 :rgb :unsigned-byte data)
-                     (gl:generate-mipmap :texture-2d))
-                    (t (format t "~&Failed to load texture2."))))
-            (use our-shader)
-            (set-uniform our-shader "texture1" 'int 0)
-            (set-uniform our-shader "texture2" 'int 1)
-
-
-            ;;; Scheduling-based loop, in the INCUDINE real time thread:
-
-            ;; (format t "~&Starting scheduling based render loop.")
-            ;; (let ((frame-counter 0))
-            ;;   (labels ((loop-trigger ()
-            ;;              (cond ((glfw:window-should-close-p)
-            ;;                     (gl:delete-vertex-arrays (list vao))
-            ;;                     (gl:delete-buffers (list vbo ebo))
-            ;;                     (destroy our-shader)
-            ;;                     (format t "~&Rendering terminated."))
-            ;;                    (t (render-loop font shape-drawer)
-            ;;                       (format t "~&Frame counter: ~a." frame-counter)
-            ;;                       (incudine:at (+ (incudine:now) #[0.5 s]) #'loop-trigger)))))
-            ;;     (loop-trigger)))
-
-;;; Gentle loop, with SLEEP
-            (loop until (glfw:window-should-close-p) do
-              (render-loop font shape-drawer)
-              (sleep (/ 1 30)))
-
-
-;;; Hardcore loop, max FPS
-            ;; (loop until (glfw:window-should-close-p) do
-            ;; (progn
-            ;;   (process-input)
-            ;;   (clear-global-background)
-            ;;   (update-global-projection)
-            ;;   (gl:active-texture :texture0)
-            ;;   (gl:bind-texture :texture-2d texture1)
-            ;;   (gl:active-texture :texture1)
-            ;;   (gl:bind-texture :texture-2d texture2)
-            ;;   (use our-shader)
-            ;;   (gl:bind-vertex-array vao)
-            ;;   (set-uniform our-shader "mixAmount" 'float *mix-amount*)
-            ;;   (setf *view-matrix* (create-identity-matrix 4))
-            ;;   (transform-matrix *view-matrix* translate (vector 0.0 0.0 -0.5))
-            ;;   (update-global-projection)
-            ;;   (set-uniform-matrix our-shader "projection" (lisp-to-gl-matrix *projection-matrix*))
-            ;;   (set-uniform-matrix our-shader "view" (lisp-to-gl-matrix *view-matrix*))
-            ;;   (setf *model-matrix* (create-identity-matrix 4))
-            ;;   (transform-matrix *model-matrix* scale (vector (* 0.2 (car image-size))
-            ;;                                                  (* 0.2 (cdr image-size))
-            ;;                                                  1.0))
-            ;;   (transform-matrix *model-matrix* translate (vector 400.0 300.0 0.0))
-            ;;   (transform-matrix *model-matrix* translate (vector (car *root-position*)
-            ;;                                                      (cdr *root-position*)
-            ;;                                                      0.0))
-
-
-            ;;   (render-vicentinos our-shader)
-
-            ;;   (render-all-texts font)
-
-            ;;   (render-shapes shape-drawer font)
-
-
-            ;;   (glfw:swap-buffers)
-            ;;   (glfw:poll-events))
-            ;; )
-
-
-            (gl:delete-vertex-arrays (list vao))
-            (gl:delete-buffers (list vbo ebo))
-            (destroy our-shader)
-
-            ))))))
-
-(defun test ()
-  (bt:make-thread (lambda () (main)) :name "test-window"))
-
-;; (defun test ()
-;;   (incudine:at (+ (incudine:now) #[1 s]) #'main))
-
-
-
-
-(defclass display-element ()
-  ((color :initform (vector 1.0 1.0 1.0) :initarg :color :accessor color)))
-
-(defgeneric draw (display-element renderer font-renderer))
-
-
-(defclass display-element-panel (display-element)
-  ((width :initform 300 :initarg :width :accessor width)
-   (height :initform 500 :initarg :height :accessor height)
-   (x-position :initform 0 :initarg :x-position :accessor x-position)
-   (y-position :initform 0 :initarg :y-position :accessor y-position)
-   (title :initform "[no title]" :initarg :title :accessor title)
-   (title-x-padding :initform 12 :initarg :title-x-padding :accessor title-x-padding)
-   (title-y-padding :initform 3 :initarg :title-y-padding :accessor title-y-padding)
-   (selectedp :initform nil :initarg :selectedp :accessor selectedp)
-   (selected-color :initform (vector 0.3 1.0 1.0) :initarg :selected-color :accessor selected-color)
-   (selected-margin :initform 5 :initarg :selected-margin :accessor selected-margin)))
-
-
-(defmethod draw ((element display-element-panel) (renderer graphics-renderer-2d) (font-renderer font-render-class))
+(defmethod draw ((display display-class) (element display-element-panel)
+                 (renderer renderer-2d-class) (font-renderer font-render-class))
   (with-accessors ((x x-position)
                    (y y-position)
                    (w width)
@@ -562,7 +368,7 @@ width of the texture and the third its height.")
                    (m selected-margin))
       element
     (when (selectedp element)
-      (render renderer (vector (- x m) (- y m)
+      (render display renderer (vector (- x m) (- y m)
                                (+ x w m) (- y m)
                                (+ x w m) (+ y h m)
                                (- x m) (- y m)
@@ -570,7 +376,7 @@ width of the texture and the third its height.")
                                (- x m) (+ y h m))
               :mode :triangles
               :color (selected-color element)))
-    (render renderer (vector x y
+    (render display renderer (vector x y
                              (+ x w) y
                              (+ x w) (+ y h)
                              x y
@@ -578,110 +384,200 @@ width of the texture and the third its height.")
                              x (+ y h))
             :mode :triangles
             :color (color element))
-    (render-string font-renderer
+    (render-string display
+                   font-renderer
                    (title element)
                    (+ x (title-x-padding element))
                    (+ y h (- (title-y-padding element))))))
 
 
-(defclass display-class ()
-  ((renderer :initform nil :accessor renderer)
-   (font-renderer :initform nil :accessor font-renderer)
-   (display-elements :initform (make-hash-table) :accessor display-elements)
-   (window-title :initform "Arcimoog" :accessor window-title)
-   (screen-width :initform 800 :accessor screen-width)
-   (screen-height :initform 600 :accessor screen-height)
-   (global-translation :initform (vector 0.0 0.0 0.0) :accessor global-translation)
-   (global-scaling :initform 1.0 :accessor global-scaling)
-   (global-projection-matrix :initform nil :accessor global-projection-matrix)))
 
-(defmethod initialize-instance :after ((display display-class) &key)
-  (setf (renderer display) (make-instance 'graphics-renderer-2d))
-  (setf (font-renderer display) (make-instance 'font-render-class)))
+(defmethod add-element ((display display-class) (element display-element) id)
+  (setf (gethash id (display-elements display)) element))
 
 
-(defmethod update-global-projection ((display display-class))
-  (with-accessors ((projection global-projection-matrix))
-    display
-    (setf projection (ortho 0.0 (width display) 0.0 (height display) 0.1 100.0))
-    (transform-matrix projection translate (global-translation display))
-    (transform-matrix projection scale (vector (global-scaling display)
-                                               (global-scaling display)
-                                               1.0))))
-
-(defmethod render-display-elements ((display display-class)
-                                    (renderer graphics-renderer-2d)
-                                    (font-renderer font-render-class))
-  (process-input)
-  (clear-global-background)
-  (update-global-projection)
-  (setf *view-matrix* (create-identity-matrix 4))
-  (transform-matrix *view-matrix* translate (vector 0.0 0.0 -0.5))
-  (setf *model-matrix* (create-identity-matrix 4))
-
-  (dolist (element *display-elements*)
-    (draw element renderer font-renderer))
-
-  (glfw:swap-buffers)
-  (glfw:poll-events))
+(defmacro set-element-value (display element-id slot-name value)
+  `(setf (,slot-name (gethash ,element-id (display-elements ,display))) ,value))
 
 
-(defmethod create-render-context ((display display-class))
-  (glfw:with-init-window (:title (title display)
-                          :width (width display)
-                          :height (height display))
-    (glfw:set-framebuffer-size-callback 'framebuffer-size-callback)
-    (gl:viewport 0 0 (width display) (height display))
 
-    (update-global-projection)
+;;; this is how to use the display class, to be extended massively ...
 
-    (loop until (glfw:window-should-close-p) do
-      (render-display-elements renderer font-renderer)
-      (sleep (/ 1 30)))
+(defparameter *display* (make-instance 'display-class))
 
-    (gl:delete-vertex-arrays (list vao))
-    (gl:delete-buffers (list vbo ebo))
-    (destroy our-shader)))
+(boot *display*)
 
-;; chaos here
+(add-element *display* (make-instance 'display-element-panel :title "Test") :main)
 
-;; (panel (make-instance 'display-element-panel
-;;                                 :width 500 :height 400
-;;                                 :x-position 20 :y-position 20
-;;                                 :color (vector 0.4 0.5 0.9)
-;;                                 :selectedp t
-;;                                 :title "Arcimoog main"))
+(setf (color (gethash :main (display-elements *display*))) (vector 0.2 0.3 0.1))
+(setf (x-position (gethash :main (display-elements *display*))) 300)
+(setf (y-position (gethash :main (display-elements *display*))) 500)
+(setf (global-scaling *display*) 0.5)
+(setf (global-translation *display*) (vector 0.2 0.1 0.0))
+(reset-display-projection-parameters *display*)
+
+
+(set-element-value *display* :main color (vector 0.6 0.1 0.1))
 
 
 
 
-(defun display ()
-  (glfw:with-init-window (:title "Arcimoog" :width *screen-width* :height *screen-height*)
-    (glfw:set-framebuffer-size-callback 'framebuffer-size-callback)
-    (gl:viewport 0 0 *screen-width* *screen-height*)
 
-    (update-global-projection)
+;;; obsolete, kept for reference because texture stuff hasn't been migrated to new class system
+;; TODO
+;; - Migrate texture handling to a class
 
-    (let ((renderer (make-instance 'graphics-renderer-2d))
-          (font-renderer (make-instance 'font-render-class))
-          (panel (make-instance 'display-element-panel
-                                :width 500 :height 400
-                                :x-position 20 :y-position 20
-                                :color (vector 0.4 0.5 0.9)
-                                :selectedp t
-                                :title "Arcimoog main")))
-      (push panel *display-elements*)
-      (loop until (glfw:window-should-close-p) do
-        (render-display-elements renderer font-renderer)
-        (sleep (/ 1 30))))))
 
-(defun test-display ()
-  (bt:make-thread (lambda () (display)) :name "test-window"))
+;; (defun main ()
+;;   (init-faderfox-communication)
+;;   (setf *root-position* (cons 0.0 0.0))
+;;   (setf *mix-amount* 0.5)
+;;   (glfw:with-init-window (:title "Arcimoog Display" :width *screen-width* :height *screen-height*)
+;;     (glfw:set-framebuffer-size-callback 'framebuffer-size-callback)
+;;     (gl:viewport 0 0 *screen-width* *screen-height*)
 
-(defun populate-display ()
-  (push (make-instance 'display-element-panel
-                       :color (vector 0.4 0.6 0.9)
-                       :title "Secondary panel")
-        *display-elements*))
+;;     (update-global-projection)
 
-(defparameter *display-elements* (make-hash-table))
+;;     (let* ((font-shader (make-instance 'shader-class
+;;                                        :vertex-source (concatenate 'string *shader-path*
+;;                                                                    "font-shader.vert")
+;;                                        :fragment-source (concatenate 'string *shader-path*
+;;                                                                      "font-shader.frag")))
+;;            (font (make-instance 'font-render-class
+;;                                 :character-set *global-character-set*
+;;                                 :shader-instance font-shader))
+;;            (shape-drawer (make-instance 'renderer-2d-class)))
+
+;;       (let ((our-shader (make-instance 'shader-class
+;;                                        :vertex-source (concatenate 'string *shader-path*
+;;                                                                    "shader-texture.vs")
+;;                                        :fragment-source (concatenate 'string *shader-path*
+;;                                                                      "shader-texture.fs"))))
+
+;;         (let ((vertices (vector 0.5 0.5 0.0    1.0 0.0 0.0    1.0 1.0
+;;                                 0.5 -0.5 0.0   0.0 1.0 0.0    1.0 0.0
+;;                                 -0.5 -0.5 0.0  0.0 0.0 1.0    0.0 0.0
+;;                                 -0.5 0.5 0.0   1.0 1.0 0.0    0.0 1.0))
+;;               (indices (vector 0 1 3
+;;                                1 2 3))
+;;               (vao (gl:gen-vertex-array))
+;;               (vbo (gl:gen-buffer))
+;;               (ebo (gl:gen-buffer)))
+;;           (gl:bind-vertex-array vao)
+;;           (gl:bind-buffer :array-buffer vbo)
+;;           (gl:buffer-data :array-buffer :static-draw (array-to-gl-array vertices :float))
+;;           (gl:bind-buffer :element-array-buffer ebo)
+;;           (gl:buffer-data :element-array-buffer :static-draw (array-to-gl-array indices :unsigned-int))
+;;           (gl:vertex-attrib-pointer 0 3 :float nil (* 8 (cffi:foreign-type-size :float))
+;;                                     (cffi:null-pointer))
+;;           (gl:enable-vertex-attrib-array 0)
+;;           (gl:vertex-attrib-pointer 1 3 :float nil (* 8 (cffi:foreign-type-size :float))
+;;                                     (cffi:inc-pointer (cffi:null-pointer)
+;;                                                       (* 3 (cffi:foreign-type-size :float))))
+;;           (gl:enable-vertex-attrib-array 1)
+;;           (gl:vertex-attrib-pointer 2 2 :float nil (* 8 (cffi:foreign-type-size :float))
+;;                                     (cffi:inc-pointer (cffi:null-pointer)
+;;                                                       (* 6 (cffi:foreign-type-size :float))))
+;;           (gl:enable-vertex-attrib-array 2)
+;;           (gl:bind-buffer :array-buffer 0)
+;;           (gl:bind-vertex-array 0)
+
+
+;;           (let ((texture1 (gl:gen-texture))
+;;                 (texture2 (gl:gen-texture))
+;;                 (image-size))
+;;             (gl:bind-texture :texture-2d texture1)
+;;             (gl:tex-parameter :texture-2d :texture-wrap-s :repeat)
+;;             (gl:tex-parameter :texture-2d :texture-wrap-t :repeat)
+;;             (gl:tex-parameter :texture-2d :texture-min-filter :linear)
+;;             (gl:tex-parameter :texture-2d :texture-mag-filter :linear)
+;;             (multiple-value-bind (data height width)
+;;                 (cl-jpeg:decode-image (concatenate 'string *texture-path* "vicentino-test.jpg"))
+;;               (cond (data
+;;                      (gl:tex-image-2d :texture-2d 0 :rgb width height 0 :rgb :unsigned-byte data)
+;;                      (gl:generate-mipmap :texture-2d))
+;;                     (t (format t "~&Failed to load texture."))))
+
+;;             (gl:bind-texture :texture-2d texture2)
+;;             (gl:tex-parameter :texture-2d :texture-wrap-s :repeat)
+;;             (gl:tex-parameter :texture-2d :texture-wrap-t :repeat)
+;;             (gl:tex-parameter :texture-2d :texture-min-filter :linear)
+;;             (gl:tex-parameter :texture-2d :texture-mag-filter :linear)
+;;             (multiple-value-bind (data height width)
+;;                 (cl-jpeg:decode-image (concatenate 'string *texture-path* "aron.jpg"))
+;;               (setf image-size (cons width height))
+;;               (cond (data
+;;                      (gl:tex-image-2d :texture-2d 0 :rgb width height 0 :rgb :unsigned-byte data)
+;;                      (gl:generate-mipmap :texture-2d))
+;;                     (t (format t "~&Failed to load texture2."))))
+;;             (use our-shader)
+;;             (set-uniform our-shader "texture1" 'int 0)
+;;             (set-uniform our-shader "texture2" 'int 1)
+
+
+;; ;;; Scheduling-based loop, in the INCUDINE real time thread:
+
+;;             ;; (format t "~&Starting scheduling based render loop.")
+;;             ;; (let ((frame-counter 0))
+;;             ;;   (labels ((loop-trigger ()
+;;             ;;              (cond ((glfw:window-should-close-p)
+;;             ;;                     (gl:delete-vertex-arrays (list vao))
+;;             ;;                     (gl:delete-buffers (list vbo ebo))
+;;             ;;                     (destroy our-shader)
+;;             ;;                     (format t "~&Rendering terminated."))
+;;             ;;                    (t (render-loop font shape-drawer)
+;;             ;;                       (format t "~&Frame counter: ~a." frame-counter)
+;;             ;;                       (incudine:at (+ (incudine:now) #[0.5 s]) #'loop-trigger)))))
+;;             ;;     (loop-trigger)))
+
+;; ;;; Gentle loop, with SLEEP
+;;             (loop until (glfw:window-should-close-p) do
+;;               (render-loop font shape-drawer)
+;;               (sleep (/ 1 30)))
+
+
+;; ;;; Hardcore loop, max FPS
+;;             ;; (loop until (glfw:window-should-close-p) do
+;;             ;; (progn
+;;             ;;   (process-input)
+;;             ;;   (clear-global-background)
+;;             ;;   (update-global-projection)
+;;             ;;   (gl:active-texture :texture0)
+;;             ;;   (gl:bind-texture :texture-2d texture1)
+;;             ;;   (gl:active-texture :texture1)
+;;             ;;   (gl:bind-texture :texture-2d texture2)
+;;             ;;   (use our-shader)
+;;             ;;   (gl:bind-vertex-array vao)
+;;             ;;   (set-uniform our-shader "mixAmount" 'float *mix-amount*)
+;;             ;;   (setf *view-matrix* (create-identity-matrix 4))
+;;             ;;   (transform-matrix *view-matrix* translate (vector 0.0 0.0 -0.5))
+;;             ;;   (update-global-projection)
+;;             ;;   (set-uniform-matrix our-shader "projection" (lisp-to-gl-matrix *projection-matrix*))
+;;             ;;   (set-uniform-matrix our-shader "view" (lisp-to-gl-matrix *view-matrix*))
+;;             ;;   (setf *model-matrix* (create-identity-matrix 4))
+;;             ;;   (transform-matrix *model-matrix* scale (vector (* 0.2 (car image-size))
+;;             ;;                                                  (* 0.2 (cdr image-size))
+;;             ;;                                                  1.0))
+;;             ;;   (transform-matrix *model-matrix* translate (vector 400.0 300.0 0.0))
+;;             ;;   (transform-matrix *model-matrix* translate (vector (car *root-position*)
+;;             ;;                                                      (cdr *root-position*)
+;;             ;;                                                      0.0))
+
+
+;;             ;;   (render-vicentinos our-shader)
+
+;;             ;;   (render-all-texts font)
+
+;;             ;;   (render-shapes shape-drawer font)
+
+
+;;             ;;   (glfw:swap-buffers)
+;;             ;;   (glfw:poll-events))
+;;             ;; )
+
+
+;;             (gl:delete-vertex-arrays (list vao))
+;;             (gl:delete-buffers (list vbo ebo))
+;;             (destroy our-shader)
+
+;;             ))))))
