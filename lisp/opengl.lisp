@@ -199,6 +199,7 @@ width of the texture and the third its height.")
    (height :initform 500 :initarg :height :accessor height)
    (x-position :initform 0 :initarg :x-position :accessor x-position)
    (y-position :initform 0 :initarg :y-position :accessor y-position)
+   (scaling :initform 1.0 :initarg :scaling :accessor scaling)
    (title :initform "[no title]" :initarg :title :accessor title)
    (title-x-padding :initform 12 :initarg :title-x-padding :accessor title-x-padding)
    (title-y-padding :initform 3 :initarg :title-y-padding :accessor title-y-padding)
@@ -321,6 +322,7 @@ width of the texture and the third its height.")
 (defmethod render-string ((display display-class)
                           (renderer font-render-class) text x-origin y-origin
                           &key (scale-factor 1.0) (rgb-vector (vector 1.0 1.0 1.0)))
+  "TEXT, X-ORIGIN and Y-ORIGIN can be params."
   (gl:pixel-store :unpack-alignment 1)
   (gl:enable :blend)
   (gl:blend-func :src-alpha :one-minus-src-alpha)
@@ -336,25 +338,27 @@ width of the texture and the third its height.")
     (set-uniform-matrix shader "projection" (lisp-to-gl-matrix (global-projection-matrix display)))
     (gl:active-texture :texture0)
     (gl:bind-vertex-array vao)
-    (ft2:do-string-render (face text bitmap ft-x ft-y :with-char character)
-      (multiple-value-bind (texture-id texture-width texture-height)
-          (lookup-texture renderer character)
-        (let* ((glyph-width (* scale-factor texture-width))
-               (glyph-height (* scale-factor texture-height))
-               (x-pos (* scale-factor (+ x-origin (coerce ft-x 'single-float))))
-               (y-pos (* scale-factor (- y-origin texture-height (coerce ft-y 'single-float))))
-               (glyph-vertices (vector x-pos (+ y-pos glyph-height) 0.0 0.0
-                                       x-pos y-pos 0.0 1.0
-                                       (+ x-pos glyph-width) y-pos 1.0 1.0
-                                       x-pos (+ y-pos glyph-height) 0.0 0.0
-                                       (+ x-pos glyph-width) y-pos 1.0 1.0
-                                       (+ x-pos glyph-width) (+ y-pos glyph-height) 1.0 0.0)))
+    (with-params (text x-origin y-origin)
+      (unless (stringp text) (setf text (format nil "~a" text)))
+      (ft2:do-string-render (face text bitmap ft-x ft-y :with-char character)
+        (multiple-value-bind (texture-id texture-width texture-height)
+            (lookup-texture renderer character)
+          (let* ((glyph-width (* scale-factor texture-width))
+                 (glyph-height (* scale-factor texture-height))
+                 (x-pos (* scale-factor (+ x-origin (coerce ft-x 'single-float))))
+                 (y-pos (* scale-factor (- y-origin texture-height (coerce ft-y 'single-float))))
+                 (glyph-vertices (vector x-pos (+ y-pos glyph-height) 0.0 0.0
+                                         x-pos y-pos 0.0 1.0
+                                         (+ x-pos glyph-width) y-pos 1.0 1.0
+                                         x-pos (+ y-pos glyph-height) 0.0 0.0
+                                         (+ x-pos glyph-width) y-pos 1.0 1.0
+                                         (+ x-pos glyph-width) (+ y-pos glyph-height) 1.0 0.0)))
 
-          (gl:bind-texture :texture-2d texture-id)
-          (gl:bind-buffer :array-buffer vbo)
-          (gl:buffer-sub-data :array-buffer (array-to-gl-array glyph-vertices :float))
-          (gl:bind-buffer :array-buffer 0)
-          (gl:draw-arrays :triangles 0 6))))
+            (gl:bind-texture :texture-2d texture-id)
+            (gl:bind-buffer :array-buffer vbo)
+            (gl:buffer-sub-data :array-buffer (array-to-gl-array glyph-vertices :float))
+            (gl:bind-buffer :array-buffer 0)
+            (gl:draw-arrays :triangles 0 6)))))
     (gl:bind-vertex-array 0)
     (gl:bind-texture :texture-2d 0)))
 
@@ -363,32 +367,48 @@ width of the texture and the third its height.")
                  (renderer renderer-2d-class) (font-renderer font-render-class))
   (with-accessors ((x x-position)
                    (y y-position)
+                   (sc-f scaling)
                    (w width)
                    (h height)
                    (m selected-margin))
       element
-    (when (selectedp element)
-      (render display renderer (vector (- x m) (- y m)
-                               (+ x w m) (- y m)
-                               (+ x w m) (+ y h m)
-                               (- x m) (- y m)
-                               (+ x w m) (+ y h m)
-                               (- x m) (+ y h m))
-              :mode :triangles
-              :color (selected-color element)))
-    (render display renderer (vector x y
-                             (+ x w) y
-                             (+ x w) (+ y h)
-                             x y
-                             (+ x w) (+ y h)
-                             x (+ y h))
-            :mode :triangles
-            :color (color element))
-    (render-string display
-                   font-renderer
-                   (title element)
-                   (+ x (title-x-padding element))
-                   (+ y h (- (title-y-padding element))))))
+    (with-params (x y w h)
+      (let ((sc (vector sc-f sc-f 1.0)))
+        (when (selectedp element)
+          (render display renderer (vector (- m) (- m)
+                                           (+ w m) (- m)
+                                           (+ w m) (+ h m)
+                                           (- m) (- m)
+                                           (+ w m) (+ h m)
+                                           (- m) (+ h m))
+                  :mode :triangles
+                  :translation (vector x y 0.0)
+                  :scaling sc
+                  :color (selected-color element)))
+        (render display renderer (vector
+                                  0 0
+                                  w 0
+                                  w h
+                                  0 0
+                                  w h
+                                  0 h
+                                  ;; x y
+                                  ;; (+ x w) y
+                                  ;; (+ x w) (+ y h)
+                                  ;; x y
+                                  ;; (+ x w) (+ y h)
+                                  ;; x (+ y h)
+                                  )
+                :mode :triangles
+                :translation (vector x y 0.0)
+                :scaling sc
+                :color (color element))
+        (render-string display
+                       font-renderer
+                       (title element)
+                       (+ (/ x sc-f) (title-x-padding element))
+                       (+ (/ y sc-f) h (- (title-y-padding element)))
+                       :scale-factor (scaling element))))))
 
 
 
@@ -399,6 +419,8 @@ width of the texture and the third its height.")
 (defmacro set-element-value (display element-id slot-name value)
   `(setf (,slot-name (gethash ,element-id (display-elements ,display))) ,value))
 
+(defmacro get-element-value (display element-id slot-name)
+  `(,slot-name (gethash ,element-id (display-elements ,display))))
 
 
 ;;; this is how to use the display class, to be extended massively ...
@@ -425,9 +447,8 @@ width of the texture and the third its height.")
 (set-element-value *display* :table color (vector 0.5 0.2 0.1))
 (set-element-value *display* :table width 600)
 
-(set-element-value *display* :table title (format nil "~a: ~a"
-                                                  (get-short-description *parameter-bank* :bg-red)
-                                                  (access *parameter-bank* :bg-red)))
+(set-element-value *display* :table title (param! :bg-red))
+
 
 (init-faderfox-communication)
 

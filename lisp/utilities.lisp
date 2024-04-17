@@ -30,3 +30,23 @@
           for i from 0 do
           (setf (aref result i) (coerce element type)))
     result))
+
+
+
+
+;; TODO: to be tested
+
+(defun param! (value-or-id)
+  (if (keywordp value-or-id)
+      (lambda () (access *parameter-bank* value-or-id))
+      (lambda () value-or-id)))
+
+(defun param (parameter-fun)
+  (funcall parameter-fun))
+
+(defmacro with-params (param-list &body body)
+  `(let (,@(loop for candidate in param-list
+                 collect (list candidate `(if (functionp ,candidate)
+                                              (funcall ,candidate)
+                                             ,candidate))))
+     ,@body))
