@@ -408,6 +408,7 @@ width of the texture and the third its height.")
 (boot *display*)
 
 (add-element *display* (make-instance 'display-element-panel :title "Test") :main)
+(add-element *display* (make-instance 'display-element-panel :title "Lookup-table") :table)
 
 (setf (color (gethash :main (display-elements *display*))) (vector 0.2 0.3 0.1))
 (setf (x-position (gethash :main (display-elements *display*))) 300)
@@ -418,9 +419,17 @@ width of the texture and the third its height.")
 
 
 (set-element-value *display* :main color (vector 0.6 0.1 0.1))
+(set-element-value *display* :main title "Vicentino 31ed2")
+(set-element-value *display* :main width 700)
 
+(set-element-value *display* :table color (vector 0.5 0.2 0.1))
+(set-element-value *display* :table width 600)
 
+(set-element-value *display* :table title (format nil "~a: ~a"
+                                                  (get-short-description *parameter-bank* :bg-red)
+                                                  (access *parameter-bank* :bg-red)))
 
+(init-faderfox-communication)
 
 
 ;;; obsolete, kept for reference because texture stuff hasn't been migrated to new class system
