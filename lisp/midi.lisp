@@ -48,7 +48,6 @@
     (continue-without-rt () :report "Don't attempt to start real time." nil))
   (restart-case (init-port-midi)
     (continue-without-pm () :report "Don't use PortMidi from this point on." nil))
-
   (let ((id (restart-case (find-faderfox-id "Faderfox EC4 MIDI 2")
               (input-different-name (name)
                 :report "Input custom Faderfox name string (in \"\")."
