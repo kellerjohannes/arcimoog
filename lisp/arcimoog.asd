@@ -1,7 +1,13 @@
+;; * TODO Move OpenGL abstractions into separate packages
+;; * TODO Implement condition handling everywhere
+;; * TODO Test monospace fonts
+;; * TODO Solve text alignment (https://tonsky.me/blog/centering/)
+
+
 (asdf:defsystem "arcimoog"
   :depends-on (:uiop :alexandria :log4cl :bordeaux-threads :array-operations
                      :cl-opengl :cl-glfw3 :cl-freetype2 :lla :cl-jpeg
-                     :incudine)
+               :incudine)
   :serial t
   :components ((:file "packages")
                (:file "global-definitions")
