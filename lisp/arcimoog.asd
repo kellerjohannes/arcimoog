@@ -2,6 +2,7 @@
 ;; * TODO Implement condition handling everywhere
 ;; * TODO Test monospace fonts
 ;; * TODO Solve text alignment (https://tonsky.me/blog/centering/)
+;; * TODO Start to add doc strings
 
 
 (asdf:defsystem "arcimoog"
