@@ -447,7 +447,7 @@ width of the texture and the third its height.")
 (set-element-value *display* :table color (vector 0.5 0.2 0.1))
 (set-element-value *display* :table width 600)
 
-(set-element-value *display* :table title (param! :bg-red))
+(set-element-value *display* :table title "title")
 
 
 (init-faderfox-communication)

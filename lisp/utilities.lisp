@@ -45,8 +45,9 @@
   (funcall parameter-fun))
 
 (defmacro with-params (param-list &body body)
-  `(let (,@(loop for candidate in param-list
-                 collect (list candidate `(if (functionp ,candidate)
-                                              (funcall ,candidate)
-                                             ,candidate))))
-     ,@body))
+  `(handler-bind ((no-parameter-found #'instantiate-empty-parameter))
+     (let (,@(loop for candidate in param-list
+                   collect (list candidate `(if (functionp ,candidate)
+                                                (funcall ,candidate)
+                                                ,candidate))))
+       ,@body)))

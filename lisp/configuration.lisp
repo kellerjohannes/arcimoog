@@ -29,7 +29,7 @@
   `(get-element-value *display* ,element-id ,slot-name))
 
 
-(defmacro display-control (setup controller id short long element-slot factor)
+(defmacro display-control (setup controller id short long element-slot factor faderfox-doc)
   `(configure-parameter *parameter-bank*
                         ,setup
                         ,controller
@@ -38,14 +38,15 @@
                         ,long
                         (current-value id-of-selected-element ,element-slot)
                         (make-adder ,factor)
-                        (display-element-setter id-of-selected-element ,element-slot)))
+                        (display-element-setter id-of-selected-element ,element-slot)
+                        ,faderfox-doc))
 
 (defun setup-parameter-bank (id-of-selected-element)
   (setf (id-dictionary *parameter-bank*) nil)
 
-  (display-control 176 0 :x "El. X" "X-Coordinate" x-position 1)
-  (display-control 176 1 :y "El. Y" "y-Coordinate" y-position 1)
-  (display-control 176 2 :scaling "Sc." "Scaling" scaling 0.001)
+  (display-control 176 0 :x "El. X" "X-Coordinate" x-position 1 "")
+  (display-control 176 1 :y "El. Y" "y-Coordinate" y-position 1 "")
+  (display-control 176 2 :scaling "Sc." "Scaling" scaling 0.001 "")
   ;; (configure-parameter *parameter-bank*
   ;;                      176
   ;;                      0
@@ -77,17 +78,17 @@
   ;;                      (display-element-setter :main scaling))
 
 
-  (configure-parameter *parameter-bank*
-                       176
-                       12
-                       :bg-red
-                       "BG R"
-                       "Display background color, red component"
-                       0.0
-                       #'scale-midi-to-0-1
-                       (lambda (v d dd)
-                         (declare (ignore d dd))
-                         (set-element-value *display* :main color (vector v 0.1 0.1))))
+  ;; (configure-parameter *parameter-bank*
+  ;;                      176
+  ;;                      12
+  ;;                      :bg-red
+  ;;                      "BG R"
+  ;;                      "Display background color, red component"
+  ;;                      0.0
+  ;;                      #'scale-midi-to-0-1
+  ;;                      (lambda (v d dd)
+  ;;                        (declare (ignore d dd))
+  ;;                        (set-element-value *display* :main color (vector v 0.1 0.1))))
 
   )
 

@@ -24,10 +24,15 @@
    (interpreter-fun :initform (lambda (value) value) :initarg :interpreter-fun :accessor interpreter-fun)
    (activep :initform t :initarg :activep :accessor activep)
    (short-description :initform "[empty]" :initarg :short-description :accessor short-description)
-   (long-description :initform "[empty parameter slot]" :initarg :long-description :accessor long-description)))
+   (long-description :initform "[empty parameter slot]" :initarg :long-description :accessor long-description)
+   (faderfox-documentation :initform "" :accessor faderfox-documentation)))
 
 (defmethod get-parameter-value ((parameter parameter-class))
-  (value parameter))
+  (cond (parameter
+         (value parameter))
+        (t (log:warn "Parameter ~a is problematic. Returning 0, which might be a bad idea."
+                     parameter)
+           0)))
 
 (defmethod update-parameter ((parameter parameter-class) &rest arguments)
   (when (activep parameter)
@@ -64,11 +69,36 @@
 (defmethod get-key-from-id ((bank parameter-slot-class) id)
   (cdr (assoc id (id-dictionary bank))))
 
+(define-condition no-parameter-found (error)
+  ((parameter-id :initarg :id :reader parameter-id)))
+
+(defun get-parameter-value-from-user (id)
+  (format *query-io* "Enter a value for the new parameter with it ~a: " id)
+  (force-output *query-io*)
+  (list (read)))
+
+(defun instantiate-empty-parameter (condition)
+  (declare (ignore condition))
+  (invoke-restart 'instantiate-empty-parameter))
+
 (defmethod get-parameter ((bank parameter-slot-class) id)
-  (gethash (get-key-from-id bank id) (parameters bank)))
+  (let ((result (gethash (get-key-from-id bank id) (parameters bank))))
+    (if result result (error 'no-parameter-found :parameter-id id))))
 
 (defmethod access ((bank parameter-slot-class) id)
-  (get-parameter-value (get-parameter bank id)))
+  (get-parameter-value (restart-case (get-parameter bank id)
+                         (instantiate-empty-parameter ()
+                           :report "Create and return a new instance of PARAMETER-CLASS."
+                           (log:warn "Neutral parameter for non-existent id ~a created" id)
+                           (make-instance 'parameter-class))
+                         (instantiate-parameter-with-value (value)
+                           :report "Supply a value that is used for the creation of a new PARAMETER-CLASS instance."
+                           :interactive (lambda () (get-parameter-value-from-user 'id))
+                           (log:warn "Temporary parameter for non-existent it ~a created, with value ~a." id value)
+                           (make-instance 'parameter-class :value value))
+                         (return-nil ()
+                           :report "Return NIL, this will probably cause errors."
+                           nil))))
 
 (defmethod get-short-description ((bank parameter-slot-class) id)
   (short-description (get-parameter bank id)))
@@ -80,9 +110,10 @@
   (setf (activep (get-parameter bank id)) nil))
 
 (defmethod configure-parameter ((bank parameter-slot-class) setup controller id
-                                short-name long-name value interpreter-fun callback-fun)
-  ;; TODO: remove id in case it changed, implement checking function to make sure that dictionary
-  ;; contains unique ids only.
+                                short-name long-name value interpreter-fun callback-fun
+                                faderfox-documentation)
+  ;; TODO: remove id from dictionary in case it changed, implement checking function to make sure
+  ;; that dictionary contains unique ids only.
   (add-id bank setup controller id)
   (let ((parameter (get-parameter bank id)))
     (if parameter
