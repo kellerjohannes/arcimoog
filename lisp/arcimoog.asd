@@ -1,5 +1,7 @@
 ;; * TODO Move OpenGL abstractions into separate packages
 ;; * TODO Implement condition handling everywhere
+;; ** TODO MIDI connectivity (device not found etc.)
+;; ** TODO RT-START handling
 ;; * TODO Test monospace fonts
 ;; * TODO Solve text alignment (https://tonsky.me/blog/centering/)
 ;; * TODO Start to add doc strings
@@ -11,6 +13,7 @@
                :incudine)
   :serial t
   :components ((:file "packages")
+               (:file "conditions")
                (:file "global-definitions")
                (:file "faderfox")
                (:file "utilities")
