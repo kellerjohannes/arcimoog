@@ -551,15 +551,73 @@ G♯. All other alterations are accepted as input but silently mapped onto these
            (progn (log:warn "Transformation of" note "into" target "is not possible. Returning original note.")
                   note))))))
 
+
+
+(defparameter *dict-vicentino-key-number*
+  (macrolet
+      ((entry (letter acc dot key-number)
+         `(cons (make-instance 'note-name-vicentino
+                               :letter ,letter
+                               :accidental ,acc
+                               :enharmonic-dot ,dot)
+                ,key-number)))
+    (list (entry :c nil nil 1)
+          (entry :c nil :dot 2)
+          (entry :c :sharp nil 3)
+          (entry :c :sharp :dot 4)
+          (entry :d :flat nil 5)
+          (entry :d :flat :dot 6)
+          (entry :d nil nil 7)
+          (entry :d nil :dot 8)
+          (entry :d :sharp nil 9)
+          (entry :d :sharp :dot 10)
+          (entry :e :flat nil 11)
+          (entry :e :flat :dot 12)
+          (entry :e nil nil 13)
+          (entry :e nil :dot 14)
+          (entry :e :sharp nil 15)
+          (entry :f nil nil 16)
+          (entry :f nil :dot 17)
+          (entry :f :sharp nil 18)
+          (entry :f :sharp :dot 19)
+          (entry :g :flat nil 20)
+          (entry :g :flat :dot 21)
+          (entry :g nil nil 22)
+          (entry :g nil :dot 23)
+          (entry :g :sharp nil 24)
+          (entry :g :sharp :dot 25)
+          (entry :a :flat nil 26)
+          (entry :a :flat :dot 27)
+          (entry :a nil nil 28)
+          (entry :a nil :dot 29)
+          (entry :a :sharp nil 30)
+          (entry :a :sharp :dot 31)
+          (entry :b :flat nil 32)
+          (entry :b :flat :dot 33)
+          (entry :b nil nil 34)
+          (entry :b nil :dot 35)
+          (entry :b :sharp nil 36))))
+
+(defmethod lookup-vicentino-key-number ((note note-name-vicentino))
+  (let ((key-number (cdr (assoc note *dict-vicentino-key-number* :test (lambda (a b) (pitch-equal a b nil))))))
+    (if (and (numberp (octave note))
+             (numberp key-number))
+        (+ key-number (* 36 (octave note)))
+        key-number)))
+
 (defmethod transform ((note note-name-vicentino) target)
   (ecase target
-    (note-name-smn
-     (let ((result (lookup-vicentino-smn note)))
-       (if result
-           (create-note 'note-name-smn
-                        (letter result) (accidental result) (octave note))
-           (progn (log:warn "Transformation of" note "into" target "is not possible. Returning original note.")
-                  note))))))
+    (note-name-smn (let ((result (lookup-vicentino-smn note)))
+                     (if result
+                         (create-note 'note-name-smn
+                                      (letter result) (accidental result) (octave note))
+                         (progn (log:warn "Transformation of" note "into" target "is not possible. Returning original note.")
+                                note))))
+    (arciorgano-key-number (let ((result (lookup-vicentino-key-number note)))
+                             (if result
+                                 (alexandria:make-keyword (format nil "KEY-~a" result))
+                                 (log:warn "Transformation of" note "into" target "is not possible.")
+                                 )))))
 
 
 ;;;;;;;;;;;;;;;

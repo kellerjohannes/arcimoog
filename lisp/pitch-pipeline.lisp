@@ -1,21 +1,50 @@
 (in-package :arcimoog)
 
+(defun keyon (oct letter &optional acc dot)
+  (with-note-name-convention 'note-name-vicentino
+    (start-sample *sampler-arciorgano-mode1*
+                  (transform (nn letter acc oct dot) 'arciorgano-key-number))))
 
-;;;; Testing sample playback
+(defun keyoff (oct letter &optional acc dot)
+  (with-note-name-convention 'note-name-vicentino
+    (stop-sample *sampler-arciorgano-mode1*
+                 (transform (nn letter acc oct dot) 'arciorgano-key-number))))
 
-(vug:dsp! sample-player ((buffer incudine:buffer) rate start-position (loopp boolean))
-  (vug:foreach-channel
-    (vug:cout (vug:buffer-play buffer rate start-position loopp #'incudine:stop))))
+(defun plk (duration oct letter &optional acc dot)
+  (keyon oct letter acc dot)
+  (incudine:at (+ (incudine:now) duration) #'keyoff oct letter acc dot))
 
-(defparameter *sample-1* (incudine:buffer-load "/home/johannes/Vicentino21/wallbrecher/audio-final/b01-c05-m01-mv01-a0-v01-20240105.wav"))
+(defun play-mode (pitch-list duration)
+  (when pitch-list
+    (apply #'plk (* 1.15 duration) (first pitch-list))
+    (incudine:at (+ (incudine:now) duration) #'play-mode (rest pitch-list) duration)))
 
-(defparameter *sample-2* (incudine:buffer-load "/home/johannes/Downloads/BabyElephantWalk60.wav"))
 
-(sample-player *sample-1* 1 0 t :id 1)
-(sample-player *sample-2* 1 0 t :id 2)
+(defparameter *modes*
+  `(:diatonico-semplice (:primo ((1 :d)
+                                 (1 :e)
+                                 (1 :f)
+                                 (1 :g)
+                                 (1 :a)))))
 
-(incudine:set-control 1 :rate 1)
-(incudine:set-control 2 :rate 1)
+(defun get-mode-pitch-list (genus number)
+  (getf (getf *modes* genus) number))
 
-(incudine:set-control 1 :loopp nil)
-(incudine:set-control 2 :loopp nil)
+(defparameter *current-mode-number* :primo)
+
+(defparameter *current-genus* :diatonico-semplice)
+
+(defun plm ()
+  (play-mode (get-mode-pitch-list *current-genus* *current-mode-number*) 44100))
+
+
+(defparameter *global-mode-player* nil)
+
+(defun plmi ()
+  (setf *global-mode-player* (cons nil (get-mode-pitch-list *current-genus* *current-mode-number*))))
+
+(defun progress-global-mode-player ()
+  (when (first *global-mode-player*) (apply #'keyoff (first *global-mode-player*)))
+  (setf *global-mode-player* (rest *global-mode-player*))
+  (unless (zerop (length *global-mode-player*))
+    (apply #'keyon (first *global-mode-player*))))

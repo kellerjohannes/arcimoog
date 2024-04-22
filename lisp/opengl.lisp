@@ -36,10 +36,25 @@
   (setf (screen-height *display*) height)
   (update-projection *display*))
 
+(defparameter *mode-player-safety* 0)
+
+(defun trigger-mode-player-safety ()
+  (setf *mode-player-safety* 3))
+
+(defun reduce-mode-player-safety ()
+  (when (plusp *mode-player-safety*) (decf *mode-player-safety*)))
+
+(defun mode-player-safe-p ()
+  (zerop *mode-player-safety*))
+
 (defun process-input ()
+  (reduce-mode-player-safety)
   (when (or (eq (glfw:get-key :escape) :press)
             (eq (glfw:get-key :q) :press))
-    (glfw:set-window-should-close)))
+    (glfw:set-window-should-close))
+  (when (eq (glfw:get-key :space) :press)
+    (when (mode-player-safe-p) (progress-global-mode-player))
+    (trigger-mode-player-safety)))
 
 
 

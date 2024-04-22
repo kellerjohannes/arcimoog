@@ -21,6 +21,7 @@
                (:file "myglm")
                (:file "midi")
                (:file "pitch-data")
+               (:file "sampler")
                (:file "shader-class")
                (:file "opengl")
                (:file "configuration")))

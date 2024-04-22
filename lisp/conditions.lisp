@@ -27,3 +27,13 @@
 
 (define-condition faderfox-id-not-found (error)
   ((faderfox-name :initarg :faderfox-name :reader faderfox-name)))
+
+
+
+(define-condition buffer-file-not-found (error)
+  ((root-path :initarg :root-path :reader root-path)
+   (sample-path :initarg :sample-path :reader sample-path)))
+
+(define-condition buffer-file-not-loaded (error)
+  ((root-path :initarg :root-path :reader root-path)
+   (sample-path :initarg :sample-path :reader sample-path)))
