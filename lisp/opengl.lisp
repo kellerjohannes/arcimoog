@@ -36,25 +36,31 @@
   (setf (screen-height *display*) height)
   (update-projection *display*))
 
-(defparameter *mode-player-safety* 0)
+(defparameter *key-safety* 0)
 
-(defun trigger-mode-player-safety ()
-  (setf *mode-player-safety* 3))
+(defun trigger-key-safety ()
+  (setf *key-safety* 3))
 
-(defun reduce-mode-player-safety ()
-  (when (plusp *mode-player-safety*) (decf *mode-player-safety*)))
+(defun reduce-key-safety ()
+  (when (plusp *key-safety*) (decf *key-safety*)))
 
-(defun mode-player-safe-p ()
-  (zerop *mode-player-safety*))
+(defun key-safe-p ()
+  (zerop *key-safety*))
+
+(defmacro when-key-safe (key function)
+  `(when (eq (glfw:get-key ,key) :press)
+     (when (key-safe-p) (funcall ,function))
+     (trigger-key-safety)))
 
 (defun process-input ()
-  (reduce-mode-player-safety)
+  (reduce-key-safety)
   (when (or (eq (glfw:get-key :escape) :press)
             (eq (glfw:get-key :q) :press))
     (glfw:set-window-should-close))
-  (when (eq (glfw:get-key :space) :press)
-    (when (mode-player-safe-p) (progress-global-mode-player))
-    (trigger-mode-player-safety)))
+  (when-key-safe :space #'progress-global-mode-player)
+  (when-key-safe :g #'step-genus)
+  (when-key-safe :m #'step-modus)
+  (when-key-safe :p #'plmi))
 
 
 

@@ -598,11 +598,12 @@ G♯. All other alterations are accepted as input but silently mapped onto these
           (entry :b nil :dot 35)
           (entry :b :sharp nil 36))))
 
+;; *global-mode-transposer* needs to disappear, dirty solution for salzburg
 (defmethod lookup-vicentino-key-number ((note note-name-vicentino))
   (let ((key-number (cdr (assoc note *dict-vicentino-key-number* :test (lambda (a b) (pitch-equal a b nil))))))
     (if (and (numberp (octave note))
              (numberp key-number))
-        (+ key-number (* 36 (octave note)))
+        (+ *global-mode-transposer* (+ key-number (* 36 (octave note))))
         key-number)))
 
 (defmethod transform ((note note-name-vicentino) target)
