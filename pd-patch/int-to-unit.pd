@@ -1,0 +1,8 @@
+#N canvas 350 621 589 379 12;
+#X obj 10 15 inlet;
+#X obj 10 89 outlet;
+#X obj 56 15 r factor-int-to-unit;
+#X obj 10 60 / 1e+06;
+#X connect 0 0 3 0;
+#X connect 2 0 3 1;
+#X connect 3 0 1 0;
