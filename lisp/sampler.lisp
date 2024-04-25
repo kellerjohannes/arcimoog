@@ -10,7 +10,75 @@
 ;; (incudine:set-control 1 :loopp nil)
 
 
+(vug:define-vug cv-generator (value)
+  value)
 
+(vug:dsp! cvs (v1 v2 v3 v4 v5 v6 v7 v8 v9 v10 v11 v12 v13 v14 v15 v16)
+  (vug:out v1 v2 v3 v4 v5 v6 v7 v8 v9 v10 v11 v12 v13 v14 v15 v16))
+
+(cvs 0.1 0.15 0.2 0.25 0.3 0.35 0.38 0.4 0.42 0.44 0.48 0.5 0.55 0.6 0.65 0.7)
+
+
+(incudine:stop 1)
+(setf (incudine:control-value 1 :v1) 0.1)
+
+(defun make-waver (init-value constant-delta)
+  (let ((direction 1)
+        (delta constant-delta)
+        (value init-value))
+    (lambda ()
+      (incf value (* direction delta))
+      (when (or (> value 1) (< value 0))
+        (setf direction (- direction))
+        (incf value (* direction delta)))
+      value)))
+
+(defmacro start-wavers (num)
+  `(cvs ,@(loop for i from 0 below num collect
+                `(funcall (aref *wavers* ,i)))))
+
+(defparameter *wavers* (make-array 16))
+
+(defun start-wave ()
+  (loop for waver across *wavers*
+        for i from 0
+        for init-value from 0.1 by (/ 0.9 16) do
+          (setf (aref *wavers* i) (make-waver init-value 0.01))))
+
+(progn
+  (incudine:stop 1)
+  (start-wave)
+  (start-wavers 16))
+
+(defun update-wavers ()
+  (loop for value-id in (list :v1 :v2 :v3 :v4 :v5 :v6 :v7 :v8 :v9 :v10 :v11 :v12 :v13 :v14 :v15 :v16)
+        for i from 0 do
+        (setf (incudine:control-value 1 value-id) (funcall (aref *wavers* i)))))
+
+(defun waver-update-loop ()
+  (update-wavers)
+  (incudine:at (+ (incudine:now) 2000) #'waver-update-loop))
+
+(defun waver-update-loop ())
+
+(defun make-v-id (num)
+  (alexandria:make-keyword (format nil "V~a" num)))
+
+(defun access-cv (num)
+  (incudine:control-value 1 (make-v-id num)))
+
+(defun print-all-values ()
+  (loop for i from 1 to 16 do
+        (format t "~&V~a: ~a"
+                i
+                (access-cv i))))
+
+(defmacro set-cv (index value)
+  `(setf (incudine:control-value 1 (make-v-id ,index)) ,value))
+
+(defun set-all-cvs (value)
+  (loop for i from 1 to 16 do
+        (set-cv i value)))
 
 
 (vug:dsp! sample-player ((buffer incudine:buffer) rate start-position (loopp boolean))
