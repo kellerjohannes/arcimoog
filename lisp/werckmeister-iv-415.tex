@@ -1,0 +1,36 @@
+
+\documentclass{standalone}
+\usepackage[utf8]{inputenc}
+\usepackage{longtable}
+\usepackage{booktabs}
+\usepackage{siunitx}
+\usepackage{amsmath}
+\usepackage{textcomp}
+\usepackage{soul}
+\usepackage{csquotes}
+\usepackage{newunicodechar}
+\newunicodechar{♮}{$\natural$}
+\newunicodechar{♭}{$\flat$}
+\newunicodechar{♯}{$\sharp$}
+\newunicodechar{«}{\flqq{}}
+\newunicodechar{»}{\frqq{}}
+
+\def\str{\textquotesingle}
+\def\cn{\textcent}
+
+\begin{document}
+
+\begin{minipage}{8cm}
+\begin{center}
+  {\Large Beating frequencies}\\[2ex]
+  Reference pitch for a\str: 415\,Hz\\[1ex]
+  Werckmeister IV\\[1ex]
+  Cent values, relative to 12\caps{ed}2: C~7.539\,\cn, C♯~-2.236\,\cn, D~-5.307\,\cn, E♭~5.026\,\cn, E~1.955\,\cn, F~5.584\,\cn, F♯~2.513\,\cn, G~6.09\,\cn, G♯~-0.281\,\cn, A~0.0\,\cn, B♭~6.981\,\cn, B♮~3.91\,\cn
+\end{center}
+\begin{longtable}{p{2cm}p{1cm}p{3cm}}
+  \toprule
+  fifth & d\str--a\str & 1.61 per second \\fifth & g--d\str & 4.28 per second \\fifth & c\str--g\str & 1.46 per second \\fifth & f--c\str & 0.00 per second \\fifth & b♭--f\str & 1.28 per second \\fifth & e♭--b♭ & 0.00 per second \\fifth & a--e\str & 0.00 per second \\fifth & e--b♮ & 0.00 per second \\fifth & b♮--f♯\str & 1.35 per second \\fifth & f♯--c♯\str & 2.03 per second \\fifth & c♯\str--g♯\str & 0.00 per second \\major third & f\str--a\str & 7.75 per second \\major third & f--a & 3.88 per second \\major third & b♭--d\str & 0.89 per second \\major third & e♭--g & 6.30 per second \\major third & e♭\str--g\str & 12.59 per second \\major third & c\str--e\str & 5.81 per second \\major third & g--b♮ & 6.19 per second \\major third & d\str--f♯\str & 17.26 per second \\major third & a--c♯\str & 6.88 per second \\major third & e\str--g♯\str & 10.33 per second \\major third & e--g♯ & 5.16 per second \\
+  \bottomrule
+\end{longtable}
+\end{minipage}
+\end{document}
