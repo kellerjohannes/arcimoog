@@ -27,9 +27,9 @@
         (delta constant-delta)
         (value init-value))
     (lambda ()
-      (incf value (* direction delta))
-      (when (or (> value 1) (< value 0))
-        (setf direction (- direction))
+      (let ((preview-value (+ value (* direction delta))))
+        (when (or (> preview-value 1) (< preview-value 0))
+          (setf direction (- direction)))
         (incf value (* direction delta)))
       value)))
 
@@ -50,19 +50,18 @@
   (start-wave)
   (start-wavers 16))
 
+(defun make-v-id (num)
+  (alexandria:make-keyword (format nil "V~a" num)))
+
 (defun update-wavers ()
-  (loop for value-id in (list :v1 :v2 :v3 :v4 :v5 :v6 :v7 :v8 :v9 :v10 :v11 :v12 :v13 :v14 :v15 :v16)
-        for i from 0 do
-        (setf (incudine:control-value 1 value-id) (funcall (aref *wavers* i)))))
+  (loop for i from 0 below 16 do
+    (setf (incudine:control-value 1 (make-v-id (1+ i))) (funcall (aref *wavers* i)))))
 
 (defun waver-update-loop ()
   (update-wavers)
   (incudine:at (+ (incudine:now) 2000) #'waver-update-loop))
 
 (defun waver-update-loop ())
-
-(defun make-v-id (num)
-  (alexandria:make-keyword (format nil "V~a" num)))
 
 (defun access-cv (num)
   (incudine:control-value 1 (make-v-id num)))

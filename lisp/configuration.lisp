@@ -25,6 +25,11 @@
      (declare (ignore short-description long-description))
      (set-element-value *display* ,element-id ,slot-name value)))
 
+(defmacro cv-setter (index)
+  `(lambda (value short-description long-description)
+     (declare (ignore short-description long-description))
+     (set-cv ,index value)))
+
 (defmacro current-value (element-id slot-name)
   `(get-element-value *display* ,element-id ,slot-name))
 
@@ -41,12 +46,43 @@
                         (display-element-setter id-of-selected-element ,element-slot)
                         ,faderfox-doc))
 
+(defmacro cv-control (setup controller parameter-id val-number factor faderfox-doc)
+  `(configure-parameter *parameter-bank*
+                        ,setup
+                        ,controller
+                        ,parameter-id
+                        (format nil "CV~a" ,val-number)
+                        (format nil "Control Voltage slot ~a" ,val-number)
+                        0.5
+                        (make-adder ,factor)
+                        (cv-setter ,val-number)
+                        ,faderfox-doc))
+
 (defun setup-parameter-bank (id-of-selected-element)
   (setf (id-dictionary *parameter-bank*) nil)
 
   (display-control 176 0 :x "El. X" "X-Coordinate" x-position 1 "")
   (display-control 176 1 :y "El. Y" "y-Coordinate" y-position 1 "")
   (display-control 176 2 :scaling "Sc." "Scaling" scaling 0.001 "")
+
+  (cv-control 177 0 :cv1 1 0.001 "")
+  (cv-control 177 1 :cv2 2 0.001 "")
+  (cv-control 177 2 :cv3 3 0.001 "")
+  (cv-control 177 3 :cv4 4 0.001 "")
+  (cv-control 177 4 :cv5 5 0.001 "")
+  (cv-control 177 5 :cv6 6 0.001 "")
+  (cv-control 177 6 :cv7 7 0.001 "")
+  (cv-control 177 7 :cv8 8 0.001 "")
+  (cv-control 177 8 :cv9 9 0.001 "")
+  (cv-control 177 9 :cv10 10 0.001 "")
+  (cv-control 177 10 :cv11 11 0.001 "")
+  (cv-control 177 11 :cv12 12 0.001 "")
+  (cv-control 177 12 :cv13 13 0.001 "")
+  (cv-control 177 13 :cv14 14 0.001 "")
+  (cv-control 177 14 :cv15 15 0.001 "")
+  (cv-control 177 15 :cv16 16 0.001 "")
+
+
   ;; (configure-parameter *parameter-bank*
   ;;                      176
   ;;                      0
