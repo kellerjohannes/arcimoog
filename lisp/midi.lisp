@@ -18,6 +18,7 @@
 
 
 (defun midi-responder (channel-raw controller-raw value-raw)
+  (format t "~&~a ~a ~a~%" channel-raw controller-raw value-raw)
   (update *parameter-bank* channel-raw controller-raw value-raw))
 
 (defun incudine-real-time-p ()
@@ -56,16 +57,22 @@
   ;; * TODO actually open the port, once the ID is done.
 
   (let ((faderfox-id (pm:get-device-id-by-name "Faderfox EC4 MIDI 1" :input)))
-    (if (and (not *midi-in*) faderfox-id)
-      (setf *midi-in* (pm:open faderfox-id))
-      (log:warn "Faderfox interface not found. No MIDI input set up.")))
+    (if *midi-in*
+        (log:warn "MIDI-IN is already in use.")
+        (if faderfox-id
+            (setf *midi-in* (pm:open faderfox-id))
+            (log:warn "Faderfox interface not found. No MIDI input set up."))))
 
   (when *midi-in*
+    (incudine:recv-stop *midi-in*)
+    (incudine:remove-all-responders *midi-in*)
+    (setf *midi-responder*
+          (incudine:make-responder *midi-in* (lambda (a b c) (midi-responder a b c))))
     (incudine:recv-start *midi-in*)
-    (unless *midi-responder*
-      (setf *midi-responder* (incudine:make-responder *midi-in* (lambda (a b c)
-                                                                  (midi-responder a b c))))))
+    (sleep 1)
+    (if (eq (incudine:recv-status *midi-in*) :running)
+      (log:info "MIDI listener is running.")
+      (log:warn "MIDI listener is not running.")))
 
   (restart-case (start-incudine-rt)
-    (continue-without-rt () :report "Don't attempt to start real time." nil))
-  )
+    (continue-without-rt () :report "Don't attempt to start real time." nil)))

@@ -56,6 +56,7 @@
             (make-instance 'parameter-class)))))
 
 (defmethod update ((bank parameter-slot-class) setup controller value)
+;;  (format t "~&~a ~a ~a~%" setup controller value)
   (when (and (valid-faderfox-setup-p setup)
              (valid-faderfox-controller-p controller))
     (let ((parameter (gethash (make-parameter-key setup controller) (parameters bank))))

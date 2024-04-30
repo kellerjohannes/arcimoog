@@ -42,8 +42,9 @@
 (defun start-wave ()
   (loop for waver across *wavers*
         for i from 0
-        for init-value from 0.1 by (/ 0.9 16) do
-          (setf (aref *wavers* i) (make-waver init-value 0.01))))
+        ;;for init-value = 0.5
+        for init-value from 0.0 by 0.05 ;;(/ 1.0 16)
+        do (setf (aref *wavers* i) (make-waver init-value 0.01))))
 
 (progn
   (incudine:stop 1)
