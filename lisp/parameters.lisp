@@ -1,0 +1,235 @@
+(in-package :arcimoog)
+
+
+(defclass parameter-data ()
+  ((data :initform nil :initarg :data :accessor data)))
+
+(defgeneric write-data-to-file (parameter-data stream))
+(defgeneric read-data-from-file (parameter-data stream))
+(defgeneric valid-parameter-data-p (parameter-data))
+(defgeneric print-string (parameter-data))
+(defgeneric export-parameter-data (parameter-data))
+
+(defclass parameter-data-scalar (parameter-data)
+  ((lower-border :initform nil :initarg :lower-border :accessor lower-border)
+   (upper-border :initform nil :initarg :upper-border :accessor upper-border)))
+
+(defmethod valid-parameter-data-p ((parameter-data parameter-data-scalar))
+  (with-accessors ((data data)
+                   (lower lower-border)
+                   (upper upper-border))
+      parameter-data
+    (let ((result t))
+      (unless (numberp data)
+        (setf result nil)
+        (error "Parameter data ~a is not a number." data))
+      (when (< data lower)
+        (setf result nil)
+        (error "Parameter data ~a is smaller than its lower border ~a." data lower))
+      (when (> data upper)
+        (setf result nil)
+        (error "Parameter data ~a is larger than its upper border ~a." data upper))
+      result)))
+
+(defmethod write-to-file ((scalar parameter-data-scalar) stream)
+  ;; not good
+  (format stream "~a" scalar))
+
+(defmethod read-from-file ((scalar parameter-data-scalar) stream)
+  ;; TODO
+  )
+
+(defmethod print-string ((scalar parameter-data-scalar))
+  (format nil "~a [~@[~a~]-~@[~a~]]" (data scalar) (lower-border scalar) (upper-border scalar)))
+
+(defmethod export-parameter-data ((scalar parameter-data-scalar))
+  (list :type :scalar
+        :data (data scalar)
+        :lower-border (lower-border scalar)
+        :upper-border (upper-border scalar)))
+
+
+(defclass parameter-data-rgb (parameter-data)
+  ())
+
+(defmethod valid-parameter-data-p ((parameter-data parameter-data-rgb))
+  (with-accessors ((data data))
+      parameter-data
+    (let ((result t))
+      (unless (typep data '(array float (3)))
+        (setf result nil)
+        (error "Parameter data ~a is not a vector of 3 floats." data))
+      (loop for component across data
+            for index from 1 do
+              (when (< component 0)
+                (setf result nil)
+                (error "Element ~a of RGB vector ~a is too small." index data))
+              (when (> component 1)
+                (setf result nil)
+                (error "Element ~a of RGB vector ~a is too large." index data)))
+      result)))
+
+(defmethod inc-rgb ((parameter-data parameter-data-rgb) channel amount)
+  (let ((index (cdr (assoc channel (list (cons :r 0) (cons :g 1) (cons :b 2))))))
+    (incf (aref (data parameter-data) index) amount)))
+
+(defmethod write-to-file ((parameter-data parameter-data-rgb) stream)
+  ;; not good
+  )
+
+(defmethod read-from-file ((parameter-data parameter-data-rgb) stream)
+  ;; TODO
+  )
+
+(defmethod print-string ((rgb-data parameter-data-rgb))
+  (with-accessors ((data data))
+      rgb-data
+    (format nil "R: ~a, G: ~a, B: ~a" (aref data 0) (aref data 1) (aref data 2))))
+
+(defmethod export-parameter-data ((rgb parameter-data-rgb))
+  (list :type :rgb :data (data rgb)))
+
+
+
+(defclass parameter-class ()
+  ((data :initarg :data :initform nil :accessor data)
+   (default-data :initarg :default-data :initform nil :accessor default-data)
+   (short-doc :initarg :short-doc :initform "" :accessor short-doc)
+   (long-doc :initarg :long-doc :initform "" :accessor long-doc)))
+
+(defmethod write-parameter-to-file ((parameter parameter-class) file-stream))
+
+(defmethod set-data ((parameter parameter-class) data)
+  (typecase data
+    (number (setf (data parameter) (make-instance 'parameter-data-scalar :data data)))
+    ((array float (3)) (setf (data parameter) (make-instance 'parameter-data-rgb :data data)))
+    (null nil)
+    (otherwise (error "Parameter data ~a is of unsupported type." data))))
+
+(defmethod get-data ((parameter parameter-class))
+  (data parameter))
+
+(defmethod get-data-string ((parameter parameter-class))
+  (if (get-data parameter)
+      (print-string (get-data parameter))
+      "[uninitialized]"))
+
+(defmethod export-data ((parameter parameter-class))
+  (if (data parameter)
+      (export-parameter-data (data parameter))
+      :uninitialized))
+
+(defmethod set-default-data ((parameter parameter-class) default-data)
+  (typecase default-data
+    (number (setf (default-data parameter)
+                  (make-instance 'parameter-data-scalar :data default-data)))
+    ((array float (3)) (setf (default-data parameter)
+                             (make-instance 'parameter-data-rgb :data default-data)))
+    (null nil)
+    (otherwise (error "Parameter data ~a is of unsupported type." default-data))))
+
+(defmethod get-default-data ((parameter parameter-class))
+  (default-data parameter))
+
+(defmethod get-default-data-string ((parameter parameter-class))
+  (if (get-default-data parameter)
+      (print-string (get-default-data parameter))
+      "[uninitialized]"))
+
+(defmethod export-default-data ((parameter parameter-class))
+  (if (default-data parameter)
+      (export-parameter-data (default-data parameter))
+      :uninitialized))
+
+(defmethod set-short-doc ((parameter parameter-class) short-doc)
+  (setf (short-doc parameter) short-doc))
+
+(defmethod get-short-doc ((parameter parameter-class))
+  (short-doc parameter))
+
+(defmethod set-long-doc ((parameter parameter-class) long-doc)
+  (setf (long-doc parameter) long-doc))
+
+(defmethod get-long-doc ((parameter parameter-class))
+  (long-doc parameter))
+
+(defmethod initialize-instance :after ((parameter parameter-class) &key)
+  (set-data parameter (data parameter))
+  (set-default-data parameter (default-data parameter)))
+
+(defmethod print-parameter ((parameter parameter-class) &optional (stream *standard-output*))
+  (format stream "~&  SHORT='~a'" (get-short-doc parameter))
+  (format stream "~&  LONG='~a'" (get-long-doc parameter))
+  (format stream "~&  DATA='~a'" (get-data-string parameter))
+  (format stream "~&  DEFAULT-DATA='~a'" (get-default-data-string parameter)))
+
+(defmethod export-parameter ((parameter parameter-class))
+  (list :short-doc (get-short-doc parameter)
+        :long-doc (get-long-doc parameter)
+        :data (export-data parameter)
+        :default-data (export-default-data parameter)))
+
+
+(defun parse-key (string-or-keyword)
+  (typecase string-or-keyword
+    (keyword string-or-keyword)
+    (string (alexandria:make-keyword (string-upcase string-or-keyword)))
+    (otherwise (error "Type of key ~a not supported." string-or-keyword))))
+
+(defclass parameter-bank-class ()
+  ((parameters :initform (make-hash-table) :accessor parameters)))
+
+(defmethod get-parameter ((bank parameter-bank-class) key)
+  (let* ((keyword-key (parse-key key))
+         (result (gethash keyword-key (parameters bank))))
+    (if result result (error "No parameter with key ~a found in parameter bank." keyword-key))))
+
+(defmethod update-parameter ((bank parameter-bank-class) key data
+                             &key (default-data nil default-data-supplied-p)
+                               (short-doc nil short-doc-supplied-p)
+                               (long-doc nil long-doc-supplied-p))
+  (let ((parameter (get-parameter bank (parse-key key))))
+    (set-data parameter data)
+    (when default-data-supplied-p (set-default-data parameter default-data))
+    (when short-doc-supplied-p (set-short-doc parameter short-doc))
+    (when long-doc-supplied-p (set-long-doc parameter long-doc))))
+
+(defmethod add-parameter ((bank parameter-bank-class) key data default short-doc long-doc)
+  (let ((keyword-key (parse-key key)))
+    (if (gethash keyword-key (parameters bank))
+        (update-parameter bank keyword-key data
+                          :default-data default
+                          :short-doc short-doc
+                          :long-doc long-doc)
+        (setf (gethash keyword-key (parameters bank)) (make-instance 'parameter-class
+                                                                     :data data
+                                                                     :default-data default
+                                                                     :short-doc short-doc
+                                                                     :long-doc long-doc)))))
+
+
+
+(defmethod print-bank ((bank parameter-bank-class) &optional (stream *standard-output*))
+  (loop for key being the hash-keys of (parameters bank) do
+    (format stream "~&PARAMETER (key='~a'):~%" key)
+    (print-parameter (get-parameter bank key))))
+
+(defmethod export-bank ((bank parameter-bank-class))
+  (loop for key being the hash-keys of (parameters bank)
+        collect (cons key (export-parameter (get-parameter bank key)))))
+
+(defmethod write-bank-to-file ((bank parameter-bank-class) filepath)
+  )
+
+
+
+
+(defparameter *bank* (make-instance 'parameter-bank-class))
+
+
+
+
+(add-parameter *bank* "win1-rgb" (vector 0.1 0.2 0.3) (vector 0.1 0.2 0.3) "RGB" "RGB win 1")
+(add-parameter *bank* "win1-width" 700 700 "Width" "Width win 1")
+(add-parameter *bank* :win1-width 800 700 "Width" "Width win 1")
+(add-parameter *bank* :empty nil nil "Width" "Width win 1")

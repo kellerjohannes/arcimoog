@@ -22,15 +22,19 @@
 (incudine:stop 1)
 (setf (incudine:control-value 1 :v1) 0.1)
 
-(defun make-waver (init-value constant-delta)
+(defun make-waver (init-value constant-delta lower-border upper-border)
   (let ((direction 1)
         (delta constant-delta)
         (value init-value))
     (lambda ()
       (let ((preview-value (+ value (* direction delta))))
-        (when (or (> preview-value 1) (< preview-value 0))
-          (setf direction (- direction)))
-        (incf value (* direction delta)))
+        (cond ((> preview-value upper-border)
+               (setf direction (- direction))
+               (setf value (- (* 2 upper-border) preview-value)))
+              ((< preview-value lower-border)
+               (setf direction (- direction))
+               (setf value (+ (* 2 lower-border) preview-value)))
+              (t (incf value (* direction delta)))))
       value)))
 
 (defmacro start-wavers (num)
@@ -44,7 +48,7 @@
         for i from 0
         ;;for init-value = 0.5
         for init-value from 0.0 by 0.05 ;;(/ 1.0 16)
-        do (setf (aref *wavers* i) (make-waver init-value 0.01))))
+        do (setf (aref *wavers* i) (make-waver init-value 0.01 0 1))))
 
 (progn
   (incudine:stop 1)
@@ -76,9 +80,12 @@
 (defmacro set-cv (index value)
   `(setf (incudine:control-value 1 (make-v-id ,index)) ,value))
 
+(defun get-cv (index)
+  (incudine:control-value 1 (make-v-id index)))
+
 (defun set-all-cvs (value)
   (loop for i from 1 to 16 do
-        (set-cv i value)))
+    (set-cv i value)))
 
 
 (vug:dsp! sample-player ((buffer incudine:buffer) rate start-position (loopp boolean))

@@ -24,4 +24,5 @@
                (:file "sampler")
                (:file "shader-class")
                (:file "opengl")
+               (:file "parameters")
                (:file "configuration")))

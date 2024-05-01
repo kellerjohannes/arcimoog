@@ -18,7 +18,7 @@
 
 
 (defun midi-responder (channel-raw controller-raw value-raw)
-  (format t "~&~a ~a ~a~%" channel-raw controller-raw value-raw)
+  ;;(format t "~&~a ~a ~a~%" channel-raw controller-raw value-raw)
   (update *parameter-bank* channel-raw controller-raw value-raw))
 
 (defun incudine-real-time-p ()
@@ -53,8 +53,6 @@
                 :interactive (lambda () (get-faderfox-name-from-user))
                 (find-faderfox-id name)))))
     (log:info "The Faderfox device ID is ~a." id))
-
-  ;; * TODO actually open the port, once the ID is done.
 
   (let ((faderfox-id (pm:get-device-id-by-name "Faderfox EC4 MIDI 1" :input)))
     (if *midi-in*
