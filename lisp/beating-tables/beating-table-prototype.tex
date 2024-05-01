@@ -1,0 +1,32 @@
+\documentclass{standalone}
+\usepackage[utf8]{inputenc}
+\usepackage{longtable}
+\usepackage{booktabs}
+\usepackage{siunitx}
+\usepackage{amsmath}
+\usepackage{textcomp}
+\usepackage{soul}
+\usepackage{newunicodechar}
+\newunicodechar{♮}{$\natural$}
+\newunicodechar{♭}{$\flat$}
+\newunicodechar{♯}{$\sharp$}
+
+\def\str{\textquotesingle}
+\def\cn{\textcent}
+
+\begin{document}
+
+\begin{minipage}{8cm}
+\begin{center}
+  {\Large Beating frequencies}\\[2ex]
+  Reference pitch for a\str: 415\,Hz\\
+  Cent values, relative to 12\caps{ed}2: C~-1.2\,\cn, C♯~3.4\,\cn, D~-3.4\,\cn
+\end{center}
+
+\begin{longtable}{p{1cm}p{1cm}p{3cm}}
+  \toprule
+  fifth & d\str--a\str & 2.58 per second \\
+  \bottomrule
+\end{longtable}
+\end{minipage}
+\end{document}

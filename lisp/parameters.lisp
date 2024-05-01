@@ -1,14 +1,13 @@
-(in-package :arcimoog)
+(in-package :arcimoog.parameters)
 
 
 (defclass parameter-data ()
   ((data :initform nil :initarg :data :accessor data)))
 
-(defgeneric write-data-to-file (parameter-data stream))
-(defgeneric read-data-from-file (parameter-data stream))
 (defgeneric valid-parameter-data-p (parameter-data))
 (defgeneric print-string (parameter-data))
 (defgeneric export-parameter-data (parameter-data))
+(defgeneric get-parameter-data (parameter-data))
 
 (defclass parameter-data-scalar (parameter-data)
   ((lower-border :initform nil :initarg :lower-border :accessor lower-border)
@@ -31,14 +30,6 @@
         (error "Parameter data ~a is larger than its upper border ~a." data upper))
       result)))
 
-(defmethod write-to-file ((scalar parameter-data-scalar) stream)
-  ;; not good
-  (format stream "~a" scalar))
-
-(defmethod read-from-file ((scalar parameter-data-scalar) stream)
-  ;; TODO
-  )
-
 (defmethod print-string ((scalar parameter-data-scalar))
   (format nil "~a [~@[~a~]-~@[~a~]]" (data scalar) (lower-border scalar) (upper-border scalar)))
 
@@ -47,6 +38,10 @@
         :data (data scalar)
         :lower-border (lower-border scalar)
         :upper-border (upper-border scalar)))
+
+(defmethod get-parameter-data ((scalar parameter-data-scalar))
+  (data scalar))
+
 
 
 (defclass parameter-data-rgb (parameter-data)
@@ -73,14 +68,6 @@
   (let ((index (cdr (assoc channel (list (cons :r 0) (cons :g 1) (cons :b 2))))))
     (incf (aref (data parameter-data) index) amount)))
 
-(defmethod write-to-file ((parameter-data parameter-data-rgb) stream)
-  ;; not good
-  )
-
-(defmethod read-from-file ((parameter-data parameter-data-rgb) stream)
-  ;; TODO
-  )
-
 (defmethod print-string ((rgb-data parameter-data-rgb))
   (with-accessors ((data data))
       rgb-data
@@ -88,6 +75,23 @@
 
 (defmethod export-parameter-data ((rgb parameter-data-rgb))
   (list :type :rgb :data (data rgb)))
+
+(defmethod get-parameter-data ((rgb parameter-data-rgb))
+  (data rgb))
+
+
+(defun import-data (data-expression)
+  (unless (eq data-expression :uninitialized)
+    (case (getf data-expression :type)
+      (:scalar (make-instance 'parameter-data-scalar
+                              :data (getf data-expression :data)
+                              :lower-border (getf data-expression :lower-border)
+                              :upper-border (getf data-expression :upper-border)))
+      (:rgb (make-instance 'parameter-data-rgb
+                           :data (getf data-expression :data)))
+      (otherwise (error "Data type ~a of data expression ~a is not supported by import function."
+                        (getf data-expression :type)
+                        data-expression)))))
 
 
 
@@ -104,6 +108,8 @@
     (number (setf (data parameter) (make-instance 'parameter-data-scalar :data data)))
     ((array float (3)) (setf (data parameter) (make-instance 'parameter-data-rgb :data data)))
     (null nil)
+    (parameter-data-scalar (setf (data parameter) data))
+    (parameter-data-rgb (setf (data parameter) data))
     (otherwise (error "Parameter data ~a is of unsupported type." data))))
 
 (defmethod get-data ((parameter parameter-class))
@@ -126,6 +132,8 @@
     ((array float (3)) (setf (default-data parameter)
                              (make-instance 'parameter-data-rgb :data default-data)))
     (null nil)
+    (parameter-data-scalar (setf (default-data parameter) default-data))
+    (parameter-data-rgb (setf (default-data parameter) default-data))
     (otherwise (error "Parameter data ~a is of unsupported type." default-data))))
 
 (defmethod get-default-data ((parameter parameter-class))
@@ -207,7 +215,13 @@
                                                                      :short-doc short-doc
                                                                      :long-doc long-doc)))))
 
-
+(defmethod import-parameter ((bank parameter-bank-class) key parameter-expression)
+  (add-parameter bank
+                 key
+                 (import-data (getf parameter-expression :data))
+                 (import-data (getf parameter-expression :default-data))
+                 (getf parameter-expression :short-doc)
+                 (getf parameter-expression :long-doc)))
 
 (defmethod print-bank ((bank parameter-bank-class) &optional (stream *standard-output*))
   (loop for key being the hash-keys of (parameters bank) do
@@ -218,10 +232,27 @@
   (loop for key being the hash-keys of (parameters bank)
         collect (cons key (export-parameter (get-parameter bank key)))))
 
+(defmethod delete-all-parameters ((bank parameter-bank-class))
+  (setf (parameters bank) (make-hash-table)))
+
+(defmethod import-bank ((bank parameter-bank-class) data-expression &key (mode :reinit))
+  (when (eq mode :reinit) (delete-all-parameters bank))
+  (loop for entry in data-expression do
+        (import-parameter bank (car entry) (cdr entry))))
+
 (defmethod write-bank-to-file ((bank parameter-bank-class) filepath)
-  )
+  (with-open-file (stream filepath
+                          :direction :output
+                          :if-exists :supersede
+                          :if-does-not-exist :create)
+    (write (export-bank bank) :stream stream :pretty t)))
 
+(defmethod read-bank-from-file ((bank parameter-bank-class) filepath &key (mode :reinit))
+  (with-open-file (stream filepath)
+    (import-bank bank (read stream) :mode mode)))
 
+(defmethod get-parameter-value ((bank parameter-bank-class) key)
+  (get-parameter-data (get-data (get-parameter bank key))))
 
 
 (defparameter *bank* (make-instance 'parameter-bank-class))
@@ -229,7 +260,18 @@
 
 
 
-(add-parameter *bank* "win1-rgb" (vector 0.1 0.2 0.3) (vector 0.1 0.2 0.3) "RGB" "RGB win 1")
-(add-parameter *bank* "win1-width" 700 700 "Width" "Width win 1")
-(add-parameter *bank* :win1-width 800 700 "Width" "Width win 1")
-(add-parameter *bank* :empty nil nil "Width" "Width win 1")
+
+(defun read-parameters (&optional (filepath "/parameter-bank/parameters.lisp"))
+  (read-bank-from-file *bank* filepath))
+
+(defun write-parameters (&optional (filepath "/parameter-bank/parameters.lisp"))
+  (write-bank-to-file *bank* filepath))
+
+(defun defp (key data default short-doc long-doc)
+  (add-parameter *bank* key data default short-doc long-doc))
+
+(defun setp (key data)
+  (update-parameter *bank* key data))
+
+(defun getp (key)
+  (get-parameter-value *bank* key))
