@@ -8,5 +8,4 @@
 
 (defpackage :arcimoog
   (:use :cl)
-  (:nicknames "arcie")
-  (:import-from "arcimoog.parameters" "defp" "setp" "getp"))
+  (:nicknames "arcie"))

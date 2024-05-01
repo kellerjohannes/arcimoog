@@ -96,58 +96,66 @@
 
 
 (defclass parameter-class ()
-  ((data :initarg :data :initform nil :accessor data)
-   (default-data :initarg :default-data :initform nil :accessor default-data)
+  ((data :initarg :data :initform (cons nil nil) :accessor data)
    (short-doc :initarg :short-doc :initform "" :accessor short-doc)
    (long-doc :initarg :long-doc :initform "" :accessor long-doc)))
 
 (defmethod write-parameter-to-file ((parameter parameter-class) file-stream))
 
+(defmacro set-data-cell (parameter data access-fun)
+  `(typecase ,data
+     (number (setf (,access-fun (data ,parameter))
+                   (make-instance 'parameter-data-scalar :data ,data)))
+     ((array float (3)) (setf (,access-fun (data ,parameter))
+                              (make-instance 'parameter-data-rgb :data ,data)))
+     (null nil)
+     (parameter-data-scalar (setf (,access-fun (data ,parameter)) ,data))
+     (parameter-data-rgb (setf (,access-fun (data ,parameter)) ,data))
+     (otherwise (error "Parameter data ~a is of unsupported type." ,data))))
+
+(defmethod get-data-cell ((parameter parameter-class) access-fun)
+  (funcall access-fun (data parameter)))
+
+(defmethod get-data-cell-string ((parameter parameter-class) access-fun)
+  (let ((data-cell (get-data-cell parameter access-fun)))
+    (if data-cell
+        (print-string data-cell)
+        "[uninitialized]")))
+
+(defmethod export-data-cell ((parameter parameter-class) access-fun)
+  (let ((data-cell (get-data-cell parameter access-fun)))
+    (if data-cell
+        (export-parameter-data data-cell)
+        :uninitialized)))
+
+
+
 (defmethod set-data ((parameter parameter-class) data)
-  (typecase data
-    (number (setf (data parameter) (make-instance 'parameter-data-scalar :data data)))
-    ((array float (3)) (setf (data parameter) (make-instance 'parameter-data-rgb :data data)))
-    (null nil)
-    (parameter-data-scalar (setf (data parameter) data))
-    (parameter-data-rgb (setf (data parameter) data))
-    (otherwise (error "Parameter data ~a is of unsupported type." data))))
+  (set-data-cell parameter data car))
 
 (defmethod get-data ((parameter parameter-class))
-  (data parameter))
+  (get-data-cell parameter #'car))
 
 (defmethod get-data-string ((parameter parameter-class))
-  (if (get-data parameter)
-      (print-string (get-data parameter))
-      "[uninitialized]"))
+  (get-data-cell-string parameter #'car))
 
 (defmethod export-data ((parameter parameter-class))
-  (if (data parameter)
-      (export-parameter-data (data parameter))
-      :uninitialized))
+  (export-data-cell parameter #'car))
+
 
 (defmethod set-default-data ((parameter parameter-class) default-data)
-  (typecase default-data
-    (number (setf (default-data parameter)
-                  (make-instance 'parameter-data-scalar :data default-data)))
-    ((array float (3)) (setf (default-data parameter)
-                             (make-instance 'parameter-data-rgb :data default-data)))
-    (null nil)
-    (parameter-data-scalar (setf (default-data parameter) default-data))
-    (parameter-data-rgb (setf (default-data parameter) default-data))
-    (otherwise (error "Parameter data ~a is of unsupported type." default-data))))
+  (set-data-cell parameter default-data cdr))
 
 (defmethod get-default-data ((parameter parameter-class))
-  (default-data parameter))
+  (get-data-cell parameter #'cdr))
 
 (defmethod get-default-data-string ((parameter parameter-class))
-  (if (get-default-data parameter)
-      (print-string (get-default-data parameter))
-      "[uninitialized]"))
+  (get-data-cell-string parameter #'cdr))
 
 (defmethod export-default-data ((parameter parameter-class))
-  (if (default-data parameter)
-      (export-parameter-data (default-data parameter))
-      :uninitialized))
+  (export-data-cell parameter #'cdr))
+
+
 
 (defmethod set-short-doc ((parameter parameter-class) short-doc)
   (setf (short-doc parameter) short-doc))
@@ -161,9 +169,13 @@
 (defmethod get-long-doc ((parameter parameter-class))
   (long-doc parameter))
 
-(defmethod initialize-instance :after ((parameter parameter-class) &key)
-  (set-data parameter (data parameter))
-  (set-default-data parameter (default-data parameter)))
+(defun make-parameter (data default-data short-doc long-doc)
+  (let ((result (make-instance 'parameter-class
+                               :short-doc short-doc
+                               :long-doc long-doc)))
+    (set-data result data)
+    (set-default-data result default-data)
+    result))
 
 (defmethod print-parameter ((parameter parameter-class) &optional (stream *standard-output*))
   (format stream "~&  SHORT='~a'" (get-short-doc parameter))
@@ -209,11 +221,8 @@
                           :default-data default
                           :short-doc short-doc
                           :long-doc long-doc)
-        (setf (gethash keyword-key (parameters bank)) (make-instance 'parameter-class
-                                                                     :data data
-                                                                     :default-data default
-                                                                     :short-doc short-doc
-                                                                     :long-doc long-doc)))))
+        (setf (gethash keyword-key (parameters bank))
+              (make-parameter data default short-doc long-doc)))))
 
 (defmethod import-parameter ((bank parameter-bank-class) key parameter-expression)
   (add-parameter bank
@@ -275,3 +284,9 @@
 
 (defun getp (key)
   (get-parameter-value *bank* key))
+
+
+
+
+(defp :p1 0.0 0.0 "nix" "nixnix")
+(defp :p2 1.0 1.0 "nix1" "nixnix1")
