@@ -1,4 +1,4 @@
-(in-package :arcimoog)
+(in-package :arcimoog.display)
 
 (defun valid-shader-p (shader)
   (> shader -1))

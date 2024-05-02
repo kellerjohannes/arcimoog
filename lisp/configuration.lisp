@@ -23,7 +23,7 @@
 (defmacro display-element-setter (element-id slot-name)
   `(lambda (value short-description long-description)
      (declare (ignore short-description long-description))
-     (set-element-value *display* ,element-id ,slot-name value)))
+     (arcimoog.display::set-element-value arcimoog.display::*display* ,element-id ,slot-name value)))
 
 (defmacro cv-setter (index)
   `(lambda (value short-description long-description)
@@ -31,7 +31,7 @@
      (set-cv ,index value)))
 
 (defmacro current-value (element-id slot-name)
-  `(get-element-value *display* ,element-id ,slot-name))
+  `(arcimoog.display::get-element-value arcimoog.display::*display* ,element-id ,slot-name))
 
 
 (defmacro display-control (setup controller id short long element-slot factor faderfox-doc)
@@ -61,9 +61,9 @@
 (defun setup-parameter-bank (id-of-selected-element)
   (setf (id-dictionary *parameter-bank*) nil)
 
-  (display-control 176 0 :x "El. X" "X-Coordinate" x-position 1 "")
-  (display-control 176 1 :y "El. Y" "y-Coordinate" y-position 1 "")
-  (display-control 176 2 :scaling "Sc." "Scaling" scaling 0.001 "")
+  ;; (display-control 176 0 :x "El. X" "X-Coordinate" x-position 1 "")
+  ;; (display-control 176 1 :y "El. Y" "y-Coordinate" y-position 1 "")
+  ;; (display-control 176 2 :scaling "Sc." "Scaling" scaling 0.001 "")
 
   (cv-control 177 0 :cv1 1 0.001 "")
   (cv-control 177 1 :cv2 2 0.001 "")

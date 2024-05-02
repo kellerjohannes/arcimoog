@@ -1,4 +1,4 @@
-(in-package :arcimoog)
+(in-package :arcimoog.display)
 
 ;; TODO
 ;;
@@ -12,6 +12,8 @@
 
 (defparameter *shader-path* "/home/johannes/common-lisp/arcimoog/lisp/shaders/")
 (defparameter *texture-path* "/home/johannes/common-lisp/arcimoog/lisp/textures/")
+(defparameter *global-character-set*
+  " abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZȧḃċḋėḟġȦḂĊḊĖḞĠ♯♭♮❜ʼ'\"«»[]#{}/\\,.!?:;➙➚➘12345674890-+*·")
 
 ;;;; helper stuff, not in the original c code
 
@@ -183,12 +185,12 @@ width of the texture and the third its height.")
                                                             "shader-2d.vert")
                                 :fragment-source (concatenate 'string *shader-path*
                                                               "shader-2d.frag")))
-    (setf model (create-identity-matrix 4))
+    (setf model (glm:create-identity-matrix 4))
     ;; view matrix is constant for now. Later it could be used to represent different layers of a 2d
     ;; display
-    (setf view (create-identity-matrix 4))
-    (transform-matrix view translate (vector 0.0 0.0 -0.5))
-    (set-uniform-matrix shader "view" (lisp-to-gl-matrix view))
+    (setf view (glm:create-identity-matrix 4))
+    (glm:transform-matrix view glm:translate (vector 0.0 0.0 -0.5))
+    (set-uniform-matrix shader "view" (glm:lisp-to-gl-matrix view))
     (setf vao (gl:gen-vertex-array))
     (setf vbo (gl:gen-buffer))
     (gl:bind-vertex-array vao)
@@ -255,9 +257,9 @@ width of the texture and the third its height.")
 (defmethod update-projection ((display display-class))
   (with-accessors ((projection global-projection-matrix))
       display
-    (setf projection (ortho 0.0 (screen-width display) 0.0 (screen-height display) 0.1 100.0))
-    (transform-matrix projection translate (global-translation display))
-    (transform-matrix projection scale (vector (global-scaling display)
+    (setf projection (glm:ortho 0.0 (screen-width display) 0.0 (screen-height display) 0.1 100.0))
+    (glm:transform-matrix projection glm:translate (global-translation display))
+    (glm:transform-matrix projection glm:scale (vector (global-scaling display)
                                                (global-scaling display)
                                                1.0))))
 
@@ -329,12 +331,12 @@ width of the texture and the third its height.")
                                                (coerce-vector vertex-data 'single-float))
                                            :float))
     (gl:bind-buffer :array-buffer 0)
-    (set-uniform-matrix shader "projection" (lisp-to-gl-matrix (global-projection-matrix display)))
-    (setf model (create-identity-matrix 4))
-    (when scaling (transform-matrix model scale scaling))
-    (when translation (transform-matrix model translate translation))
-    (when rotation (transform-matrix model rotate (car rotation) (cdr rotation)))
-    (set-uniform-matrix shader "model" (lisp-to-gl-matrix model))
+    (set-uniform-matrix shader "projection" (glm:lisp-to-gl-matrix (global-projection-matrix display)))
+    (setf model (glm:create-identity-matrix 4))
+    (when scaling (glm:transform-matrix model glm:scale scaling))
+    (when translation (glm:transform-matrix model glm:translate translation))
+    (when rotation (glm:transform-matrix model glm:rotate (car rotation) (cdr rotation)))
+    (set-uniform-matrix shader "model" (glm:lisp-to-gl-matrix model))
     (set-uniform shader "vertexColor" 'float (aref color 0) (aref color 1) (aref color 2))
     (gl:draw-arrays mode 0 (floor (/ (length vertex-data) 2)))
     (gl:bind-vertex-array 0)))
@@ -356,7 +358,7 @@ width of the texture and the third its height.")
       renderer
     (set-uniform shader "textColor" 'float
                  (aref rgb-vector 0) (aref rgb-vector 1) (aref rgb-vector 2))
-    (set-uniform-matrix shader "projection" (lisp-to-gl-matrix (global-projection-matrix display)))
+    (set-uniform-matrix shader "projection" (glm:lisp-to-gl-matrix (global-projection-matrix display)))
     (gl:active-texture :texture0)
     (gl:bind-vertex-array vao)
     (with-params (text x-origin y-origin)
@@ -448,30 +450,34 @@ width of the texture and the third its height.")
 
 (defparameter *display* (make-instance 'display-class))
 
-(boot *display*)
 
-(add-element *display* (make-instance 'display-element-panel :title "Test") :main)
-(add-element *display* (make-instance 'display-element-panel :title "Lookup-table") :table)
-
-(setf (color (gethash :main (display-elements *display*))) (vector 0.2 0.3 0.1))
-(setf (x-position (gethash :main (display-elements *display*))) 300)
-(setf (y-position (gethash :main (display-elements *display*))) 500)
-(setf (global-scaling *display*) 0.5)
-(setf (global-translation *display*) (vector 0.2 0.1 0.0))
-(reset-display-projection-parameters *display*)
+(defun start ()
+  (boot *display*))
 
 
-(set-element-value *display* :main color (vector 0.6 0.1 0.1))
-(set-element-value *display* :main title "Vicentino 31ed2")
-(set-element-value *display* :main width 700)
+;; (add-element *display* (make-instance 'display-element-panel :title "Test") :main)
+;; (add-element *display* (make-instance 'display-element-panel :title "Lookup-table") :table)
 
-(set-element-value *display* :table color (vector 0.5 0.2 0.1))
-(set-element-value *display* :table width 600)
+;; (setf (color (gethash :main (display-elements *display*))) (vector 0.2 0.3 0.1))
+;; (setf (x-position (gethash :main (display-elements *display*))) 300)
+;; (setf (y-position (gethash :main (display-elements *display*))) 500)
+;; (setf (global-scaling *display*) 0.5)
+;; (setf (global-translation *display*) (vector 0.2 0.1 0.0))
+;; (reset-display-projection-parameters *display*)
 
-(set-element-value *display* :table title (param! :cv5))
+
+;; (set-element-value *display* :main color (vector 0.6 0.1 0.1))
+;; (set-element-value *display* :main title "Vicentino 31ed2")
+;; (set-element-value *display* :main width 700)
+
+;; (set-element-value *display* :table color (vector 0.5 0.2 0.1))
+;; (set-element-value *display* :table width 600)
+
+;; (set-element-value *display* :table title (param! :cv5))
 
 
-(init-faderfox-communication)
+;; (init-faderfox-communication)
+
 
 
 ;;; obsolete, kept for reference because texture stuff hasn't been migrated to new class system
@@ -600,17 +606,17 @@ width of the texture and the third its height.")
 ;;             ;;   (use our-shader)
 ;;             ;;   (gl:bind-vertex-array vao)
 ;;             ;;   (set-uniform our-shader "mixAmount" 'float *mix-amount*)
-;;             ;;   (setf *view-matrix* (create-identity-matrix 4))
-;;             ;;   (transform-matrix *view-matrix* translate (vector 0.0 0.0 -0.5))
+;;             ;;   (setf *view-matrix* (glm:create-identity-matrix 4))
+;;             ;;   (glm:transform-matrix *view-matrix* glm:translate (vector 0.0 0.0 -0.5))
 ;;             ;;   (update-global-projection)
-;;             ;;   (set-uniform-matrix our-shader "projection" (lisp-to-gl-matrix *projection-matrix*))
-;;             ;;   (set-uniform-matrix our-shader "view" (lisp-to-gl-matrix *view-matrix*))
-;;             ;;   (setf *model-matrix* (create-identity-matrix 4))
-;;             ;;   (transform-matrix *model-matrix* scale (vector (* 0.2 (car image-size))
+;;             ;;   (set-uniform-matrix our-shader "projection" (glm:lisp-to-gl-matrix *projection-matrix*))
+;;             ;;   (set-uniform-matrix our-shader "view" (glm:lisp-to-gl-matrix *view-matrix*))
+;;             ;;   (setf *model-matrix* (glm:create-identity-matrix 4))
+;;             ;;   (glm:transform-matrix *model-matrix* glm:scale (vector (* 0.2 (car image-size))
 ;;             ;;                                                  (* 0.2 (cdr image-size))
 ;;             ;;                                                  1.0))
-;;             ;;   (transform-matrix *model-matrix* translate (vector 400.0 300.0 0.0))
-;;             ;;   (transform-matrix *model-matrix* translate (vector (car *root-position*)
+;;             ;;   (glm:transform-matrix *model-matrix* glm:translate (vector 400.0 300.0 0.0))
+;;             ;;   (glm:transform-matrix *model-matrix* glm:translate (vector (car *root-position*)
 ;;             ;;                                                      (cdr *root-position*)
 ;;             ;;                                                      0.0))
 

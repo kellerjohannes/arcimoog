@@ -7,8 +7,8 @@
 
 ;;; Obsolete, this is all covered by the parameter bank implementation
 
-;; (defun midi-scale (value lower upper)
-;;   (+ (* (/ value 127.0) (- upper lower)) lower))
+(defun midi-scale (value lower upper)
+  (+ (* (/ value 127.0) (- upper lower)) lower))
 
 ;; (defun set-slot (slot-number value)
 ;;   (setf (aref *parameter-slots* slot-number) value))
@@ -48,6 +48,7 @@
   (restart-case (init-port-midi)
     (continue-without-pm () :report "Don't use PortMidi from this point on." nil))
   (let ((id (restart-case (find-faderfox-id "Faderfox EC4 MIDI 1")
+              (ignore () (log:warn "No Faderfox interface found."))
               (input-different-name (name)
                 :report "Input custom Faderfox name string (in \"\")."
                 :interactive (lambda () (get-faderfox-name-from-user))

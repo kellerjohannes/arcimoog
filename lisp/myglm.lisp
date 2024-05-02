@@ -1,4 +1,4 @@
-(in-package :arcimoog)
+(in-package :arcimoog.myglm)
 
 (defun rad->deg (rad)
   (* 180 (/ rad PI)))
