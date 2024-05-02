@@ -12,6 +12,12 @@
 
 (defparameter *shader-path* "/home/johannes/common-lisp/arcimoog/lisp/shaders/")
 (defparameter *texture-path* "/home/johannes/common-lisp/arcimoog/lisp/textures/")
+(defparameter *font-source-file* "/usr/share/fonts/TTF/FiraCode-Bold.ttf"
+                                        ; "/usr/share/fonts/TTF/DejaVuSans.ttf"
+                                        ; "/usr/share/fonts/OTF/BravuraText.otf"
+                                        ; "/usr/share/fonts/OTF/Bravura.otf"
+  )
+
 (defparameter *global-character-set*
   " abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZȧḃċḋėḟġȦḂĊḊĖḞĠ♯♭♮❜ʼ'\"«»[]#{}/\\,.!?:;➙➚➘12345674890-+*·=<>@$%^&_|~`")
 
@@ -123,12 +129,7 @@ width of the texture and the third its height.")
                    (character-set character-set))
       renderer
     (unless source
-      (setf source
-            "/usr/share/fonts/TTF/FiraCode-Bold.ttf"
-            ;; "/usr/share/fonts/TTF/DejaVuSans.ttf"
-            ;; "/usr/share/fonts/OTF/BravuraText.otf"
-            ;; "/usr/share/fonts/OTF/Bravura.otf"
-            ))
+      (setf source *font-source-file*))
     (setf (ft-face renderer) (ft2:new-face source))
     (when (zerop (length character-set))
       (setf character-set *global-character-set*))

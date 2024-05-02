@@ -1,22 +1,39 @@
 (in-package :arcimoog.parameters)
 
-
 (defclass parameter-data ()
-  ((data :initform nil :initarg :data :accessor data)))
+  ((data :initform nil
+         :initarg :data
+         :accessor data
+         :documentation "Actual data."))
+  (:documentation "Instances represent the value of a parameter. Methods define how they are manipulated, checked for validity and exported to s-expressions."))
 
-(defgeneric valid-parameter-data-p (parameter-data))
-(defgeneric print-string (parameter-data))
-(defgeneric export-parameter-data (parameter-data))
-(defgeneric get-parameter-data (parameter-data))
+(defgeneric valid-parameter-data-p (parameter-data)
+  (:documentation "Checks for validity."))
+
+(defgeneric print-string (parameter-data)
+  (:documentation "Returns a string describing the content of the instance."))
+
+(defgeneric export-parameter-data (parameter-data)
+  (:documentation "Returns an s-expression for dump export."))
+
+(defgeneric get-parameter-data (parameter-data)
+  (:documentation "Returns the actual data to be used in CL code."))
+
 
 (defclass parameter-data-scalar (parameter-data)
-  ((lower-border :initform nil :initarg :lower-border :accessor lower-border)
-   (upper-border :initform nil :initarg :upper-border :accessor upper-border)))
+  ((lower-border :initform nil
+                 :initarg :lower-border
+                 :accessor lower-border
+                 :documentation "Number or NIL if unlimited.")
+   (upper-border :initform nil
+                 :initarg :upper-border
+                 :accessor upper-border
+                 :documentation "Number or NIL if unlimited."))
+  (:documentation "Subclass for simple numbers. Could be integers, ratios or floats."))
 
 (defmethod valid-parameter-data-p ((parameter-data parameter-data-scalar))
-  (with-accessors ((data data)
-                   (lower lower-border)
-                   (upper upper-border))
+  "Checks for type (NUMBER) and range if defined."
+  (with-accessors ((data data) (lower lower-border) (upper upper-border))
       parameter-data
     (let ((result t))
       (unless (numberp data)
@@ -31,6 +48,7 @@
       result)))
 
 (defmethod print-string ((scalar parameter-data-scalar))
+  "String includes the range."
   (format nil "~a [~@[~a~]-~@[~a~]]" (data scalar) (lower-border scalar) (upper-border scalar)))
 
 (defmethod export-parameter-data ((scalar parameter-data-scalar))
@@ -45,9 +63,11 @@
 
 
 (defclass parameter-data-rgb (parameter-data)
-  ())
+  ()
+  (:documentation "Subclass for RGB values, which are represented as a SIMPLE-VECTOR of length 3, consisting of floats ranging from 0.0 to 1.0."))
 
 (defmethod valid-parameter-data-p ((parameter-data parameter-data-rgb))
+  "Tests for data type and ranges."
   (with-accessors ((data data))
       parameter-data
     (let ((result t))
@@ -65,6 +85,7 @@
       result)))
 
 (defmethod inc-rgb ((parameter-data parameter-data-rgb) channel amount)
+  "Applies INCF to one of the channels (:R, :G or :B) without checking for the correct range."
   (let ((index (cdr (assoc channel (list (cons :r 0) (cons :g 1) (cons :b 2))))))
     (incf (aref (data parameter-data) index) amount)))
 
@@ -81,6 +102,7 @@
 
 
 (defun import-data (data-expression)
+  "Expects an s-expression describing the data, for example after reading from a file. Returns an instance of an appropriate PARAMETER-DATA subclass."
   (unless (eq data-expression :uninitialized)
     (case (getf data-expression :type)
       (:scalar (make-instance 'parameter-data-scalar
@@ -93,16 +115,27 @@
                         (getf data-expression :type)
                         data-expression)))))
 
+;; TODO add modifying methods
+;; TODO add validity checks at certain points (when importing / exporting? Certainly when modifying)
 
 
 (defclass parameter-class ()
-  ((data :initarg :data :initform (cons nil nil) :accessor data)
-   (short-doc :initarg :short-doc :initform "" :accessor short-doc)
-   (long-doc :initarg :long-doc :initform "" :accessor long-doc)))
-
-(defmethod write-parameter-to-file ((parameter parameter-class) file-stream))
+  ((data :initarg :data
+         :initform (cons nil nil)
+         :accessor data
+         :documentation "A pair, of which each cell holds either NIL or an instance of PARAMETER-DATA. The CAR is the actual data, the CDR is the default data of the parameter.")
+   (short-doc :initarg :short-doc
+              :initform ""
+              :accessor short-doc
+              :documentation "String with a short description of the parameter.")
+   (long-doc :initarg :long-doc
+             :initform ""
+             :accessor long-doc
+             :documentation "String with a detailed description of the parameter."))
+  (:documentation "Holds info and data for one parameter."))
 
 (defmacro set-data-cell (parameter data access-fun)
+  "SETFs the DATA slot of a PARAMETER. ACCESS-FUN can be either CAR (for the actual data) or CDR (for the default data). Expects any Common Lisp object and returns an appropriate PARAMETER-DATA subclass representing the object."
   `(typecase ,data
      (number (setf (,access-fun (data ,parameter))
                    (make-instance 'parameter-data-scalar :data ,data)))
@@ -114,15 +147,18 @@
      (otherwise (error "Parameter data ~a is of unsupported type." ,data))))
 
 (defmethod get-data-cell ((parameter parameter-class) access-fun)
+  "Returns the PARAMETER-DATA instance according to ACCESS-FUN: CAR for the actual data, CDR for the default data."
   (funcall access-fun (data parameter)))
 
 (defmethod get-data-cell-string ((parameter parameter-class) access-fun)
+  "Returns a descriptive string of the data. ACCESS-FUN can be CAR for the actual parameter data or CDR for the default data."
   (let ((data-cell (get-data-cell parameter access-fun)))
     (if data-cell
         (print-string data-cell)
         "[uninitialized]")))
 
 (defmethod export-data-cell ((parameter parameter-class) access-fun)
+  "Returns an s-expression for data export. ACCESS-FUN can be CAR for the actual data or CDR for the default data."
   (let ((data-cell (get-data-cell parameter access-fun)))
     (if data-cell
         (export-parameter-data data-cell)
@@ -131,31 +167,40 @@
 
 
 (defmethod set-data ((parameter parameter-class) data)
+  "Wrapper around SET-DATA-CELL."
   (set-data-cell parameter data car))
 
 (defmethod get-data ((parameter parameter-class))
+  "Wrapper around GET-DATA-CELL."
   (get-data-cell parameter #'car))
 
 (defmethod get-data-string ((parameter parameter-class))
+  "Wrapper around GET-DATA-CELL-STRING."
   (get-data-cell-string parameter #'car))
 
 (defmethod export-data ((parameter parameter-class))
+  "Wrapper around EXPORT-DATA-CELL."
   (export-data-cell parameter #'car))
 
 
 (defmethod set-default-data ((parameter parameter-class) default-data)
+  "Wrapper around SET-DATA-CELL."
   (set-data-cell parameter default-data cdr))
 
 (defmethod get-default-data ((parameter parameter-class))
+  "Wrapper around GET-DATA-CELL."
   (get-data-cell parameter #'cdr))
 
 (defmethod get-default-data-string ((parameter parameter-class))
+  "Wrapper around GET-DATA-CELL-STRING."
   (get-data-cell-string parameter #'cdr))
 
 (defmethod export-default-data ((parameter parameter-class))
+  "Wrapper around EXPORT-DATA-CELL."
   (export-data-cell parameter #'cdr))
 
 
+;; TODO add docstrings from here
 
 (defmethod set-short-doc ((parameter parameter-class) short-doc)
   (setf (short-doc parameter) short-doc))
