@@ -121,17 +121,17 @@
     (cond ((zerop distance) origin)
           ((zerop pos)
            (if (minusp distance)
-               (letter-shift (car (last *note-name-valid-letters*)) (shrink distance))
-               (letter-shift (nth (1+ pos) *note-name-valid-letters*) (shrink distance))))
+               (letter-shift (car (last *note-name-valid-letters*)) (utility:shrink distance))
+               (letter-shift (nth (1+ pos) *note-name-valid-letters*) (utility:shrink distance))))
           ((= pos (1- (length *note-name-valid-letters*)))
            (if (minusp distance)
-               (letter-shift (nth (1- pos) *note-name-valid-letters*) (shrink distance))
-               (letter-shift (first *note-name-valid-letters*) (shrink distance))))
+               (letter-shift (nth (1- pos) *note-name-valid-letters*) (utility:shrink distance))
+               (letter-shift (first *note-name-valid-letters*) (utility:shrink distance))))
           (t (letter-shift (nth (if (plusp distance)
                                           (1+ pos)
                                           (1- pos))
                                       *note-name-valid-letters*)
-                                 (shrink distance))))))
+                                 (utility:shrink distance))))))
 
 (defmethod validp and ((note note-name))
   "Checks for validity of generic note name. The letter needs to be a keyword between :a and
@@ -190,7 +190,7 @@ uniquely :FLAT or :SHARP."
   (with-accessors ((acc accidental))
       note
     (let ((candidate (if (and acc (listp acc))
-                         (reduce-equal-keyword-list acc)
+                         (utility:reduce-equal-keyword-list acc)
                          acc)))
       (or (null acc) (member candidate *note-name-smn-valid-accidentals*)))))
 

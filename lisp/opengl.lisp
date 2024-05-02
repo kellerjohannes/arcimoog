@@ -13,7 +13,7 @@
 (defparameter *shader-path* "/home/johannes/common-lisp/arcimoog/lisp/shaders/")
 (defparameter *texture-path* "/home/johannes/common-lisp/arcimoog/lisp/textures/")
 (defparameter *global-character-set*
-  " abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZȧḃċḋėḟġȦḂĊḊĖḞĠ♯♭♮❜ʼ'\"«»[]#{}/\\,.!?:;➙➚➘12345674890-+*·")
+  " abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZȧḃċḋėḟġȦḂĊḊĖḞĠ♯♭♮❜ʼ'\"«»[]#{}/\\,.!?:;➙➚➘12345674890-+*·=<>@$%^&_|~`")
 
 ;;;; helper stuff, not in the original c code
 
@@ -124,7 +124,8 @@ width of the texture and the third its height.")
       renderer
     (unless source
       (setf source
-            "/usr/share/fonts/TTF/DejaVuSans.ttf"
+            "/usr/share/fonts/TTF/FiraCode-Bold.ttf"
+            ;; "/usr/share/fonts/TTF/DejaVuSans.ttf"
             ;; "/usr/share/fonts/OTF/BravuraText.otf"
             ;; "/usr/share/fonts/OTF/Bravura.otf"
             ))
@@ -328,7 +329,7 @@ width of the texture and the third its height.")
     (gl:buffer-sub-data :array-buffer
                         (array-to-gl-array (if (typep vertex-data '(vector single-float *))
                                                vertex-data
-                                               (coerce-vector vertex-data 'single-float))
+                                               (utility:coerce-vector vertex-data 'single-float))
                                            :float))
     (gl:bind-buffer :array-buffer 0)
     (set-uniform-matrix shader "projection" (glm:lisp-to-gl-matrix (global-projection-matrix display)))
@@ -361,7 +362,7 @@ width of the texture and the third its height.")
     (set-uniform-matrix shader "projection" (glm:lisp-to-gl-matrix (global-projection-matrix display)))
     (gl:active-texture :texture0)
     (gl:bind-vertex-array vao)
-    (with-params (text x-origin y-origin)
+    (utility:with-params (text x-origin y-origin)
       (unless (stringp text) (setf text (format nil "~a" text)))
       (ft2:do-string-render (face text bitmap ft-x ft-y :with-char character)
         (multiple-value-bind (texture-id texture-width texture-height)
@@ -395,7 +396,7 @@ width of the texture and the third its height.")
                    (h height)
                    (m selected-margin))
       element
-    (with-params (x y w h)
+    (utility:with-params (x y w h)
       (let ((sc (vector sc-f sc-f 1.0)))
         (when (selectedp element)
           (render display renderer (vector (- m) (- m)
@@ -414,14 +415,7 @@ width of the texture and the third its height.")
                                   w h
                                   0 0
                                   w h
-                                  0 h
-                                  ;; x y
-                                  ;; (+ x w) y
-                                  ;; (+ x w) (+ y h)
-                                  ;; x y
-                                  ;; (+ x w) (+ y h)
-                                  ;; x (+ y h)
-                                  )
+                                  0 h)
                 :mode :triangles
                 :translation (vector x y 0.0)
                 :scaling sc
@@ -455,7 +449,9 @@ width of the texture and the third its height.")
   (boot *display*))
 
 
-;; (add-element *display* (make-instance 'display-element-panel :title "Test") :main)
+(add-element *display* (make-instance 'display-element-panel :title "Test !=") :main)
+(set-element-value *display* :main color (vector 0.6 0.1 0.1))
+
 ;; (add-element *display* (make-instance 'display-element-panel :title "Lookup-table") :table)
 
 ;; (setf (color (gethash :main (display-elements *display*))) (vector 0.2 0.3 0.1))
@@ -473,7 +469,7 @@ width of the texture and the third its height.")
 ;; (set-element-value *display* :table color (vector 0.5 0.2 0.1))
 ;; (set-element-value *display* :table width 600)
 
-;; (set-element-value *display* :table title (param! :cv5))
+;; (set-element-value *display* :table title (utility:param! :cv5))
 
 
 ;; (init-faderfox-communication)

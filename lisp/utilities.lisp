@@ -1,4 +1,4 @@
-(in-package :arcimoog)
+(in-package :arcimoog.utilities)
 
 (defun reduce-equal-keyword-list (keyword-list)
   "Expects a list of identical keywords, returns this keyword."
@@ -36,9 +36,25 @@
 
 ;; TODO: to be tested
 
+
+
+(defun instantiate-empty-parameter (condition)
+  (declare (ignore condition))
+  (invoke-restart 'instantiate-empty-parameter))
+
+(define-condition no-parameter-found (error)
+  ((parameter-id :initarg :id :reader parameter-id)))
+
+(defun get-parameter-value-from-user (id)
+  (format *query-io* "Enter a value for the new parameter with it ~a: " id)
+  (force-output *query-io*)
+  (list (read)))
+
+
+
 (defun param! (value-or-id)
   (if (keywordp value-or-id)
-      (lambda () (access *parameter-bank* value-or-id))
+      (lambda () (arcimoog::access arcimoog::*parameter-bank* value-or-id))
       (lambda () value-or-id)))
 
 (defun param (parameter-fun)

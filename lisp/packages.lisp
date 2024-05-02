@@ -1,3 +1,13 @@
+(defpackage :arcimoog.utilities
+  (:use :cl)
+  (:nicknames :utility)
+  (:export #:reduce-equal-keyword-list
+           #:shrink
+           #:coerce-vector
+           #:param!
+           #:param
+           #:with-params))
+
 (defpackage :arcimoog.parameters
   (:use :cl)
   (:nicknames :apar)
