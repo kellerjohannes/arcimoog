@@ -1,5 +1,14 @@
 (in-package :arcimoog.parameters)
 
+;; To add a parameter data type, follow these steps:
+;; - add a subclass to PARAMETER-DATA or any of its subclasses
+;; - implement methods for all generic functions that are defined for the PARAMETER-DATA super-class
+;; - implement methods that are unique for the new data type (example: `INC-RGB')
+;; - add the creation of an instance of the new sub-class to `IMPORT-DATA'
+;; - add the creation of an instance of the new sub-class to `SET-DATA-CELL'
+;; - add the new data type to the docstring of `DEFP'
+
+
 (defclass parameter-data ()
   ((data :initform nil
          :initarg :data
@@ -20,6 +29,15 @@
   (:documentation "Returns the actual data to be used in CL code."))
 
 
+(defmethod get-parameter-data :before ((parameter parameter-data))
+  "Testing for validity before retrieving the parameter data. The result of the test will be discarded, but the testing function would raise a condition if necessary."
+  (valid-parameter-data-p parameter))
+
+(defmethod initialize-instance :after ((parameter parameter-data) &key)
+  "Testing for validity after the creation of a new instance of a PARAMETER-DATA subclass. The result of the test will be discarded, but the testing function would raise a condition if necessary."
+  (valid-parameter-data-p parameter))
+
+
 (defclass parameter-data-scalar (parameter-data)
   ((lower-border :initform nil
                  :initarg :lower-border
@@ -36,13 +54,13 @@
   (with-accessors ((data data) (lower lower-border) (upper upper-border))
       parameter-data
     (let ((result t))
-      (unless (numberp data)
+      (unless (or (numberp data))
         (setf result nil)
         (error "Parameter data ~a is not a number." data))
-      (when (< data lower)
+      (when (and lower (numberp data) (< data lower))
         (setf result nil)
         (error "Parameter data ~a is smaller than its lower border ~a." data lower))
-      (when (> data upper)
+      (when (and upper (numberp data) (> data upper))
         (setf result nil)
         (error "Parameter data ~a is larger than its upper border ~a." data upper))
       result)))
@@ -59,6 +77,34 @@
 
 (defmethod get-parameter-data ((scalar parameter-data-scalar))
   (data scalar))
+
+
+(defclass parameter-data-string (parameter-data)
+  ()
+  (:documentation "Subclass for strings."))
+
+(defmethod valid-parameter-data-p ((parameter-data parameter-data-string))
+  "Tests for data being of type STRING."
+  (with-accessors ((data data))
+      parameter-data
+    (let ((result t))
+      (unless (typep data 'string)
+        (setf result nil)
+        (error "Parameter data ~a is not a string." data))
+      result)))
+
+(defmethod print-string ((parameter-data parameter-data-string))
+  "Returns a string containing the data string."
+  (data parameter-data))
+
+(defmethod export-parameter-data ((parameter-data parameter-data-string))
+  "Returns a plist describing the parameter data."
+  (list :type :string :data (data parameter-data)))
+
+(defmethod get-parameter-data ((parameter-data parameter-data-string))
+  "Returns the raw data (string)."
+  (data parameter-data))
+
 
 
 
@@ -90,14 +136,17 @@
     (incf (aref (data parameter-data) index) amount)))
 
 (defmethod print-string ((rgb-data parameter-data-rgb))
+  "Returns a string describing the RGB data."
   (with-accessors ((data data))
       rgb-data
     (format nil "R: ~a, G: ~a, B: ~a" (aref data 0) (aref data 1) (aref data 2))))
 
 (defmethod export-parameter-data ((rgb parameter-data-rgb))
+  "Returns a plist describing the data."
   (list :type :rgb :data (data rgb)))
 
 (defmethod get-parameter-data ((rgb parameter-data-rgb))
+  "Returns the raw data (SIMPLE-VECTOR 3)."
   (data rgb))
 
 
@@ -111,6 +160,8 @@
                               :upper-border (getf data-expression :upper-border)))
       (:rgb (make-instance 'parameter-data-rgb
                            :data (getf data-expression :data)))
+      (:string (make-instance 'parameter-data-string
+                              :data (getf data-expression :data)))
       (otherwise (error "Data type ~a of data expression ~a is not supported by import function."
                         (getf data-expression :type)
                         data-expression)))))
@@ -121,7 +172,7 @@
 
 (defclass parameter-class ()
   ((data :initarg :data
-         :initform (cons nil nil)
+         :initform (cons 0 0)
          :accessor data
          :documentation "A pair, of which each cell holds either NIL or an instance of PARAMETER-DATA. The CAR is the actual data, the CDR is the default data of the parameter.")
    (short-doc :initarg :short-doc
@@ -134,16 +185,21 @@
              :documentation "String with a detailed description of the parameter."))
   (:documentation "Holds info and data for one parameter."))
 
+
+;; Warning: when changing this macro, consider recompiling all functions containing it.
+
 (defmacro set-data-cell (parameter data access-fun)
   "SETFs the DATA slot of a PARAMETER. ACCESS-FUN can be either CAR (for the actual data) or CDR (for the default data). Expects any Common Lisp object and returns an appropriate PARAMETER-DATA subclass representing the object."
   `(typecase ,data
+     ;;(null nil)
      (number (setf (,access-fun (data ,parameter))
                    (make-instance 'parameter-data-scalar :data ,data)))
+     (string (setf (,access-fun (data ,parameter))
+                   (make-instance 'parameter-data-string :data ,data)))
      ((array float (3)) (setf (,access-fun (data ,parameter))
                               (make-instance 'parameter-data-rgb :data ,data)))
-     (null nil)
-     (parameter-data-scalar (setf (,access-fun (data ,parameter)) ,data))
-     (parameter-data-rgb (setf (,access-fun (data ,parameter)) ,data))
+     ((or parameter-data-scalar parameter-data-rgb parameter-data-string)
+      (setf (,access-fun (data ,parameter)) ,data))
      (otherwise (error "Parameter data ~a is of unsupported type." ,data))))
 
 (defmethod get-data-cell ((parameter parameter-class) access-fun)
@@ -182,7 +238,6 @@
   "Wrapper around EXPORT-DATA-CELL."
   (export-data-cell parameter #'car))
 
-
 (defmethod set-default-data ((parameter parameter-class) default-data)
   "Wrapper around SET-DATA-CELL."
   (set-data-cell parameter default-data cdr))
@@ -198,6 +253,10 @@
 (defmethod export-default-data ((parameter parameter-class))
   "Wrapper around EXPORT-DATA-CELL."
   (export-data-cell parameter #'cdr))
+
+(defmethod reset-data ((parameter parameter-class))
+  (set-data parameter (get-default-data parameter)))
+
 
 (defmethod set-short-doc ((parameter parameter-class) short-doc)
   "Expects a string."
@@ -330,9 +389,11 @@
 
 (defmethod get-parameter-value ((bank parameter-bank-class) key)
   "KEY can be a keyword or a string. Returns the Common Lisp object with the actual data of the parameter."
-  ;; validity check?
   (get-parameter-data (get-data (get-parameter bank key))))
 
+(defmethod reset-parameter-data-to-default ((bank parameter-bank-class) key)
+  "Sets the default data of a parameter as its actual data. KEY can be of type KEYWORD or STRING."
+  (reset-data (get-parameter bank key)))
 
 (defparameter *bank* (make-instance 'parameter-bank-class)
   "Globally used parameter bank, accessible through the exported functions of this package.")
@@ -340,25 +401,55 @@
 
 
 
-;; TODO comment these exported functions
 
-(defun read-parameters (&optional (filepath "/parameter-bank/parameters.lisp"))
+(defun read-parameters (&optional (filepath "parameter-bank/parameters.lisp"))
+  "Reads global parameter bank from file, overwriting existing parameters, deleting parameters that are not in the file."
   (read-bank-from-file *bank* filepath))
 
-(defun write-parameters (&optional (filepath "/parameter-bank/parameters.lisp"))
+(defun write-parameters (&optional (filepath "parameter-bank/parameters.lisp"))
+  "Writes global parameter bank to file. Existing file will be superseded."
   (write-bank-to-file *bank* filepath))
 
 (defun defp (key data default short-doc long-doc)
+  "Creates a new parameter in the global parameter bank. If the parameter already exists, it will be updated. KEY can be of type KEYWORD or STRING. DATA and DEFAULT can be any Common Lisp object that is supported by the PARAMETER-DATA class (NUMBER, STRING, (SIMPLE-VECTOR 3)). SHORT-DOC and LONG-DOC are strings for documentation purposes."
   (add-parameter *bank* key data default short-doc long-doc))
 
 (defun setp (key data)
+  "Updates an existing parameter in the global parameter bank. KEY can be of type KEYWORD or STRING. DATA can be of any type that is supported by the PARAMETER-DATA class (see docstring of `DEFP' for a list of supported types)."
   (update-parameter *bank* key data))
 
 (defun getp (key)
+  "Returns the Common Lisp object that represents the actual data of a parameter."
   (get-parameter-value *bank* key))
 
+(defun resp (key)
+  "Resets the data of a parameter in the global bank to its default."
+  (reset-parameter-data-to-default *bank* key))
 
+
+;; TODO condition handling:
+;;
+;; - error binding within the public functions, maybe with a key parameter to select the kind of
+;;   handling:
+;;   - wrong type: coerce, if not possible, set to default value, if not possible, invent something, ask user?
+;;   - out of limits: set to closest limit, ignore restriction, ask user
+
+
+
+;; TODO proper testing
 
 ;; testing
 (defp :p1 0.0 0.0 "nix" "nixnix")
+(defp :px 0.0 0.0 "nix" "nixnix")
+
 (defp :p2 1.0 1.0 "nix1" "nixnix1")
+
+(setp :p1 15.0)
+
+(resp :p1)
+
+(defp :ts "hi" "[default]" "test-string" "testing a string")
+
+(write-parameters)
+
+(read-parameters)

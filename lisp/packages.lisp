@@ -14,6 +14,7 @@
   (:export #:defp
            #:setp
            #:getp
+           #:resp
            #:write-parameters
            #:read-parameters))
 
