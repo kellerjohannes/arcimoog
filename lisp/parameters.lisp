@@ -5,7 +5,7 @@
          :initarg :data
          :accessor data
          :documentation "Actual data."))
-  (:documentation "Instances represent the value of a parameter. Methods define how they are manipulated, checked for validity and exported to s-expressions."))
+  (:documentation "Instances represent the value of a parameter. Methods define how they are manipulated, checked for validity and exported to S-expressions."))
 
 (defgeneric valid-parameter-data-p (parameter-data)
   (:documentation "Checks for validity."))
@@ -14,7 +14,7 @@
   (:documentation "Returns a string describing the content of the instance."))
 
 (defgeneric export-parameter-data (parameter-data)
-  (:documentation "Returns an s-expression for dump export."))
+  (:documentation "Returns an S-expression for dump export."))
 
 (defgeneric get-parameter-data (parameter-data)
   (:documentation "Returns the actual data to be used in CL code."))
@@ -101,8 +101,8 @@
   (data rgb))
 
 
-(defun import-data (data-expression)
-  "Expects an s-expression describing the data, for example after reading from a file. Returns an instance of an appropriate PARAMETER-DATA subclass."
+(defun import-parameter-data (data-expression)
+  "Expects an S-expression describing the data, as they are created by `EXPORT-PARAMETER-DATA'. Returns an instance of an appropriate PARAMETER-DATA subclass."
   (unless (eq data-expression :uninitialized)
     (case (getf data-expression :type)
       (:scalar (make-instance 'parameter-data-scalar
@@ -158,7 +158,7 @@
         "[uninitialized]")))
 
 (defmethod export-data-cell ((parameter parameter-class) access-fun)
-  "Returns an s-expression for data export. ACCESS-FUN can be CAR for the actual data or CDR for the default data."
+  "Returns an S-expression (plist) for data export. ACCESS-FUN can be CAR for the actual data or CDR for the default data."
   (let ((data-cell (get-data-cell parameter access-fun)))
     (if data-cell
         (export-parameter-data data-cell)
@@ -199,22 +199,24 @@
   "Wrapper around EXPORT-DATA-CELL."
   (export-data-cell parameter #'cdr))
 
-
-;; TODO add docstrings from here
-
 (defmethod set-short-doc ((parameter parameter-class) short-doc)
+  "Expects a string."
   (setf (short-doc parameter) short-doc))
 
 (defmethod get-short-doc ((parameter parameter-class))
+  "Returns a string."
   (short-doc parameter))
 
 (defmethod set-long-doc ((parameter parameter-class) long-doc)
+  "Expects a string."
   (setf (long-doc parameter) long-doc))
 
 (defmethod get-long-doc ((parameter parameter-class))
+  "Returns a string."
   (long-doc parameter))
 
 (defun make-parameter (data default-data short-doc long-doc)
+  "Returns an instance of PARAMETER-CLASS, properly initialized, which primarily concerns the pair (CAR is the actual data, CDR is the default data) in the DATA slot. This function should be used in place of MAKE-INSTANCE because the latter doesn't set the DATA slot correctly."
   (let ((result (make-instance 'parameter-class
                                :short-doc short-doc
                                :long-doc long-doc)))
@@ -223,12 +225,14 @@
     result))
 
 (defmethod print-parameter ((parameter parameter-class) &optional (stream *standard-output*))
+  "Prints human readable contents to a stream."
   (format stream "~&  SHORT='~a'" (get-short-doc parameter))
   (format stream "~&  LONG='~a'" (get-long-doc parameter))
   (format stream "~&  DATA='~a'" (get-data-string parameter))
   (format stream "~&  DEFAULT-DATA='~a'" (get-default-data-string parameter)))
 
 (defmethod export-parameter ((parameter parameter-class))
+  "Returns an S-expression (plist) containing everything about this PARAMETER for exporting purposes."
   (list :short-doc (get-short-doc parameter)
         :long-doc (get-long-doc parameter)
         :data (export-data parameter)
@@ -236,15 +240,22 @@
 
 
 (defun parse-key (string-or-keyword)
+  "Expects a keyword or a string. If string, it will be converted to a case-insensitive keyword. To be used as keys for a hash-table."
   (typecase string-or-keyword
     (keyword string-or-keyword)
     (string (alexandria:make-keyword (string-upcase string-or-keyword)))
     (otherwise (error "Type of key ~a not supported." string-or-keyword))))
 
+
+
 (defclass parameter-bank-class ()
-  ((parameters :initform (make-hash-table) :accessor parameters)))
+  ((parameters :initform (make-hash-table)
+               :accessor parameters
+               :documentation "Hash-table that exclusively contains instances of PARAMETER-CLASS."))
+  (:documentation "Collection of parameters that can be set up, manipulated, printed and exported as a bulk."))
 
 (defmethod get-parameter ((bank parameter-bank-class) key)
+  "Expects a keyword or string to find a parameter in a parameter bank, returns the corresponding instance of PARAMETER-CLASS."
   (let* ((keyword-key (parse-key key))
          (result (gethash keyword-key (parameters bank))))
     (if result result (error "No parameter with key ~a found in parameter bank." keyword-key))))
@@ -253,6 +264,7 @@
                              &key (default-data nil default-data-supplied-p)
                                (short-doc nil short-doc-supplied-p)
                                (long-doc nil long-doc-supplied-p))
+  "Expects a keyword or string to be used as key for the parameter bank hash-table. DATA can be any Common Lisp object that is supported by the PARAMETER-DATA class."
   (let ((parameter (get-parameter bank (parse-key key))))
     (set-data parameter data)
     (when default-data-supplied-p (set-default-data parameter default-data))
@@ -260,6 +272,7 @@
     (when long-doc-supplied-p (set-long-doc parameter long-doc))))
 
 (defmethod add-parameter ((bank parameter-bank-class) key data default short-doc long-doc)
+  "KEY can be a keyword or a string. DATA and DEFAULT-DATA can be any Common Lisp object that is supported by the PARAMETER-DATA class. SHORT-DOC and LONG-DOC are strings for documentation purposes. If the parameter already exists, it will be updated, otherwise created."
   (let ((keyword-key (parse-key key)))
     (if (gethash keyword-key (parameters bank))
         (update-parameter bank keyword-key data
@@ -269,32 +282,41 @@
         (setf (gethash keyword-key (parameters bank))
               (make-parameter data default short-doc long-doc)))))
 
+;; TODO delete parameter
+
 (defmethod import-parameter ((bank parameter-bank-class) key parameter-expression)
+  "KEY can be a keyword or a string. PARAMETER-EXPRESSION is an S-expression describing the content of a PARAMETER-CLASS instance, as they are created by `EXPORT-PARAMETER'. Parameters that are already existing in BANK are updated, non-existent ones are created."
   (add-parameter bank
                  key
-                 (import-data (getf parameter-expression :data))
-                 (import-data (getf parameter-expression :default-data))
+                 (import-parameter-data (getf parameter-expression :data))
+                 (import-parameter-data (getf parameter-expression :default-data))
                  (getf parameter-expression :short-doc)
                  (getf parameter-expression :long-doc)))
 
 (defmethod print-bank ((bank parameter-bank-class) &optional (stream *standard-output*))
+  "Prints a human readable description of the contents of BANK to a STREAM."
   (loop for key being the hash-keys of (parameters bank) do
     (format stream "~&PARAMETER (key='~a'):~%" key)
     (print-parameter (get-parameter bank key))))
 
 (defmethod export-bank ((bank parameter-bank-class))
-  (loop for key being the hash-keys of (parameters bank)
-        collect (cons key (export-parameter (get-parameter bank key)))))
+  "Creates an S-expression that represents the complete contents of BANK. It is a nested plist. The value of :parameters is the content of the hash-table containing all parameters is an alist."
+  (list :parameters
+        (loop for key being the hash-keys of (parameters bank)
+              collect (cons key (export-parameter (get-parameter bank key))))))
 
 (defmethod delete-all-parameters ((bank parameter-bank-class))
+  "Creates an empty hash-table that replaces the former hash-table containing all parameters."
   (setf (parameters bank) (make-hash-table)))
 
 (defmethod import-bank ((bank parameter-bank-class) data-expression &key (mode :reinit))
+  "DATA-EXPRESSION is a nested plist that represents the contents of BANK, as it is created by `EXPORT-BANK'. When MODE has the value :REINIT, existing parameters will be deleted. Any other value will cause updating existing parameters."
   (when (eq mode :reinit) (delete-all-parameters bank))
-  (loop for entry in data-expression do
+  (loop for entry in (getf data-expression :parameters) do
         (import-parameter bank (car entry) (cdr entry))))
 
 (defmethod write-bank-to-file ((bank parameter-bank-class) filepath)
+  "Writes the S-expression created by `EXPORT-BANK' to a file."
   (with-open-file (stream filepath
                           :direction :output
                           :if-exists :supersede
@@ -302,14 +324,18 @@
     (write (export-bank bank) :stream stream :pretty t)))
 
 (defmethod read-bank-from-file ((bank parameter-bank-class) filepath &key (mode :reinit))
+  "Reads the S-expression describing BANK from a file and populates BANK accordingly."
   (with-open-file (stream filepath)
     (import-bank bank (read stream) :mode mode)))
 
 (defmethod get-parameter-value ((bank parameter-bank-class) key)
+  "KEY can be a keyword or a string. Returns the Common Lisp object with the actual data of the parameter."
+  ;; validity check?
   (get-parameter-data (get-data (get-parameter bank key))))
 
 
-(defparameter *bank* (make-instance 'parameter-bank-class))
+(defparameter *bank* (make-instance 'parameter-bank-class)
+  "Globally used parameter bank, accessible through the exported functions of this package.")
 
 
 
