@@ -340,6 +340,7 @@
 
 
 
+;; TODO comment these exported functions
 
 (defun read-parameters (&optional (filepath "/parameter-bank/parameters.lisp"))
   (read-bank-from-file *bank* filepath))
@@ -358,6 +359,6 @@
 
 
 
-
+;; testing
 (defp :p1 0.0 0.0 "nix" "nixnix")
 (defp :p2 1.0 1.0 "nix1" "nixnix1")
