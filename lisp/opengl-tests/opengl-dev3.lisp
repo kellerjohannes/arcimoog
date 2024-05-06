@@ -48,7 +48,7 @@
     (unless (equalp error-string "")
       (progn
         (format t "~A~%" error-string)
-        (error 'compile-error :message error-string)))))
+        (error 'acond:compile-error :message error-string)))))
 
 (defclass shader-class ()
   ((id :accessor id

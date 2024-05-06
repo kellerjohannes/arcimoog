@@ -17,15 +17,27 @@
 
 
 (defclass parameter-class ()
-  ((value :initform 0 :initarg :value :accessor value)
+  ((value :initform 0
+          :initarg :value
+          :accessor value)
    (callback-fun :initform (lambda (v d dd)
                              (declare (ignore v d dd)))
-                 :initarg :callback-fun :accessor callback-fun)
-   (interpreter-fun :initform (lambda (value) value) :initarg :interpreter-fun :accessor interpreter-fun)
-   (activep :initform t :initarg :activep :accessor activep)
-   (short-description :initform "[empty]" :initarg :short-description :accessor short-description)
-   (long-description :initform "[empty parameter slot]" :initarg :long-description :accessor long-description)
-   (faderfox-documentation :initform "" :accessor faderfox-documentation)))
+                 :initarg :callback-fun
+                 :accessor callback-fun)
+   (interpreter-fun :initform (lambda (value) value)
+                    :initarg :interpreter-fun
+                    :accessor interpreter-fun)
+   (activep :initform t
+            :initarg :activep
+            :accessor activep)
+   (short-description :initform "[empty]"
+                      :initarg :short-description
+                      :accessor short-description)
+   (long-description :initform "[empty parameter slot]"
+                     :initarg :long-description
+                     :accessor long-description)
+   (faderfox-documentation :initform ""
+                           :accessor faderfox-documentation)))
 
 (defmethod get-parameter-value ((parameter parameter-class))
   (cond (parameter
@@ -36,21 +48,28 @@
 
 (defmethod update-parameter ((parameter parameter-class) &rest arguments)
   (when (activep parameter)
-    (setf (value parameter) (apply (interpreter-fun parameter) (cons (value parameter) arguments)))
-    (funcall (callback-fun parameter) (value parameter) (short-description parameter) (long-description parameter)))
+    (setf (value parameter)
+          (apply (interpreter-fun parameter) (cons (value parameter) arguments)))
+    (funcall (callback-fun parameter)
+             (value parameter)
+             (short-description parameter)
+             (long-description parameter)))
   (value parameter))
 
 
 (defclass parameter-slot-class ()
-  ((parameters :initform (make-hash-table :test 'equal) :accessor parameters)
-   (id-dictionary :initform nil :accessor id-dictionary)))
+  ((parameters :initform (make-hash-table :test 'equal)
+               :accessor parameters)
+   (id-dictionary :initform nil
+                  :accessor id-dictionary)))
 
 (defun make-parameter-key (setup controller)
   (format nil "P~a-~a" setup controller))
 
 (defmethod initialize-instance :after ((bank parameter-slot-class) &key)
   (loop for setup from (car *faderfox-setup-range*) to (cdr *faderfox-setup-range*) do
-    (loop for controller from (car *faderfox-controller-range*) to (cdr *faderfox-controller-range*) do
+    (loop for controller from (car *faderfox-controller-range*)
+            to (cdr *faderfox-controller-range*) do
       (setf (gethash (make-parameter-key setup controller)
                      (parameters bank))
             (make-instance 'parameter-class)))))
@@ -83,7 +102,7 @@
                            (make-instance 'parameter-class))
                          (instantiate-parameter-with-value (value)
                            :report "Supply a value that is used for the creation of a new PARAMETER-CLASS instance."
-                           :interactive (lambda () (get-parameter-value-from-user 'id))
+                           :interactive (lambda () (acond:get-parameter-value-from-user 'id))
                            (log:warn "Temporary parameter for non-existent it ~a created, with value ~a." id value)
                            (make-instance 'parameter-class :value value))
                          (return-nil ()

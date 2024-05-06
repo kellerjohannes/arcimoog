@@ -34,23 +34,7 @@
 
 
 
-;; TODO: to be tested
-
-
-
-(defun instantiate-empty-parameter (condition)
-  (declare (ignore condition))
-  (invoke-restart 'instantiate-empty-parameter))
-
-(define-condition no-parameter-found (error)
-  ((parameter-id :initarg :id :reader parameter-id)))
-
-(defun get-parameter-value-from-user (id)
-  (format *query-io* "Enter a value for the new parameter with it ~a: " id)
-  (force-output *query-io*)
-  (list (read)))
-
-
+;; TODO: to be tested / to change!
 
 (defun param! (value-or-id)
   (if (keywordp value-or-id)
@@ -61,7 +45,7 @@
   (funcall parameter-fun))
 
 (defmacro with-params (param-list &body body)
-  `(handler-bind ((no-parameter-found #'instantiate-empty-parameter))
+  `(handler-bind ((acond:no-parameter-found #'acond:instantiate-empty-parameter))
      (let (,@(loop for candidate in param-list
                    collect (list candidate `(if (functionp ,candidate)
                                                 (funcall ,candidate)

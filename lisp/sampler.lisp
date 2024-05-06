@@ -109,7 +109,7 @@
           (setf (gethash key (sample-bank sampler))
                 (list :slot slot-number
                       :buffer (handler-case (load-sample-from-file root-path sample-path)
-                                (buffer-file-not-found () :undefined))))))
+                                (acond:buffer-file-not-found () :undefined))))))
 
 (defmethod get-buffer ((sampler sampler-class) key)
   (getf (gethash key (sample-bank sampler)) :buffer))
