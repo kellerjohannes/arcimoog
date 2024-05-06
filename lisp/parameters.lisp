@@ -167,8 +167,6 @@
                         data-expression)))))
 
 ;; TODO add modifying methods
-;; TODO add validity checks at certain points (when importing / exporting? Certainly when modifying)
-
 
 (defclass parameter-class ()
   ((data :initarg :data

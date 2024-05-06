@@ -8,6 +8,16 @@
            #:param
            #:with-params))
 
+(defpackage :arcimoog.conditions
+  (:use :cl)
+  (:nicknames :acond)
+  (:export #:incudine-is-not-in-rt
+           #:pm-error
+           #:faderfox-id-not-found
+           #:buffer-file-not-found
+           #:buffer-file-not-loaded))
+
+
 (defpackage :arcimoog.parameters
   (:use :cl)
   (:nicknames :apar)

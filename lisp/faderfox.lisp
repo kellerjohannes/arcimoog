@@ -73,7 +73,7 @@
 
 (defmethod get-parameter ((bank parameter-slot-class) id)
   (let ((result (gethash (get-key-from-id bank id) (parameters bank))))
-    (if result result (error 'no-parameter-found :parameter-id id))))
+    (if result result (error 'acond:no-parameter-found :parameter-id id))))
 
 (defmethod access ((bank parameter-slot-class) id)
   (get-parameter-value (restart-case (get-parameter bank id)

@@ -98,9 +98,9 @@
 (defun load-sample-from-file (root-path sample-path)
   (let ((full-path (concatenate 'string root-path sample-path)))
     (unless (uiop:file-exists-p full-path)
-      (error 'buffer-file-not-found :root-path root-path :sample-path sample-path))
+      (error 'acond:buffer-file-not-found :root-path root-path :sample-path sample-path))
     (let ((buf (incudine:buffer-load full-path)))
-      (if buf buf (error 'buffer-file-not-loaded :root-path root-path :sample-path sample-path)))))
+      (if buf buf (error 'acond:buffer-file-not-loaded :root-path root-path :sample-path sample-path)))))
 
 (defmethod load-samples ((sampler sampler-class) key-list root-path path-list)
   (loop for key in key-list

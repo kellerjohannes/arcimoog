@@ -32,17 +32,18 @@
   (unless (incudine-real-time-p)
     (incudine:rt-start))
   (unless (incudine-real-time-p)
-    (error 'incudine-is-not-in-rt)))
+    (error 'acond:incudine-is-not-in-rt)))
 
 (defun init-port-midi ()
   (let ((status (pm:initialize)))
     (unless (eq status :pm-no-error)
-      (error 'pm-error :pm-error-flag status))))
+      (error 'acond:pm-error :pm-error-flag status))))
 
 (defun find-faderfox-id (faderfox-name-string)
   (pm:print-devices-info :input)
   (let ((id (pm:get-device-id-by-name faderfox-name-string :input)))
-    (if id id (error 'faderfox-id-not-found :faderfox-name faderfox-name-string))))
+    (if id id (error 'acond:faderfox-id-not-found
+                     :faderfox-name faderfox-name-string))))
 
 (defun init-faderfox-communication ()
   (restart-case (init-port-midi)
