@@ -56,13 +56,10 @@
     (let ((result t))
       (unless (or (numberp data))
         (setf result nil)
-        (error "Parameter data ~a is not a number." data))
-      (when (and lower (numberp data) (< data lower))
+        (error 'acond:parameter-data-invalid :parameter-data-instance parameter-data))
+      (when (and lower (numberp data) (or (> data upper) (< data lower)))
         (setf result nil)
-        (error "Parameter data ~a is smaller than its lower border ~a." data lower))
-      (when (and upper (numberp data) (> data upper))
-        (setf result nil)
-        (error "Parameter data ~a is larger than its upper border ~a." data upper))
+        (error 'acond:parameter-data-invalid :parameter-data-instance parameter-data))
       result)))
 
 (defmethod print-string ((scalar parameter-data-scalar))
@@ -90,7 +87,7 @@
     (let ((result t))
       (unless (typep data 'string)
         (setf result nil)
-        (error "Parameter data ~a is not a string." data))
+        (error 'acond:parameter-data-invalid :parameter-data-instance parameter-data))
       result)))
 
 (defmethod print-string ((parameter-data parameter-data-string))
@@ -119,15 +116,15 @@
     (let ((result t))
       (unless (typep data '(array float (3)))
         (setf result nil)
-        (error "Parameter data ~a is not a vector of 3 floats." data))
+        (error 'acond:parameter-data-invalid :parameter-data-instance parameter-data))
       (loop for component across data
             for index from 1 do
               (when (< component 0)
                 (setf result nil)
-                (error "Element ~a of RGB vector ~a is too small." index data))
+                (error 'acond:parameter-data-invalid :parameter-data-instance parameter-data))
               (when (> component 1)
                 (setf result nil)
-                (error "Element ~a of RGB vector ~a is too large." index data)))
+                (error 'acond:parameter-data-invalid :parameter-data-instance parameter-data)))
       result)))
 
 (defmethod inc-rgb ((parameter-data parameter-data-rgb) channel amount)
@@ -162,9 +159,7 @@
                            :data (getf data-expression :data)))
       (:string (make-instance 'parameter-data-string
                               :data (getf data-expression :data)))
-      (otherwise (error "Data type ~a of data expression ~a is not supported by import function."
-                        (getf data-expression :type)
-                        data-expression)))))
+      (otherwise (error 'acond:parameter-data-type-unsupported :data-expression data-expression)))))
 
 ;; TODO add modifying methods
 
@@ -198,7 +193,7 @@
                               (make-instance 'parameter-data-rgb :data ,data)))
      ((or parameter-data-scalar parameter-data-rgb parameter-data-string)
       (setf (,access-fun (data ,parameter)) ,data))
-     (otherwise (error "Parameter data ~a is of unsupported type." ,data))))
+     (otherwise (error 'acond:parameter-data-type-unsupported :data-expression data))))
 
 (defmethod get-data-cell ((parameter parameter-class) access-fun)
   "Returns the PARAMETER-DATA instance according to ACCESS-FUN: CAR for the actual data, CDR for the default data."
@@ -296,12 +291,6 @@
         :default-data (export-default-data parameter)))
 
 
-(defun parse-key (string-or-keyword)
-  "Expects a keyword or a string. If string, it will be converted to a case-insensitive keyword. To be used as keys for a hash-table."
-  (typecase string-or-keyword
-    (keyword string-or-keyword)
-    (string (alexandria:make-keyword (string-upcase string-or-keyword)))
-    (otherwise (error "Type of key ~a not supported." string-or-keyword))))
 
 
 
@@ -311,26 +300,41 @@
                :documentation "Hash-table that exclusively contains instances of PARAMETER-CLASS."))
   (:documentation "Collection of parameters that can be set up, manipulated, printed and exported as a bulk."))
 
+(defmethod parse-key ((bank parameter-bank-class) string-or-keyword)
+  "Expects a keyword or a string. If string, it will be converted to a case-insensitive keyword. To be used as keys for a hash-table."
+  (typecase string-or-keyword
+    (keyword string-or-keyword)
+    (string (alexandria:make-keyword (string-upcase string-or-keyword)))
+    (otherwise (error 'acond:key-not-supported :key string-or-keyword))))
+
 (defmethod get-parameter ((bank parameter-bank-class) key)
   "Expects a keyword or string to find a parameter in a parameter bank, returns the corresponding instance of PARAMETER-CLASS."
-  (let* ((keyword-key (parse-key key))
+  ;; implement handler-case
+  (let* ((keyword-key (parse-key bank key))
          (result (gethash keyword-key (parameters bank))))
-    (if result result (error "No parameter with key ~a found in parameter bank." keyword-key))))
+    (if result result (error 'acond:parameter-not-found :parameter-bank-instance bank :key key))))
 
 (defmethod update-parameter ((bank parameter-bank-class) key data
                              &key (default-data nil default-data-supplied-p)
                                (short-doc nil short-doc-supplied-p)
                                (long-doc nil long-doc-supplied-p))
   "Expects a keyword or string to be used as key for the parameter bank hash-table. DATA can be any Common Lisp object that is supported by the PARAMETER-DATA class."
-  (let ((parameter (get-parameter bank (parse-key key))))
+  ;; implement handler-case
+  (let ((parameter (get-parameter bank (parse-key bank key))))
     (set-data parameter data)
     (when default-data-supplied-p (set-default-data parameter default-data))
     (when short-doc-supplied-p (set-short-doc parameter short-doc))
     (when long-doc-supplied-p (set-long-doc parameter long-doc))))
 
+(defmethod generate-unique-key ((bank parameter-bank-class))
+  ;; to be implemented!
+  :xxxupup)
+
 (defmethod add-parameter ((bank parameter-bank-class) key data default short-doc long-doc)
   "KEY can be a keyword or a string. DATA and DEFAULT-DATA can be any Common Lisp object that is supported by the PARAMETER-DATA class. SHORT-DOC and LONG-DOC are strings for documentation purposes. If the parameter already exists, it will be updated, otherwise created."
-  (let ((keyword-key (parse-key key)))
+  ;; maybe change to restart-case?
+  (let ((keyword-key (handler-case (parse-key bank key)
+                       (acond:key-not-supported () (generate-unique-key bank)))))
     (if (gethash keyword-key (parameters bank))
         (update-parameter bank keyword-key data
                           :default-data default
@@ -393,6 +397,7 @@
   "Sets the default data of a parameter as its actual data. KEY can be of type KEYWORD or STRING."
   (reset-data (get-parameter bank key)))
 
+
 (defparameter *bank* (make-instance 'parameter-bank-class)
   "Globally used parameter bank, accessible through the exported functions of this package.")
 
@@ -437,6 +442,7 @@
 ;; TODO proper testing
 
 ;; testing
+
 (defp :p1 0.0 0.0 "nix" "nixnix")
 (defp :px 0.0 0.0 "nix" "nixnix")
 
@@ -447,6 +453,12 @@
 (resp :p1)
 
 (defp :ts "hi" "[default]" "test-string" "testing a string")
+
+(defp :wrong 'd 'd "Symbol" "unsupported symbol")
+
+(defp 27 30 25 "Number" "unsupported key")
+
+(defp :26 25 25 "Number" "unsupported key")
 
 (write-parameters)
 

@@ -12,10 +12,25 @@
   (:use :cl)
   (:nicknames :acond)
   (:export #:incudine-is-not-in-rt
+           #:compile-error
            #:pm-error
            #:faderfox-id-not-found
+           #:get-faderfox-name-from-user
+           #:instantiate-empty-parameter
+           #:no-parameter-found
+           #:get-parameter-value-from-user
            #:buffer-file-not-found
-           #:buffer-file-not-loaded))
+           #:buffer-file-not-loaded
+           #:key-not-supported
+           #:parameter-not-found
+           #:parameter-data-invalid
+           #:parameter-data-type-unsupported
+           ;; probably obsolete, figuring out
+           #:parameter-data-is-not-number
+           #:parameter-data-is-not-string
+           #:parameter-data-out-of-range
+           #:parameter-type-unsupported
+           ))
 
 
 (defpackage :arcimoog.parameters
