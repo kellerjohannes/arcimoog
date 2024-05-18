@@ -86,59 +86,78 @@
   (setf tmp.tono-maggiore 'mt.tono
         tmp.tono-minore 'mt.tono))
 
+(def 'time.longa
+  'duration (val 1))
+
+(def 'time.brevis
+  'duration (calc (* 1/2 (of 'time.longa 'duration))))
+
+(def 'time.semibrevis
+  'duration (calc (* 1/2 (of 'time.brevis 'duration))))
+
+(def 'time.minima
+  'duration (calc (* 1/2 (of 'time.semibrevis 'duration))))
+
 
 (def 'score.o
   'child 'score.a
   'pitch (val 1/1)
-  'time (val 44100))
+  'duration (val 0)
+  'time (val 0))
 
 (def 'score.a
   'child 'score.b
   'pitch (rel (asc local-state (of tmp.tono-maggiore 'size)))
-  'time (val 44100))
+  'duration (val (of 'time.brevis 'duration))
+  'time (rel (+ local-state (of 'time.brevis 'duration))))
 
 (def 'score.b
-  'child '(score.c score.alt1)
-  ;;'child 'score.c
+  ;;'child '(score.c score.alt1)
+  'child 'score.c
   'pitch (rel (asc local-state (of tmp.tono-maggiore 'size)))
-  'time (val 44100))
+  'duration (val (of 'time.brevis 'duration))
+  'time (rel (+ local-state (of 'time.brevis 'duration))))
 
 (def 'score.c
-  'child '(score.d score.slow1)
+  ;;'child '(score.d score.slow1)
+  'child 'score.d
   'pitch (rel (desc local-state (of tmp.tono-minore 'size)))
-  'time (val 44100))
+  'duration (val (of 'time.brevis 'duration))
+  'time (rel (+ local-state (of 'time.brevis 'duration))))
 
 (def 'score.d
   'child 'score.a
   'pitch (rel (desc local-state (of tmp.tono-minore 'size)))
-  'time (val 44100))
+  'duration (val (of 'time.brevis 'duration))
+  'time (rel (+ local-state (of 'time.brevis 'duration))))
+
 
 (def 'score.slow1
   'child 'score.slow2
-  'pitch (val 2000)
+  'pitch (val 2)
   'time (val 1500000))
 
 (def 'score.slow2
-  'pitch (val 5000)
+  'pitch (val 5)
   'time (val 1500000))
 
 (def 'score.alt1
   'child 'score.alt2
-  'pitch (val 17)
+  'pitch (val 7)
   'time (val 8000))
 
 (def 'score.alt2
   'child 'score.alt3
-  'pitch (val 18)
+  'pitch (val 8)
   'time (val 8000))
 
 (def 'score.alt3
   'child 'score.alt4
-  'pitch (val 19)
+  'pitch (val 9)
   'time (val 8000))
 
 (def 'score.alt4
-  'pitch (val 20)
+  'pitch (val 2)
   'time (val 8000))
 
 
@@ -193,47 +212,82 @@
         (remove-if (lambda (performer) (equal (getf performer 'id) id)) *performers*)))
 
 
-(defun start ()
-  (setf *performers* '())
-  (defperformer 0 'time 0 'pitch 1/1)
-  (process 'score.o 0))
-
 
 (ql:quickload :incudine)
 
 (incudine:rt-start)
 
-(defun process (origin performer-id &optional (count-down 20))
-  (cond ((zerop (decf count-down))
-         (format t "~&Countdown reached zero.~%"))
-        (t (loop for (key value) on (symbol-plist origin) by #'cddr do
-          (when (of-performer performer-id key)
-            (set-of-performer performer-id key (of origin key (of-performer performer-id key)))))
-           (format t "~&P~a; ~a: ~a (~a)"
-                   (of-performer performer-id 'id)
-                   (symbol-name origin)
-                   (of-performer performer-id 'pitch)
-                   (of-performer performer-id 'time))
+
+
+(defun update-performer (current-node performer-id)
+  (loop for (key value) on (symbol-plist current-node) by #'cddr do
+    (when (of-performer performer-id key)
+      (set-of-performer performer-id key
+                        (of current-node key (of-performer performer-id key))))))
+
+(defun terminate-performer (id)
+  (remove-performer id)
+  (format t "~&THE END~%"))
+
+(defun process (origin performer-id callback-fun real-time-p &optional (count-down 20))
+  (cond ((zerop (decf count-down)) (format t "~&Countdown reached zero.~%"))
+        (t (update-performer origin performer-id)
+           (funcall callback-fun origin performer-id)
            (let ((successors (get origin 'child)))
-             (cond ((null successors)
-                    (remove-performer performer-id)
-                    (format t "~&THE END~%"))
-                   ((or (atom successors) (and (listp successors) (null (rest successors))))
-                    (incudine:at (+ (incudine:now) (of-performer performer-id 'time))
-                                 #'process
-                                 (if (listp successors) (car successors) successors)
-                                 performer-id
-                                 count-down))
-                   ((listp successors)
-                    (incudine:at (+ (incudine:now) (of-performer performer-id 'time))
-                                 #'process
-                                 (first successors)
-                                 performer-id
-                                 count-down)
-                    (dolist (successor (rest successors))
-                      (incudine:at (+ (incudine:now) (of-performer performer-id 'time))
-                                   #'process
-                                   successor
-                                   (duplicate-performer performer-id)
-                                   count-down)))
-                   (t nil))))))
+             (macrolet ((rec (active-successor active-id)
+                          `(if real-time-p
+                               (incudine:at (+ (incudine:now) (of-performer performer-id 'time))
+                                            #'process
+                                            ,active-successor
+                                            ,active-id
+                                            callback-fun
+                                            real-time-p
+                                            count-down)
+                               (process ,active-successor
+                                        ,active-id
+                                        callback-fun
+                                        real-time-p
+                                        count-down))))
+               (cond ((null successors) (terminate-performer performer-id))
+                     ((or (atom successors) (and (listp successors) (null (rest successors))))
+                      (rec (if (listp successors) (car successors) successors) performer-id))
+                     ((listp successors)
+                      (rec (first successors) performer-id)
+                      (dolist (successor (rest successors))
+                        (rec successor (duplicate-performer performer-id))))))))))
+
+
+
+(defparameter *printer* (lambda (origin performer-id)
+                          (format t "~&P~a; ~a: ~a (~a)"
+                                  (of-performer performer-id 'id)
+                                  (symbol-name origin)
+                                  (of-performer performer-id 'pitch)
+                                  (of-performer performer-id 'time))))
+
+
+(defparameter *tikz-drawer* (lambda (origin id)
+                              (let ((time-factor 1)
+                                    (pitch-factor 1/100))
+                                (let ((time (* time-factor (of-performer id 'time)))
+                                      (duration (* time-factor (of-performer id 'duration)))
+                                      (pitch (* pitch-factor
+                                                (vicentino-tunings:ratio->length
+                                                 (of-performer id 'pitch)))))
+                                  (format t "~&drawing ~a" (symbol-name origin))
+                                  (push (ln (pt time pitch)
+                                            (pt (+ time duration) pitch)
+                                            :style-update '(:line-type :thick))
+                                        *score*)))))
+
+(defparameter *score* nil)
+
+(defun start ()
+  (let ((tikz-backend (make-backend-tikz :filename "score.tex")))
+    (setf *performers* '())
+    (setf *score* nil)
+    (defperformer 0 'time 0 'pitch 1/1 'duration 0)
+    (process 'score.o 0 *tikz-drawer* nil 100)
+    ;;(process 'score.o 0 *printer* nil)
+    (draw-with-multiple-backends (list tikz-backend) *score*)
+    (compile-tikz tikz-backend)))
