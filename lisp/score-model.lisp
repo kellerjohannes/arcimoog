@@ -38,6 +38,9 @@
 (defun chain (&rest intervals)
   (apply #'* intervals))
 
+(defun series (number-of-elements interval)
+  (expt interval number-of-elements))
+
 (defun diff (interval-a interval-b)
   (cond ((> interval-a interval-b) (/ interval-a interval-b))
         ((< interval-a interval-b) (/ interval-b interval-a))
@@ -75,16 +78,53 @@
 (def 'mt.tono 'size (calc (edx 2 (of 'mt.terza-maggiore 'size))))
 
 
+(def '12ed2.ottava 'size (val 2/1))
+(def '12ed2.quinta 'size (calc (series 7 (edx 12))))
+(def '12ed2.quarta 'size (calc (series 5 (edx 12))))
+(def '12ed2.tono 'size (calc (series 2 (edx 12))))
+
+
+(def 'reference-pitch.1 'pitch (val 1/1))
+
+
+
+
+
 (defvar tmp.tono-maggiore 'ji.tono-maggiore)
 (defvar tmp.tono-minore 'ji.tono-minore)
+(defvar tmp.ottava 'ji.ottava)
+(defvar tmp.quinta 'ji.quinta)
+(defvar tmp.quarta 'ji.quarta)
+(defvar tmp.reference-pitch 'reference-pitch.1)
 
+;; JI setup
 (progn
-  (setf tmp.tono-maggiore 'ji.tono-maggiore
+  (setf tmp.reference-pitch 'reference-pitch.1
+        tmp.ottava 'ji.ottava
+        tmp.quinta 'ji.quinta
+        tmp.quarta 'ji.quarta
+        tmp.tono-maggiore 'ji.tono-maggiore
         tmp.tono-minore 'ji.tono-minore))
 
+
+;; MT setup
 (progn
-  (setf tmp.tono-maggiore 'mt.tono
+  (setf tmp.reference-pitch 'reference-pitch.1
+        tmp.ottava 'mt.ottava
+        tmp.quinta 'mt.quinta
+        tmp.quarta 'mt.quarta
+        tmp.tono-maggiore 'mt.tono
         tmp.tono-minore 'mt.tono))
+
+;; 12ed2 setup
+(progn
+  (setf tmp.reference-pitch 'reference-pitch.1
+        tmp.ottava '12ed2.ottava
+        tmp.quinta '12ed2.quinta
+        tmp.quarta '12ed2.quarta
+        tmp.tono-maggiore '12ed2.tono
+        tmp.tono-minore '12ed2.tono))
+
 
 (def 'time.longa
   'duration (val 1))
@@ -97,6 +137,104 @@
 
 (def 'time.minima
   'duration (calc (* 1/2 (of 'time.semibrevis 'duration))))
+
+
+(def 'benedetti.origin
+  'pitch (val (of tmp.reference-pitch 'pitch))
+  'time (val 0)
+  'duration (val 0)
+  'child '(benedetti.v1.origin
+           benedetti.v2.origin
+           benedetti.v3.origin
+           ))
+
+(def 'benedetti.v1.origin
+  'pitch (rel (asc local-state (of tmp.ottava 'size)))
+  'time (val 0)
+  'duration (val 0)
+  'child 'benedetti.v1.n1)
+
+(def 'benedetti.v2.origin
+  'pitch (rel (asc local-state (of tmp.quinta 'size)))
+  'time (val 0)
+  'duration (val 0)
+  'child 'benedetti.v2.n1)
+
+(def 'benedetti.v3.origin
+  'pitch (rel local-state)
+  'time (val 0)
+  'duration (val 0)
+  'child 'benedetti.v3.n1)
+
+
+(def 'benedetti.v1.n1
+  'pitch (rel local-state)
+  'time (rel (- local-state (of 'time.minima 'duration)))
+  'duration (val (of 'time.semibrevis 'duration))
+  'child 'benedetti.v1.n2)
+
+(def 'benedetti.v1.n2
+  'pitch (rel (asc local-state (of tmp.tono-maggiore 'size)))
+  'time (rel (+ local-state (of 'time.semibrevis 'duration)))
+  'duration (val (of 'time.semibrevis 'duration))
+  'child 'benedetti.v1.n3)
+
+(def 'benedetti.v1.n3
+  'pitch (rel (desc local-state (of tmp.tono-minore 'size)))
+  'time (rel (+ local-state (of 'time.semibrevis 'duration)))
+  'duration (val (of 'time.semibrevis 'duration))
+  'child 'benedetti.v1.n2)
+
+
+
+(def 'benedetti.v2.n1
+  'pitch (rel local-state)
+  'time (rel local-state)
+  'duration (val (of 'time.semibrevis 'duration))
+  'child 'benedetti.v2.n2)
+
+(def 'benedetti.v2.n2
+  'pitch (rel (asc local-state (of tmp.tono-maggiore 'size)))
+  'time (rel (+ local-state (of 'time.semibrevis 'duration)))
+  'duration (val (of 'time.semibrevis 'duration))
+  'child 'benedetti.v2.n3)
+
+(def 'benedetti.v2.n3
+  'pitch (rel (desc local-state (of tmp.tono-minore 'size)))
+  'time (rel (+ local-state (of 'time.semibrevis 'duration)))
+  'duration (val (of 'time.semibrevis 'duration))
+  'child 'benedetti.v2.n2)
+
+
+
+(def 'benedetti.v3.n1
+  'pitch (rel local-state)
+  'time (rel local-state)
+  'duration (val (of 'time.minima 'duration))
+  'child 'benedetti.v3.n2)
+
+(def 'benedetti.v3.n2
+  'pitch (rel (asc local-state (of tmp.quinta 'size)))
+  'time (rel (+ local-state (of 'time.minima 'duration)))
+  'duration (val (of 'time.minima 'duration))
+  'child 'benedetti.v3.n3)
+
+(def 'benedetti.v3.n3
+  'pitch (rel (desc local-state (of tmp.tono-minore 'size)))
+  'time (rel (+ local-state (of 'time.minima 'duration)))
+  'duration (val (of 'time.semibrevis 'duration))
+  'child 'benedetti.v3.n4)
+
+(def 'benedetti.v3.n4
+  'pitch (rel (desc local-state (of tmp.quarta 'size)))
+  'time (rel (+ local-state (of 'time.semibrevis 'duration)))
+  'duration (val (of 'time.minima 'duration))
+  'child 'benedetti.v3.n2)
+
+
+
+
+
 
 
 (def 'score.o
@@ -231,30 +369,33 @@
 
 (defun process (origin performer-id callback-fun real-time-p &optional (count-down 20))
   (cond ((zerop (decf count-down)) (format t "~&Countdown reached zero.~%"))
-        (t (update-performer origin performer-id)
-           (funcall callback-fun origin performer-id)
-           (let ((successors (get origin 'child)))
-             (macrolet ((rec (active-successor active-id)
-                          `(if real-time-p
-                               (incudine:at (+ (incudine:now) (of-performer performer-id 'time))
-                                            #'process
-                                            ,active-successor
-                                            ,active-id
-                                            callback-fun
-                                            real-time-p
-                                            count-down)
-                               (process ,active-successor
-                                        ,active-id
-                                        callback-fun
-                                        real-time-p
-                                        count-down))))
-               (cond ((null successors) (terminate-performer performer-id))
-                     ((or (atom successors) (and (listp successors) (null (rest successors))))
-                      (rec (if (listp successors) (car successors) successors) performer-id))
-                     ((listp successors)
-                      (rec (first successors) performer-id)
-                      (dolist (successor (rest successors))
-                        (rec successor (duplicate-performer performer-id))))))))))
+        (t (let ((old-performer (get-performer-properties performer-id)))
+             (update-performer origin performer-id)
+             (funcall callback-fun origin performer-id)
+             (let ((successors (get origin 'child)))
+               (macrolet ((rec (active-successor active-id)
+                            `(if real-time-p
+                                 (incudine:at (+ (incudine:now) (of-performer performer-id 'time))
+                                              #'process
+                                              ,active-successor
+                                              ,active-id
+                                              callback-fun
+                                              real-time-p
+                                              count-down)
+                                 (process ,active-successor
+                                          ,active-id
+                                          callback-fun
+                                          real-time-p
+                                          count-down))))
+                 (cond ((null successors) (terminate-performer performer-id))
+                       ((or (atom successors) (and (listp successors) (null (rest successors))))
+                        (rec (if (listp successors) (car successors) successors) performer-id))
+                       ((listp successors)
+                        (rec (first successors) performer-id)
+                        (dolist (successor (rest successors))
+                          (let ((new-id (find-next-available-id)))
+                            (apply #'defperformer new-id old-performer)
+                            (rec successor new-id)))))))))))
 
 
 
@@ -267,14 +408,19 @@
 
 
 (defparameter *tikz-drawer* (lambda (origin id)
-                              (let ((time-factor 1)
-                                    (pitch-factor 1/100))
+                              (let ((time-factor 50)
+                                    (pitch-factor 1/50)
+                                    (dot-size 0.5))
                                 (let ((time (* time-factor (of-performer id 'time)))
                                       (duration (* time-factor (of-performer id 'duration)))
                                       (pitch (* pitch-factor
                                                 (vicentino-tunings:ratio->length
                                                  (of-performer id 'pitch)))))
                                   (format t "~&drawing ~a" (symbol-name origin))
+                                  ;; (push (make-text (symbol-name origin)
+                                  ;;                  (pt time (- pitch (* 3.5 dot-size))))
+                                  ;;       *score*)
+                                  (push (circ time pitch dot-size) *score*)
                                   (push (ln (pt time pitch)
                                             (pt (+ time duration) pitch)
                                             :style-update '(:line-type :thick))
@@ -287,7 +433,7 @@
     (setf *performers* '())
     (setf *score* nil)
     (defperformer 0 'time 0 'pitch 1/1 'duration 0)
-    (process 'score.o 0 *tikz-drawer* nil 100)
+    (process 'benedetti.origin 0 *tikz-drawer* nil 50)
     ;;(process 'score.o 0 *printer* nil)
     (draw-with-multiple-backends (list tikz-backend) *score*)
     (compile-tikz tikz-backend)))
