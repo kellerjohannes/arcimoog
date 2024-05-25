@@ -234,10 +234,21 @@
 
 
 
-(defparameter *dict-ly-pitch* '((es . e♭)
+(defparameter *dict-ly-pitch* '((b . b♮)
+                                (bes . b♭)
+                                (es . e♭)
+                                (as . a♭)
                                 (des . d♭)
+                                (ges . g♭)
+                                (ces . c♭)
+                                (fes . f♭)
                                 (fis . f♯)
-                                (eis . e♯)))
+                                (cis . c♯)
+                                (gis . g♯)
+                                (dis . d♯)
+                                (ais . a♯)
+                                (eis . e♯)
+                                (bis . b♯)))
 
 (defun translate-ly-pitch (ly-pitch)
   (let ((result (cdr (assoc ly-pitch *dict-ly-pitch*))))
@@ -250,14 +261,33 @@
                 (translate-ly-pitch element)))
           ly-data))
 
-(defparameter *dict-intervals* '((tono . ((c . d)
-                                          (d♭ . e♭)))
-                                 (terza-maggiore ((c . e)))
-                                 (terza-minore . ((b . d)
+(defparameter *dict-intervals* '((quinta . ((e . b♮)
+                                            (f . c)))
+                                 (tritono . ((a . d♯)))
+                                 (quarta . ((f . b♭)))
+                                 (terza-maggiore . ((c . e)
+                                                    (g . b♮)
+                                                    (b♮ . d♯)
+                                                    (d♭ . f)))
+                                 (terza-minore . ((b♮ . d)
                                                   (c . e♭)
-                                                  (e . g)))
-                                 (semitono-maggiore . ((c . d♭)
+                                                  (d . f)
+                                                  (e . g)
+                                                  (g . b♭)
+                                                  (a . c)))
+                                 (tono . ((c . d)
+                                          (a . b♮)
+                                          (f♯ . g♯)
+                                          (e♭ . f)
+                                          (d♭ . e♭)))
+                                 (semitono-maggiore . ((e . f)
+                                                       (b♮ . c)
+                                                       (c . d♭)
+                                                       (g . a♭)
+                                                       (a . b♭)
                                                        (f♯ . g)
+                                                       (g♯ . a)
+                                                       (a♯ . b♮)
                                                        (e♯ . f♯)))))
 
 (defun search-interval (note-name-pair)
@@ -265,6 +295,7 @@
 
 (defun identify-interval (note-name-a note-name-b)
   ;; TODO implement rests
+  ;; (format t "~&~a : ~a" note-name-a note-name-b)
   (if (or (eq note-name-a note-name-b))
       (list 'unisono)
       (let ((interval-original (search-interval (cons note-name-a note-name-b))))
@@ -275,7 +306,9 @@
                   (list interval-inverted 'discendente)
                   (list 'unidentified)))))))
 
-(defparameter *dict-ly-values* '((1 . semibrevis)
+(defparameter *dict-ly-values* '((brevis . brevis)
+                                 (1 . semibrevis)
+                                 (2p . minima-dot)
                                  (2 . minima)
                                  (4 . semiminima)))
 
@@ -284,17 +317,26 @@
 
 
 (defparameter *rossi-alto* '(b 1 b 2 d 2 c 2 c 4 c 4 es 1 des 1 c 1 ;; r 2
-                             e 2 g 2 fis 1 eis 2 fis 1
-                             ))
+                             e 2 g 2 fis 1 eis 2 fis 1))
+
+(defparameter *rossi-tenore* '(fis 1 g 2 g 2 as 1 g 2 g 2 bes 1 a brevis ;; r 2
+                               dis 2 b 1 ais 1))
+
+(defparameter *rossi-quinto* '(d 1 d 2 d 2 f 1 es 1 ;; r 2
+                               des 2 f 1 e 2 e 2 b 2p a 4 gis 1 fis 1))
+
+(defparameter *rossi-basso* '(b 1 g 2 bes 2 f 1 c 1 ;; r 1p
+                              a 2 c 1 b 1))
 
 ;; TODO implement octave-indication
 ;; TODO implement origin pitch
 
 (defun parse-ly-notation (ly-data)
-  (do ((result nil)
-       (rest-data (translate-ly-pitch-data ly-data) (rest (rest rest-data)))
-       (previous-pitch (first ly-data)))
-      ((null rest-data) (reverse result))
+  (do* ((result nil)
+        (rest-data (translate-ly-pitch-data ly-data) (rest (rest rest-data)))
+        (previous-pitch (first rest-data)))
+       ((null rest-data) (reverse result))
+    ;; (format t "~&~a" (first rest-data))
     (push (append (identify-interval previous-pitch (first rest-data))
                   (list (translate-ly-value (second rest-data))))
           result)
@@ -315,6 +357,7 @@
                        (quarta . quarta)
                        (terza-maggiore . quinta-imperfetta)))
     (sesta-maggiore . ((quarta . terza-maggiore)
+                       (tritono . terza-minore)
                        (quinta . tono)))
     (sesta-minore . ((quarta . terza-minore)
                      (quinta . semitono-maggiore)))
@@ -335,6 +378,8 @@
     (tono-maggiore . ((semitono-maggiore . semitono-maggiore)
                       (tono . diesis)))
     (tono . ((semitono-maggiore . semitono-minore)))
+    (tono-minore . ((semitono-minore . semitono-minore)
+                    (semitono-maggiore . diesis)))
     (semitono-maggiore . ((semitono-minore . diesis)))
     (semitono-minore . ((diesis . diesis)))))
 
