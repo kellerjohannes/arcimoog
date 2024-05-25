@@ -264,7 +264,8 @@
   (car (rassoc-if (lambda (x) (member note-name-pair x :test #'equal)) *dict-intervals*)))
 
 (defun identify-interval (note-name-a note-name-b)
-  (if (eq note-name-a note-name-b)
+  ;; TODO implement rests
+  (if (or (eq note-name-a note-name-b))
       (list 'unisono)
       (let ((interval-original (search-interval (cons note-name-a note-name-b))))
         (if interval-original
@@ -282,7 +283,9 @@
   (cdr (assoc ly-value *dict-ly-values*)))
 
 
-(defparameter *rossi-alto* '(b 1 b 2 d 2 c 2 c 4 c 4 es 1 des 1 c 1 r 2 e 2 g 2 fis 1 eis 2 fis 1))
+(defparameter *rossi-alto* '(b 1 b 2 d 2 c 2 c 4 c 4 es 1 des 1 c 1 ;; r 2
+                             e 2 g 2 fis 1 eis 2 fis 1
+                             ))
 
 ;; TODO implement octave-indication
 ;; TODO implement origin pitch
@@ -297,38 +300,43 @@
           result)
     (setf previous-pitch (first rest-data))))
 
-(defparameter *interval-combinations* '((ottava . ((quinta . quarta)
-                                                   (quinta-imperfetta . tritono)
-                                                   (sesta-minore . terza-maggiore)
-                                                   (sesta-maggiore . terza-minore)
-                                                   (settima-minore . tono)
-                                                   (settima-maggiore . semitono-maggiore)))
-                                        (settima-maggiore . ((quinta . terza-maggiore)
-                                                             (quarta . tritono)
-                                                             (sesta-maggiore . tono)
-                                                             (settima-minore . semitono-minore)))
-                                        (settima-minore . ((quinta . terza-minore)
-                                                           (quarta . quarta)
-                                                           (terza-maggiore . quinta-imperfetta)))
-                                        (sesta-maggiore . ((quarta . terza-maggiore)
-                                                           (quinta . tono)))
-                                        (sesta-minore . ((quarta . terza-minore)
-                                                         (quinta . semitono-maggiore)))
-                                        (quinta . ((terza-maggiore . terza-minore)
-                                                   (quarta . tono)
-                                                   (tritono . semitono-maggiore)))
-                                        (quinta-imperfetta . ((terza-minore . terza-minore)
-                                                              (quarta . semitono-maggiore)))
-                                        (tritono . ((terza-maggiore . tono)
-                                                    (quarta . semitono-minore)))
-                                        (quarta . ((terza-maggiore . semitono-maggiore)
-                                                   (terza-minore . tono)))
-                                        (terza-maggiore . ((tono . tono)
-                                                           (terza-minore . semitono-minore)))
-                                        (terza-minore . ((tono . semitono-maggiore)))
-                                        (tono . ((semitono-maggiore . semitono-minore)))
-                                        (semitono-maggiore . ((semitono-minore . diesis)))
-                                        (semitono-minore . ((diesis . diesis)))))
+(defparameter *interval-combinations*
+  '((ottava . ((quinta . quarta)
+               (quinta-imperfetta . tritono)
+               (sesta-minore . terza-maggiore)
+               (sesta-maggiore . terza-minore)
+               (settima-minore . tono)
+               (settima-maggiore . semitono-maggiore)))
+    (settima-maggiore . ((quinta . terza-maggiore)
+                         (quarta . tritono)
+                         (sesta-maggiore . tono)
+                         (settima-minore . semitono-minore)))
+    (settima-minore . ((quinta . terza-minore)
+                       (quarta . quarta)
+                       (terza-maggiore . quinta-imperfetta)))
+    (sesta-maggiore . ((quarta . terza-maggiore)
+                       (quinta . tono)))
+    (sesta-minore . ((quarta . terza-minore)
+                     (quinta . semitono-maggiore)))
+    (quinta . ((terza-maggiore . terza-minore)
+               (quarta . tono)
+               (tritono . semitono-maggiore)))
+    (quinta-imperfetta . ((terza-minore . terza-minore)
+                          (quarta . semitono-maggiore)))
+    (tritono . ((terza-maggiore . tono)
+                (quarta . semitono-minore)))
+    (quarta . ((terza-maggiore . semitono-maggiore)
+               (terza-minore . tono)))
+    (terza-piu-di-maggiore . ((terza-minore . semitono-maggiore)
+                              (tono-maggiore . tono)))
+    (terza-maggiore . ((tono . tono)
+                       (terza-minore . semitono-minore)))
+    (terza-minore . ((tono . semitono-maggiore)))
+    (tono-maggiore . ((semitono-maggiore . semitono-maggiore)
+                      (tono . diesis)))
+    (tono . ((semitono-maggiore . semitono-minore)))
+    (semitono-maggiore . ((semitono-minore . diesis)))
+    (semitono-minore . ((diesis . diesis)))))
 
 (defun find-interval-divisions (interval)
   (cdr (assoc interval *interval-combinations*)))
@@ -357,6 +365,7 @@
 
 
 (defun chain-intervals (interval-a interval-b)
+  (format t "~&~a / ~a" interval-a interval-b)
   (cond ((eq (first interval-a) 'unisono) interval-b)
         ((eq (first interval-b) 'unisono) interval-a)
         ((and (eq (first interval-a) (first interval-b))
@@ -375,6 +384,7 @@
 
 (defun interval-path (interval-list)
   (reduce #'chain-intervals interval-list))
+
 
 
 
