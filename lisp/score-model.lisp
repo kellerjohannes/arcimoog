@@ -234,69 +234,150 @@
 
 
 
+(defparameter *dict-ly-pitch* '((es . e♭)
+                                (des . d♭)
+                                (fis . f♯)
+                                (eis . e♯)))
+
+(defun translate-ly-pitch (ly-pitch)
+  (let ((result (cdr (assoc ly-pitch *dict-ly-pitch*))))
+    (if result result ly-pitch)))
+
+(defun translate-ly-pitch-data (ly-data)
+  (mapcar (lambda (element)
+            (if (numberp element)
+                element
+                (translate-ly-pitch element)))
+          ly-data))
+
+(defparameter *dict-intervals* '((tono . ((c . d)
+                                          (d♭ . e♭)))
+                                 (terza-maggiore ((c . e)))
+                                 (terza-minore . ((b . d)
+                                                  (c . e♭)
+                                                  (e . g)))
+                                 (semitono-maggiore . ((c . d♭)
+                                                       (f♯ . g)
+                                                       (e♯ . f♯)))))
+
+(defun search-interval (note-name-pair)
+  (car (rassoc-if (lambda (x) (member note-name-pair x :test #'equal)) *dict-intervals*)))
+
+(defun identify-interval (note-name-a note-name-b)
+  (if (eq note-name-a note-name-b)
+      (list 'unisono)
+      (let ((interval-original (search-interval (cons note-name-a note-name-b))))
+        (if interval-original
+            (list interval-original 'ascendente)
+            (let ((interval-inverted (search-interval (cons note-name-b note-name-a))))
+              (if interval-inverted
+                  (list interval-inverted 'discendente)
+                  (list 'unidentified)))))))
+
+(defparameter *dict-ly-values* '((1 . semibrevis)
+                                 (2 . minima)
+                                 (4 . semiminima)))
+
+(defun translate-ly-value (ly-value)
+  (cdr (assoc ly-value *dict-ly-values*)))
+
+
+(defparameter *rossi-alto* '(b 1 b 2 d 2 c 2 c 4 c 4 es 1 des 1 c 1 r 2 e 2 g 2 fis 1 eis 2 fis 1))
+
+;; TODO implement octave-indication
+;; TODO implement origin pitch
+
+(defun parse-ly-notation (ly-data)
+  (do ((result nil)
+       (rest-data (translate-ly-pitch-data ly-data) (rest (rest rest-data)))
+       (previous-pitch (first ly-data)))
+      ((null rest-data) (reverse result))
+    (push (append (identify-interval previous-pitch (first rest-data))
+                  (list (translate-ly-value (second rest-data))))
+          result)
+    (setf previous-pitch (first rest-data))))
+
+(defparameter *interval-combinations* '((ottava . ((quinta . quarta)
+                                                   (quinta-imperfetta . tritono)
+                                                   (sesta-minore . terza-maggiore)
+                                                   (sesta-maggiore . terza-minore)
+                                                   (settima-minore . tono)
+                                                   (settima-maggiore . semitono-maggiore)))
+                                        (settima-maggiore . ((quinta . terza-maggiore)
+                                                             (quarta . tritono)
+                                                             (sesta-maggiore . tono)
+                                                             (settima-minore . semitono-minore)))
+                                        (settima-minore . ((quinta . terza-minore)
+                                                           (quarta . quarta)
+                                                           (terza-maggiore . quinta-imperfetta)))
+                                        (sesta-maggiore . ((quarta . terza-maggiore)
+                                                           (quinta . tono)))
+                                        (sesta-minore . ((quarta . terza-minore)
+                                                         (quinta . semitono-maggiore)))
+                                        (quinta . ((terza-maggiore . terza-minore)
+                                                   (quarta . tono)
+                                                   (tritono . semitono-maggiore)))
+                                        (quinta-imperfetta . ((terza-minore . terza-minore)
+                                                              (quarta . semitono-maggiore)))
+                                        (tritono . ((terza-maggiore . tono)
+                                                    (quarta . semitono-minore)))
+                                        (quarta . ((terza-maggiore . semitono-maggiore)
+                                                   (terza-minore . tono)))
+                                        (terza-maggiore . ((tono . tono)
+                                                           (terza-minore . semitono-minore)))
+                                        (terza-minore . ((tono . semitono-maggiore)))
+                                        (tono . ((semitono-maggiore . semitono-minore)))
+                                        (semitono-maggiore . ((semitono-minore . diesis)))
+                                        (semitono-minore . ((diesis . diesis)))))
+
+(defun find-interval-divisions (interval)
+  (cdr (assoc interval *interval-combinations*)))
+
+(defun member-in-pair (item pair)
+  (or (eq item (car pair)) (eq item (cdr pair))))
+
+(defun combine-intervals (interval-name-a interval-name-b)
+  (cond ((eq interval-name-a 'unisono) interval-name-b)
+        ((eq interval-name-b 'unisono) interval-name-a)
+        (t (let ((combination-1 (cons interval-name-a interval-name-b))
+                 (combination-2 (cons interval-name-b interval-name-a)))
+             (car (rassoc-if (lambda (x)
+                               (or (member combination-1 x :test #'equal)
+                                   (member combination-2 x :test #'equal)))
+                             *interval-combinations*))))))
+
+
+(defun interval-division (interval-name-a interval-name-b)
+  (let ((division (find interval-name-b
+                        (find-interval-divisions interval-name-a)
+                        :test #'member-in-pair)))
+    (if (eq (car division) interval-name-b)
+        (cdr division)
+        (car division))))
+
+
+(defun chain-intervals (interval-a interval-b)
+  (cond ((eq (first interval-a) 'unisono) interval-b)
+        ((eq (first interval-b) 'unisono) interval-a)
+        ((and (eq (first interval-a) (first interval-b))
+              (not (eq (second interval-a) (second interval-b))))
+         (list 'unisono))
+        ((eq (second interval-a) (second interval-b))
+         (list (combine-intervals (first interval-a) (first interval-b))
+               (second interval-a)))
+        (t (let ((first-attempt (interval-division (first interval-a) (first interval-b))))
+             (if first-attempt
+                 (list first-attempt (second interval-a))
+                 (let ((second-attempt (interval-division (first interval-b) (first interval-a))))
+                   (if second-attempt
+                       (list second-attempt (second interval-b))
+                       nil)))))))
+
+(defun interval-path (interval-list)
+  (reduce #'chain-intervals interval-list))
 
 
 
-(def 'score.o
-  'child 'score.a
-  'pitch (val 1/1)
-  'duration (val 0)
-  'time (val 0))
-
-(def 'score.a
-  'child 'score.b
-  'pitch (rel (asc local-state (of tmp.tono-maggiore 'size)))
-  'duration (val (of 'time.brevis 'duration))
-  'time (rel (+ local-state (of 'time.brevis 'duration))))
-
-(def 'score.b
-  ;;'child '(score.c score.alt1)
-  'child 'score.c
-  'pitch (rel (asc local-state (of tmp.tono-maggiore 'size)))
-  'duration (val (of 'time.brevis 'duration))
-  'time (rel (+ local-state (of 'time.brevis 'duration))))
-
-(def 'score.c
-  ;;'child '(score.d score.slow1)
-  'child 'score.d
-  'pitch (rel (desc local-state (of tmp.tono-minore 'size)))
-  'duration (val (of 'time.brevis 'duration))
-  'time (rel (+ local-state (of 'time.brevis 'duration))))
-
-(def 'score.d
-  'child 'score.a
-  'pitch (rel (desc local-state (of tmp.tono-minore 'size)))
-  'duration (val (of 'time.brevis 'duration))
-  'time (rel (+ local-state (of 'time.brevis 'duration))))
-
-
-(def 'score.slow1
-  'child 'score.slow2
-  'pitch (val 2)
-  'time (val 1500000))
-
-(def 'score.slow2
-  'pitch (val 5)
-  'time (val 1500000))
-
-(def 'score.alt1
-  'child 'score.alt2
-  'pitch (val 7)
-  'time (val 8000))
-
-(def 'score.alt2
-  'child 'score.alt3
-  'pitch (val 8)
-  'time (val 8000))
-
-(def 'score.alt3
-  'child 'score.alt4
-  'pitch (val 9)
-  'time (val 8000))
-
-(def 'score.alt4
-  'pitch (val 2)
-  'time (val 8000))
 
 
 (defparameter *performers* '())
