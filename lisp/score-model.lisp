@@ -254,12 +254,39 @@
   (let ((result (cdr (assoc ly-pitch *dict-ly-pitch*))))
     (if result result ly-pitch)))
 
+(defparameter *dict-ly-values* '((brevis . brevis)
+                                 (1 . semibrevis)
+                                 (2p . minima-dot)
+                                 (2 . minima)
+                                 (4 . semiminima)))
+
+(defun translate-ly-value (ly-value)
+  (cdr (assoc ly-value *dict-ly-values*)))
+
 (defun translate-ly-pitch-data (ly-data)
   (mapcar (lambda (element)
             (if (numberp element)
                 element
                 (translate-ly-pitch element)))
           ly-data))
+
+
+
+
+
+
+
+(defparameter *rossi-alto* '(b 1 b 2 d 2 c 2 c 4 c 4 es 1 des 1 c 1 ;; r 2
+                             e 2 g 2 fis 1 eis 2 fis 1))
+
+(defparameter *rossi-tenore* '(fis 1 g 2 g 2 as 1 g 2 g 2 bes 1 a brevis ;; r 2
+                               dis 2 b 1 ais 1))
+
+(defparameter *rossi-quinto* '(d 1 d 2 d 2 f 1 es 1 ;; r 2
+                               des 2 f 1 e 2 e 2 b 2p a 4 gis 1 fis 1))
+
+(defparameter *rossi-basso* '(b 1 g 2 bes 2 f 1 c 1 ;; r 1p
+                              a 2 c 1 b 1))
 
 (defparameter *dict-intervals* '((quinta . ((e . b♮)
                                             (f . c)))
@@ -306,31 +333,6 @@
                   (list interval-inverted 'discendente)
                   (list 'unidentified)))))))
 
-(defparameter *dict-ly-values* '((brevis . brevis)
-                                 (1 . semibrevis)
-                                 (2p . minima-dot)
-                                 (2 . minima)
-                                 (4 . semiminima)))
-
-(defun translate-ly-value (ly-value)
-  (cdr (assoc ly-value *dict-ly-values*)))
-
-
-(defparameter *rossi-alto* '(b 1 b 2 d 2 c 2 c 4 c 4 es 1 des 1 c 1 ;; r 2
-                             e 2 g 2 fis 1 eis 2 fis 1))
-
-(defparameter *rossi-tenore* '(fis 1 g 2 g 2 as 1 g 2 g 2 bes 1 a brevis ;; r 2
-                               dis 2 b 1 ais 1))
-
-(defparameter *rossi-quinto* '(d 1 d 2 d 2 f 1 es 1 ;; r 2
-                               des 2 f 1 e 2 e 2 b 2p a 4 gis 1 fis 1))
-
-(defparameter *rossi-basso* '(b 1 g 2 bes 2 f 1 c 1 ;; r 1p
-                              a 2 c 1 b 1))
-
-;; TODO implement octave-indication
-;; TODO implement origin pitch
-
 (defun parse-ly-notation (ly-data)
   (do* ((result nil)
         (rest-data (translate-ly-pitch-data ly-data) (rest (rest rest-data)))
@@ -341,6 +343,26 @@
                   (list (translate-ly-value (second rest-data))))
           result)
     (setf previous-pitch (first rest-data))))
+
+
+(ql:quickload :alexandria)
+
+(defparameter *ordine-naturale*
+  '((tono . ((apotome . limma)))
+    (semiditono . ((tono . limma)))
+    (ditono . ((tono . tono)
+               (apotome . semiditono)))
+    (diatessaron . ((ditono . limma)
+                    (semiditono . tono)))
+    (diapente . ((semiditono . ditono)
+                 (diatessaron . tono)
+                 (tritono . limma)))
+    (diapason . ((tritono . quinta-imperfetta)
+                 (diapente . diatessaron)
+                 (ditono . sesta-minore)
+                 (semiditono . sesta-maggiore)
+                 (tono . settima-minore)
+                 (limma . settima-maggiore)))))
 
 (defparameter *interval-combinations*
   '((ottava . ((quinta . quarta)
@@ -383,8 +405,31 @@
     (semitono-maggiore . ((semitono-minore . diesis)))
     (semitono-minore . ((diesis . diesis)))))
 
-(defun find-interval-divisions (interval)
-  (cdr (assoc interval *interval-combinations*)))
+(defun find-interval-divisions (interval interval-tree)
+  (cdr (assoc interval interval-tree)))
+
+(defun inventory (interval-divisions)
+  (remove-duplicates (alexandria:flatten interval-divisions)))
+
+
+;;; smallest divisions algorithm doesn't work yet
+(defparameter *result* nil)
+
+(defun smallest-divisions (interval-name interval-tree)
+  (let ((*result* nil))
+    (smallest-divisions-rec interval-name interval-tree)
+    *result*))
+
+(defun smallest-divisions-rec (interval-name interval-tree)
+  (let ((divisions (find-interval-divisions interval-name interval-tree)))
+    (if divisions
+        (progn
+          (dolist (component divisions)
+            (smallest-divisions-rec (car component) interval-tree)
+            (smallest-divisions-rec (cdr component) interval-tree)))
+        (push interval-name *result*))))
+
+
 
 (defun member-in-pair (item pair)
   (or (eq item (car pair)) (eq item (cdr pair))))
@@ -398,7 +443,6 @@
                                (or (member combination-1 x :test #'equal)
                                    (member combination-2 x :test #'equal)))
                              *interval-combinations*))))))
-
 
 (defun interval-division (interval-name-a interval-name-b)
   (let ((division (find interval-name-b
