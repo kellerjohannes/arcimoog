@@ -412,22 +412,26 @@
   (remove-duplicates (alexandria:flatten interval-divisions)))
 
 
-;;; smallest divisions algorithm doesn't work yet
-(defparameter *result* nil)
+(defun process-subdivision (division-pair interval-tree)
+  (let ((child-division-a (find-interval-divisions (car division-pair) interval-tree))
+        (child-division-b (find-interval-divisions (cdr division-pair) interval-tree)))
+    (append (if child-division-a
+                (alexandria:flatten (process-subdivision (first child-division-a) interval-tree))
+                (list (car division-pair)))
+            (if child-division-b
+                (alexandria:flatten (process-subdivision (first child-division-b) interval-tree))
+                (list (cdr division-pair))))))
+
+(defun collect-subdivisions (division-list interval-tree)
+  (cond ((null division-list) nil)
+        (t (cons (process-subdivision (first division-list) interval-tree)
+                 (collect-subdivisions (rest division-list) interval-tree)))))
 
 (defun smallest-divisions (interval-name interval-tree)
-  (let ((*result* nil))
-    (smallest-divisions-rec interval-name interval-tree)
-    *result*))
+  (let ((subdivisions (find-interval-divisions interval-name interval-tree)))
+    (when subdivisions (collect-subdivisions subdivisions interval-tree))))
 
-(defun smallest-divisions-rec (interval-name interval-tree)
-  (let ((divisions (find-interval-divisions interval-name interval-tree)))
-    (if divisions
-        (progn
-          (dolist (component divisions)
-            (smallest-divisions-rec (car component) interval-tree)
-            (smallest-divisions-rec (cdr component) interval-tree)))
-        (push interval-name *result*))))
+
 
 
 
