@@ -345,24 +345,49 @@
     (setf previous-pitch (first rest-data))))
 
 
+
+
+
+
 (ql:quickload :alexandria)
 
 (defparameter *ordine-naturale*
   '((tono . ((apotome . limma)))
-    (semiditono . ((tono . limma)))
-    (ditono . ((tono . tono)
-               (apotome . semiditono)))
-    (diatessaron . ((ditono . limma)
-                    (semiditono . tono)))
-    (diapente . ((semiditono . ditono)
-                 (diatessaron . tono)
-                 (tritono . limma)))
-    (diapason . ((tritono . quinta-imperfetta)
-                 (diapente . diatessaron)
-                 (ditono . sesta-minore)
-                 (semiditono . sesta-maggiore)
+    (semiditono . ((limma . tono)))
+    (ditono . ((apotome . semiditono)
+               (tono . tono)))
+    (diatessaron . ((limma . ditono)
+                    (tono . semiditono)))
+    (tritono . ((apotome . diatessaron)
+                (tono . ditono)))
+    (semidiapente . ((limma . diatessaron)
+                     (semiditono . semiditono)))
+    (diapente . ((apotome . semidiapente)
+                 (limma . tritono)
+                 (tono . diatessaron)
+                 (ditono . semiditono)))
+    (sesta-minore . ((limma . diapente)
+                     (tono . semidiapente)
+                     (semiditono . diatessaron)))
+    (sesta-maggiore . ((apotome . sesta-minore)
+                       (tono . diapente)
+                       (semiditono . tritono)
+                       (ditono . diatessaron)))
+    (settima-minore . ((limma . sesta-maggiore)
+                       (tono . sesta-minore)
+                       (semiditono . diapente)
+                       (ditono . semidiapente)
+                       (diatessaron . diatessaron)))
+    (settima-maggiore . ((apotome . settima-minore)
+                         (tono . sesta-maggiore)
+                         (ditono . diapente)
+                         (diatessaron . tritono)))
+    (diapason . ((limma . settima-maggiore)
                  (tono . settima-minore)
-                 (limma . settima-maggiore)))))
+                 (semiditono . sesta-maggiore)
+                 (ditono . sesta-minore)
+                 (diatessaron . diapente)
+                 (tritono . semidiapente)))))
 
 (defparameter *interval-combinations*
   '((ottava . ((quinta . quarta)
@@ -427,9 +452,36 @@
         (t (cons (process-subdivision (first division-list) interval-tree)
                  (collect-subdivisions (rest division-list) interval-tree)))))
 
+(defun same-size-p (interval-list-a interval-list-b)
+  (and (subsetp interval-list-a interval-list-b) (subsetp interval-list-b interval-list-a)))
+
 (defun smallest-divisions (interval-name interval-tree)
   (let ((subdivisions (find-interval-divisions interval-name interval-tree)))
-    (when subdivisions (collect-subdivisions subdivisions interval-tree))))
+    (when subdivisions
+      (remove-duplicates (collect-subdivisions subdivisions interval-tree) :test #'same-size-p))))
+
+(defun pair-plist (plist)
+  (loop for (p v) on plist by #'cddr collect (list p v)))
+
+(defun summarize-interval-list (interval-list)
+  (let ((result))
+    (dolist (interval interval-list (pair-plist result))
+      (unless (getf result interval) (setf (getf result interval) 0))
+      (incf (getf result interval)))))
+
+(defun compare-interval-list (predicate interval-components-a interval-components-b)
+  (loop for item in (mapcar (lambda (a b) (funcall predicate (second a) (second b)))
+                            interval-components-a
+                            interval-components-b)
+        always item))
+
+(defun all-smallest-divisions (interval-tree)
+  (sort (mapcar (lambda (interval-name)
+                  (cons interval-name (mapcar #'summarize-interval-list
+                                              (smallest-divisions interval-name interval-tree))))
+                (mapcar #'car interval-tree))
+        (lambda (a b) (compare-interval-list #'>= a b))
+        :key #'second))
 
 
 
@@ -438,7 +490,7 @@
 (defun member-in-pair (item pair)
   (or (eq item (car pair)) (eq item (cdr pair))))
 
-(defun combine-intervals (interval-name-a interval-name-b)
+(defun combine-interval-names (interval-name-a interval-name-b interval-tree)
   (cond ((eq interval-name-a 'unisono) interval-name-b)
         ((eq interval-name-b 'unisono) interval-name-a)
         (t (let ((combination-1 (cons interval-name-a interval-name-b))
@@ -446,17 +498,64 @@
              (car (rassoc-if (lambda (x)
                                (or (member combination-1 x :test #'equal)
                                    (member combination-2 x :test #'equal)))
-                             *interval-combinations*))))))
+                             interval-tree))))))
 
-(defun interval-division (interval-name-a interval-name-b)
+(defun subdivide-interval-names (interval-name-a interval-name-b interval-tree)
   (let ((division (find interval-name-b
-                        (find-interval-divisions interval-name-a)
+                        (find-interval-divisions interval-name-a interval-tree)
                         :test #'member-in-pair)))
     (if (eq (car division) interval-name-b)
         (cdr division)
         (car division))))
 
+(defun name (interval)
+  (first interval))
 
+(defun direction (interval)
+  (second interval))
+
+(defun multiplier (interval)
+  (third interval))
+
+(defun make-interval (name direction multiplier)
+  (list name direction multiplier))
+
+;; probably never used
+(defun get-larger-multiplier (interval-a interval-b)
+  (if (> (multiplier interval-a) (multiplier interval-b))
+      (multiplier interval-a)
+      (multiplier interval-b)))
+
+
+(defun combine-interval-names-mod (name-a name-b interval-tree identity-interval-name)
+  (let ((tmp (subdivide-interval-names identity-interval-name name-a interval-tree)))
+    (subdivide-interval-names name-b tmp interval-tree)))
+
+(defun chain-intervals (a b interval-tree identity-interval-name)
+  "A and B are in the form of '(quinta ascendente 0), where the first element is an interval name (symbol define in INTERVAL-TREE), the second one is NIL (only for UNISONO) or 'ASCENDENTE or 'DISCENDENTE."
+  (cond ((and (null (direction b)) (null (direction a)) a))
+        ((null (direction a)) b)
+        ((null (direction b)) a)
+        ((and (= (multiplier a) (multiplier b))
+              (eq (name a) (name b))
+              (not (eq (direction a) (direction b))))
+         (make-interval 'unisono nil 0))
+        ((eq (direction a) (direction b))
+         (let ((simple-combination (combine-interval-names (name a) (name b) interval-tree)))
+           (if simple-combination
+               (make-interval simple-combination (direction a) (+ (multiplier a) (multiplier b)))
+               (make-interval (combine-interval-names-mod (name a)
+                                                          (name b)
+                                                          interval-tree
+                                                          identity-interval-name)
+                              (direction a)
+                              (+ 1 (multiplier a) (multiplier b))))))
+        (t nil ;; TODO implement the case when two different directions are given
+           )
+        ))
+
+
+;; will be obsolete, reimplementation in progress
 (defun chain-intervals (interval-a interval-b)
   (format t "~&~a / ~a" interval-a interval-b)
   (cond ((eq (first interval-a) 'unisono) interval-b)
