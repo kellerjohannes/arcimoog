@@ -540,6 +540,13 @@
               (eq (name a) (name b))
               (not (eq (direction a) (direction b))))
          (make-interval 'unisono nil 0))
+        ((and t ;;(plusp (multiplier b))
+              (eq (name b) identity-interval-name))
+         (make-interval (name b)
+                        (direction b)
+                        (funcall (if (eq (direction a) (direction b)) #'+ #'-)
+                                 (multiplier a)
+                                 (multiplier b))))
         ((eq (direction a) (direction b))
          (let ((simple-combination (combine-interval-names (name a) (name b) interval-tree)))
            (if simple-combination
@@ -550,9 +557,51 @@
                                                           identity-interval-name)
                               (direction a)
                               (+ 1 (multiplier a) (multiplier b))))))
+        ((and (= (multiplier a) (multiplier b))
+              (not (eq (direction a) (direction b))))
+         (let ((first-attempt (subdivide-interval-names (name a) (name b) interval-tree)))
+           (if first-attempt
+               (make-interval first-attempt (direction a) (multiplier a))
+               (let ((second-attempt (subdivide-interval-names (name b) (name a) interval-tree)))
+                 (if second-attempt
+                     (cond ((and (zerop (multiplier a)) (zerop (multiplier b)))
+                            (make-interval second-attempt (direction b) (multiplier b)))
+                           ((zerop (multiplier a))
+                            (make-interval second-attempt (direction b) (1- (multiplier b))))
+                           (t (make-interval second-attempt (direction b) (- (multiplier a)
+                                                                             (multiplier b)))))
+                     )))))
         (t nil ;; TODO implement the case when two different directions are given
            )
         ))
+
+
+
+(ql:quickload :fiveam)
+
+(5am:def-suite interval-construction)
+
+(5am:in-suite interval-construction)
+
+(5am:test adding-intervals
+  (let ((interval-lists '(((tono ascendente 0) (tono ascendente 0)
+                           (ditono ascendente 0))
+                          ((diapente ascendente 0) (diatessaron ascendente 0)
+                           (diapason ascendente 0))
+                          ((diapente ascendente 0) (diapente ascendente 0)
+                           (tono ascendente 1))
+                          ((ditono ascendente 1) (semiditono ascendente 1)
+                           (diapente ascendente 2))
+                          ((tono ascendente 0) (ottava ascendente 0)
+                           (tono ascendente 1))
+                          )))
+    (dolist (trio interval-lists)
+      (5am:is (equal (chain-intervals (apply #'make-interval (first trio))
+                                      (apply #'make-interval (second trio))
+                                      *ordine-naturale*
+                                      'diapason)
+                     (apply #'make-interval (third trio)))))))
+
 
 
 ;; will be obsolete, reimplementation in progress
