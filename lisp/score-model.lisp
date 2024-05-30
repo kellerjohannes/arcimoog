@@ -508,6 +508,16 @@
         (cdr division)
         (car division))))
 
+(defun delta-interval-names (interval-name-a interval-name-b interval-tree)
+  (let ((first-attempt (subdivide-interval-names interval-name-a interval-name-b interval-tree)))
+    (if first-attempt
+        ;; interrupted here, values to return direction, replacing the same construction in
+        ;; CHAIN-INTERVALS
+        (values first-attempt)
+        (let ((second-attempt
+                (subdivide-interval-names interval-name-b interval-name-a interval-tree)))
+          (when second-attempt second-attempt)))))
+
 (defun name (interval)
   (first interval))
 
@@ -542,21 +552,28 @@
          (make-interval 'unisono nil 0))
         ((and t ;;(plusp (multiplier b))
               (eq (name b) identity-interval-name))
-         (make-interval (name b)
+         (format t "~&octave-thing.")
+         (make-interval (name a)
                         (direction b)
                         (funcall (if (eq (direction a) (direction b)) #'+ #'-)
                                  (multiplier a)
-                                 (multiplier b))))
+                                 (1+ (multiplier b)))))
         ((eq (direction a) (direction b))
-         (let ((simple-combination (combine-interval-names (name a) (name b) interval-tree)))
-           (if simple-combination
-               (make-interval simple-combination (direction a) (+ (multiplier a) (multiplier b)))
-               (make-interval (combine-interval-names-mod (name a)
-                                                          (name b)
-                                                          interval-tree
-                                                          identity-interval-name)
-                              (direction a)
-                              (+ 1 (multiplier a) (multiplier b))))))
+         (if (eq (name a) identity-interval-name)
+             (make-interval (name b)
+                            (direction a)
+                            (funcall (if (eq (direction a) (direction b)) #'+ #'-)
+                                     (1+ (multiplier a))
+                                     (multiplier b)))
+             (let ((simple-combination (combine-interval-names (name a) (name b) interval-tree)))
+               (if simple-combination
+                   (make-interval simple-combination (direction a) (+ (multiplier a) (multiplier b)))
+                   (make-interval (combine-interval-names-mod (name a)
+                                                              (name b)
+                                                              interval-tree
+                                                              identity-interval-name)
+                                  (direction a)
+                                  (+ 1 (multiplier a) (multiplier b)))))))
         ((and (= (multiplier a) (multiplier b))
               (not (eq (direction a) (direction b))))
          (let ((first-attempt (subdivide-interval-names (name a) (name b) interval-tree)))
@@ -571,9 +588,17 @@
                            (t (make-interval second-attempt (direction b) (- (multiplier a)
                                                                              (multiplier b)))))
                      )))))
-        (t nil ;; TODO implement the case when two different directions are given
-           )
-        ))
+        ((not (eq (direction a) (direction b)))
+         (if (> (multiplier a) (multiplier b))
+             (let ((attempt (subdivide-interval-names identity-interval-name
+                                                      (subdivide-interval-names (name a)
+                                                                                (name b)
+                                                                                interval-tree)
+                                                      interval-tree)))
+               (when attempt
+                 (make-interval attempt (direction a) (- (multiplier a) (1- (multiplier b))))))
+             ()))
+        (t (format t "~&Unknown situation. This means that the algorithm in CHAIN-INTERVALS does not cover all possible cases."))))
 
 
 
@@ -584,16 +609,64 @@
 (5am:in-suite interval-construction)
 
 (5am:test adding-intervals
-  (let ((interval-lists '(((tono ascendente 0) (tono ascendente 0)
+  (let ((interval-lists '(;; simple addition within an octave, ascending
+                          ((tono ascendente 0) (tono ascendente 0)
                            (ditono ascendente 0))
                           ((diapente ascendente 0) (diatessaron ascendente 0)
                            (diapason ascendente 0))
+
+                          ;; simple addition within an octave, descending
+                          ((tono discendente 0) (tono discendente 0)
+                           (ditono discendente 0))
+                          ((diapente discendente 0) (diatessaron discendente 0)
+                           (diapason discendente 0))
+
+                          ;; addition beyond the octave, ascending
                           ((diapente ascendente 0) (diapente ascendente 0)
                            (tono ascendente 1))
                           ((ditono ascendente 1) (semiditono ascendente 1)
                            (diapente ascendente 2))
-                          ((tono ascendente 0) (ottava ascendente 0)
+
+                          ;; addition beyond the octave, descending
+                          ((diapente discendente 0) (diapente discendente 0)
+                           (tono discendente 1))
+                          ((ditono discendente 1) (semiditono discendente 1)
+                           (diapente discendente 2))
+
+                          ;; addition by octaves, ascending
+                          ((tono ascendente 0) (diapason ascendente 0)
                            (tono ascendente 1))
+                          ((diapason ascendente 0) (tono ascendente 0)
+                           (tono ascendente 1))
+                          ((diapason ascendente 0) (diapason ascendente 0)
+                           (diapason ascendente 1))
+                          ((ditono ascendente 1) (semiditono ascendente 2)
+                           (diapente ascendente 3))
+
+                          ;; addition by octaves, descending
+                          ((tono discendente 0) (diapason discendente 0)
+                           (tono discendente 1))
+                          ((diapason discendente 0) (tono discendente 0)
+                           (tono discendente 1))
+                          ((diapason discendente 0) (diapason discendente 0)
+                           (diapason discendente 1))
+                          ((ditono discendente 1) (semiditono discendente 2)
+                           (diapente discendente 3))
+
+                          ;; simple subtraction, within an octave, in commutative pairs
+                          ((diapente ascendente 0) (diatessaron discendente 0)
+                           (tono ascendente 0))
+                          ((diatessaron discendente 0) (diapente ascendente 0)
+                           (tono ascendente 0))
+                          ((ditono ascendente 0) (diapente discendente 0)
+                           (semiditono discendente 0))
+                          ;; failing:
+                          ((ditono ascendente 1) (diapente discendente 0)
+                           (sesta-maggiore ascendente 0))
+                          ((diapente discendente 0) (ditono ascendente 0)
+                           (semiditono discendente 0))
+
+                          ;; landing in UNISONO, in commutative pairs
                           )))
     (dolist (trio interval-lists)
       (5am:is (equal (chain-intervals (apply #'make-interval (first trio))
