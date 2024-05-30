@@ -511,12 +511,10 @@
 (defun delta-interval-names (interval-name-a interval-name-b interval-tree)
   (let ((first-attempt (subdivide-interval-names interval-name-a interval-name-b interval-tree)))
     (if first-attempt
-        ;; interrupted here, values to return direction, replacing the same construction in
-        ;; CHAIN-INTERVALS
-        (values first-attempt)
+        (values first-attempt 'first-is-container)
         (let ((second-attempt
                 (subdivide-interval-names interval-name-b interval-name-a interval-tree)))
-          (when second-attempt second-attempt)))))
+          (when second-attempt (values second-attempt 'second-is-container))))))
 
 (defun name (interval)
   (first interval))
@@ -552,7 +550,6 @@
          (make-interval 'unisono nil 0))
         ((and t ;;(plusp (multiplier b))
               (eq (name b) identity-interval-name))
-         (format t "~&octave-thing.")
          (make-interval (name a)
                         (direction b)
                         (funcall (if (eq (direction a) (direction b)) #'+ #'-)
@@ -567,7 +564,9 @@
                                      (multiplier b)))
              (let ((simple-combination (combine-interval-names (name a) (name b) interval-tree)))
                (if simple-combination
-                   (make-interval simple-combination (direction a) (+ (multiplier a) (multiplier b)))
+                   (make-interval simple-combination
+                                  (direction a)
+                                  (+ (multiplier a) (multiplier b)))
                    (make-interval (combine-interval-names-mod (name a)
                                                               (name b)
                                                               interval-tree
@@ -576,28 +575,28 @@
                                   (+ 1 (multiplier a) (multiplier b)))))))
         ((and (= (multiplier a) (multiplier b))
               (not (eq (direction a) (direction b))))
-         (let ((first-attempt (subdivide-interval-names (name a) (name b) interval-tree)))
-           (if first-attempt
-               (make-interval first-attempt (direction a) (multiplier a))
-               (let ((second-attempt (subdivide-interval-names (name b) (name a) interval-tree)))
-                 (if second-attempt
-                     (cond ((and (zerop (multiplier a)) (zerop (multiplier b)))
-                            (make-interval second-attempt (direction b) (multiplier b)))
-                           ((zerop (multiplier a))
-                            (make-interval second-attempt (direction b) (1- (multiplier b))))
-                           (t (make-interval second-attempt (direction b) (- (multiplier a)
-                                                                             (multiplier b)))))
-                     )))))
+         (multiple-value-bind (attempt container)
+             (delta-interval-names (name a) (name b) interval-tree)
+           (when attempt
+             (if (eq container 'first-is-container)
+                 (make-interval attempt (direction a) (multiplier a))
+                 (cond ((and (zerop (multiplier a)) (zerop (multiplier b)))
+                        (make-interval attempt (direction b) (multiplier b)))
+                       ((zerop (multiplier a))
+                        (make-interval attempt (direction b) (1- (multiplier b))))
+                       (t (make-interval attempt (direction b) (- (multiplier a)
+                                                                  (multiplier b)))))))))
         ((not (eq (direction a) (direction b)))
          (if (> (multiplier a) (multiplier b))
              (let ((attempt (subdivide-interval-names identity-interval-name
-                                                      (subdivide-interval-names (name a)
-                                                                                (name b)
-                                                                                interval-tree)
+                                                      (delta-interval-names (name a)
+                                                                            (name b)
+                                                                            interval-tree)
                                                       interval-tree)))
                (when attempt
-                 (make-interval attempt (direction a) (- (multiplier a) (1- (multiplier b))))))
-             ()))
+                 (make-interval attempt (direction a) (- (multiplier a) (multiplier b) 1))))
+             ;; TODO
+             (format t "~&This case is being implemented.")))
         (t (format t "~&Unknown situation. This means that the algorithm in CHAIN-INTERVALS does not cover all possible cases."))))
 
 
@@ -642,6 +641,8 @@
                            (diapason ascendente 1))
                           ((ditono ascendente 1) (semiditono ascendente 2)
                            (diapente ascendente 3))
+                          ((diapason ascendente 1) (diapason ascendente 2)
+                           (diapason ascendente 4))
 
                           ;; addition by octaves, descending
                           ((tono discendente 0) (diapason discendente 0)
@@ -652,6 +653,8 @@
                            (diapason discendente 1))
                           ((ditono discendente 1) (semiditono discendente 2)
                            (diapente discendente 3))
+                          ((diapason discendente 1) (diapason discendente 2)
+                           (diapason discendente 4))
 
                           ;; simple subtraction, within an octave, in commutative pairs
                           ((diapente ascendente 0) (diatessaron discendente 0)
@@ -660,13 +663,37 @@
                            (tono ascendente 0))
                           ((ditono ascendente 0) (diapente discendente 0)
                            (semiditono discendente 0))
-                          ;; failing:
-                          ((ditono ascendente 1) (diapente discendente 0)
-                           (sesta-maggiore ascendente 0))
                           ((diapente discendente 0) (ditono ascendente 0)
                            (semiditono discendente 0))
 
+                          ;; subtraction, crossing octaves, in commutative pairs
+                          ((ditono ascendente 1) (diapente discendente 0)
+                           (sesta-maggiore ascendente 0))
+                          ((ditono discendente 1) (diapente ascendente 0)
+                           (sesta-maggiore discendente 0))
+                          ((ditono ascendente 3) (diapente discendente 0)
+                           (sesta-maggiore ascendente 2))
+                          ((ditono discendente 3) (diapente ascendente 0)
+                           (sesta-maggiore discendente 2))
+                          ((ditono ascendente 3) (diapente discendente 1)
+                           (sesta-maggiore ascendente 1))
+                          ((ditono discendente 3) (diapente ascendente 1)
+                           (sesta-maggiore discendente 1))
+                          ((diatessaron discendente 0) (diapente ascendente 1)
+                           (tono ascendente 1))
+                          ((diatessaron ascendente 0) (diapente discendente 1)
+                           (tono discendente 1))
+
                           ;; landing in UNISONO, in commutative pairs
+                          ((diatessaron ascendente 0) (diatessaron discendente 0)
+                           (unisono nil 0))
+                          ((diatessaron discendente 0) (diatessaron ascendente 0)
+                           (unisono nil 0))
+                          ((diatessaron ascendente 3) (diatessaron discendente 3)
+                           (unisono nil 0))
+                          ((diatessaron discendente 3) (diatessaron ascendente 3)
+                           (unisono nil 0))
+
                           )))
     (dolist (trio interval-lists)
       (5am:is (equal (chain-intervals (apply #'make-interval (first trio))
