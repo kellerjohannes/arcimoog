@@ -54,3 +54,104 @@
 ;;     (log:info "test" (validp note2))
 ;;     (5am:is (validp note1) t)
 ;;     (5am:is (validp note2) nil)))
+
+
+
+(5am:def-suite interval-construction)
+
+(5am:in-suite interval-construction)
+
+(5am:test adding-intervals
+  (let ((interval-lists '(;; simple addition within an octave, ascending
+                          ((tono ascendente 0) (tono ascendente 0)
+                           (ditono ascendente 0))
+                          ((diapente ascendente 0) (diatessaron ascendente 0)
+                           (diapason ascendente 0))
+
+                          ;; simple addition within an octave, descending
+                          ((tono discendente 0) (tono discendente 0)
+                           (ditono discendente 0))
+                          ((diapente discendente 0) (diatessaron discendente 0)
+                           (diapason discendente 0))
+
+                          ;; addition beyond the octave, ascending
+                          ((diapente ascendente 0) (diapente ascendente 0)
+                           (tono ascendente 1))
+                          ((ditono ascendente 1) (semiditono ascendente 1)
+                           (diapente ascendente 2))
+
+                          ;; addition beyond the octave, descending
+                          ((diapente discendente 0) (diapente discendente 0)
+                           (tono discendente 1))
+                          ((ditono discendente 1) (semiditono discendente 1)
+                           (diapente discendente 2))
+
+                          ;; addition by octaves, ascending
+                          ((tono ascendente 0) (diapason ascendente 0)
+                           (tono ascendente 1))
+                          ((diapason ascendente 0) (tono ascendente 0)
+                           (tono ascendente 1))
+                          ((diapason ascendente 0) (diapason ascendente 0)
+                           (diapason ascendente 1))
+                          ((ditono ascendente 1) (semiditono ascendente 2)
+                           (diapente ascendente 3))
+                          ((diapason ascendente 1) (diapason ascendente 2)
+                           (diapason ascendente 4))
+
+                          ;; addition by octaves, descending
+                          ((tono discendente 0) (diapason discendente 0)
+                           (tono discendente 1))
+                          ((diapason discendente 0) (tono discendente 0)
+                           (tono discendente 1))
+                          ((diapason discendente 0) (diapason discendente 0)
+                           (diapason discendente 1))
+                          ((ditono discendente 1) (semiditono discendente 2)
+                           (diapente discendente 3))
+                          ((diapason discendente 1) (diapason discendente 2)
+                           (diapason discendente 4))
+
+                          ;; simple subtraction, within an octave, in commutative pairs
+                          ((diapente ascendente 0) (diatessaron discendente 0)
+                           (tono ascendente 0))
+                          ((diatessaron discendente 0) (diapente ascendente 0)
+                           (tono ascendente 0))
+                          ((ditono ascendente 0) (diapente discendente 0)
+                           (semiditono discendente 0))
+                          ((diapente discendente 0) (ditono ascendente 0)
+                           (semiditono discendente 0))
+
+                          ;; subtraction, crossing octaves, in commutative pairs
+                          ((ditono ascendente 1) (diapente discendente 0)
+                           (sesta-maggiore ascendente 0))
+                          ((ditono discendente 1) (diapente ascendente 0)
+                           (sesta-maggiore discendente 0))
+                          ((ditono ascendente 3) (diapente discendente 0)
+                           (sesta-maggiore ascendente 2))
+                          ((ditono discendente 3) (diapente ascendente 0)
+                           (sesta-maggiore discendente 2))
+                          ((ditono ascendente 3) (diapente discendente 1)
+                           (sesta-maggiore ascendente 1))
+                          ((ditono discendente 3) (diapente ascendente 1)
+                           (sesta-maggiore discendente 1))
+                          ((diatessaron discendente 0) (diapente ascendente 1)
+                           (tono ascendente 1))
+                          ((diatessaron ascendente 0) (diapente discendente 1)
+                           (tono discendente 1))
+
+                          ;; landing in UNISONO, in commutative pairs
+                          ((diatessaron ascendente 0) (diatessaron discendente 0)
+                           (unisono nil 0))
+                          ((diatessaron discendente 0) (diatessaron ascendente 0)
+                           (unisono nil 0))
+                          ((diatessaron ascendente 3) (diatessaron discendente 3)
+                           (unisono nil 0))
+                          ((diatessaron discendente 3) (diatessaron ascendente 3)
+                           (unisono nil 0))
+
+                          )))
+    (dolist (trio interval-lists)
+      (5am:is (equal (chain-intervals (apply #'make-interval (first trio))
+                                      (apply #'make-interval (second trio))
+                                      *ordine-naturale*
+                                      'diapason)
+                     (apply #'make-interval (third trio)))))))

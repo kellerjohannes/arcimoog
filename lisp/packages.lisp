@@ -61,6 +61,30 @@
   (:use :cl)
   (:export #:start))
 
+(defpackage :symbolic-intervals
+  (:use :cl))
+
+(defpackage :score-model
+  (:use :cl)
+  (:nicknames :sc)
+  (:export #:def
+           #:val
+           #:of
+           #:calc
+           #:rel
+           #:chain
+           #:series
+           #:diff
+           #:asc
+           #:desc
+           #:temper
+           #:edx))
+
+(defpackage :ly-parser
+  (:use :cl)
+  (:nicknames :ly)
+  (:export #:parse-ly-notation))
+
 (defpackage :arcimoog
   (:use :cl)
   (:nicknames :arci))

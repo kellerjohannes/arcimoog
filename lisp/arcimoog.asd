@@ -16,6 +16,8 @@
   :components ((:file "packages")
                (:file "conditions")
                (:file "global-definitions")
+               (:file "symbolic-intervals")
+               (:file "score-model")
                (:file "faderfox")
                (:file "utilities")
                (:file "myglm")
