@@ -1,7 +1,15 @@
+(in-package :score-model)
+
+(defun ratio->length (ratio &key (unit-interval (expt 2 1/1200)))
+  "Transforms a ratio (or floating point number) representing an interval into a length,where the
+UNIT-INTERVAL (default 1 ¢) can be set."
+  (/ (log ratio) (log unit-interval)))
+
+
 (defun def (node-symbol &rest property-list)
   ;; (setf (symbol-plist node-symbol) property-list)
   (loop for (key value) on property-list by #'cddr do
-        (setf (get node-symbol key) value)))
+    (setf (get node-symbol key) value)))
 
 (defun update-property (node-symbol property content)
   (setf (get node-symbol property) content))
@@ -176,8 +184,7 @@
                                 (let ((time (* time-factor (of-performer id 'time)))
                                       (duration (* time-factor (of-performer id 'duration)))
                                       (pitch (* pitch-factor
-                                                (vicentino-tunings:ratio->length
-                                                 (of-performer id 'pitch)))))
+                                                (ratio->length (of-performer id 'pitch)))))
                                   (format t "~&drawing ~a" (symbol-name origin))
                                   ;; (push (make-text (symbol-name origin)
                                   ;;                  (pt time (- pitch (* 3.5 dot-size))))
