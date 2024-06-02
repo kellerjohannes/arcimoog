@@ -56,6 +56,7 @@
 ;;     (5am:is (validp note2) nil)))
 
 
+(in-package :symbolic-intervals)
 
 (5am:def-suite interval-construction)
 
@@ -137,6 +138,14 @@
                            (tono ascendente 1))
                           ((diatessaron ascendente 0) (diapente discendente 1)
                            (tono discendente 1))
+                          ((diatessaron discendente 1) (diapente ascendente 2)
+                           (tono ascendente 1))
+                          ((diatessaron ascendente 1) (diapente discendente 2)
+                           (tono discendente 1))
+                          ((diatessaron discendente 2) (diapente ascendente 4)
+                           (tono ascendente 2))
+                          ((diatessaron ascendente 2) (diapente discendente 4)
+                           (tono discendente 2))
 
                           ;; landing in UNISONO, in commutative pairs
                           ((diatessaron ascendente 0) (diatessaron discendente 0)
@@ -146,12 +155,11 @@
                           ((diatessaron ascendente 3) (diatessaron discendente 3)
                            (unisono nil 0))
                           ((diatessaron discendente 3) (diatessaron ascendente 3)
-                           (unisono nil 0))
-
-                          )))
+                           (unisono nil 0)))))
     (dolist (trio interval-lists)
-      (5am:is (equal (chain-intervals (apply #'make-interval (first trio))
-                                      (apply #'make-interval (second trio))
-                                      *ordine-naturale*
-                                      'diapason)
+      (5am:is (equal (chain-intervals
+                      (apply #'make-interval (first trio))
+                      (apply #'make-interval (second trio))
+                      *ordine-naturale*
+                      'diapason)
                      (apply #'make-interval (third trio)))))))
