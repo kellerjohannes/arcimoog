@@ -251,24 +251,5 @@
 
 
 
-;; will be obsolete, reimplementation in progress
-;; (defun chain-intervals (interval-a interval-b)
-;;   (format t "~&~a / ~a" interval-a interval-b)
-;;   (cond ((eq (first interval-a) 'unisono) interval-b)
-;;         ((eq (first interval-b) 'unisono) interval-a)
-;;         ((and (eq (first interval-a) (first interval-b))
-;;               (not (eq (second interval-a) (second interval-b))))
-;;          (list 'unisono))
-;;         ((eq (second interval-a) (second interval-b))
-;;          (list (combine-intervals (first interval-a) (first interval-b))
-;;                (second interval-a)))
-;;         (t (let ((first-attempt (interval-division (first interval-a) (first interval-b))))
-;;              (if first-attempt
-;;                  (list first-attempt (second interval-a))
-;;                  (let ((second-attempt (interval-division (first interval-b) (first interval-a))))
-;;                    (if second-attempt
-;;                        (list second-attempt (second interval-b))
-;;                        nil)))))))
-
-(defun interval-path (interval-list)
-  (reduce #'chain-intervals interval-list))
+(defun interval-path (interval-list interval-tree identity-interval)
+  (reduce (lambda (a b) (chain-intervals a b interval-tree identity-interval)) interval-list))

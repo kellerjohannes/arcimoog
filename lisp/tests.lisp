@@ -62,7 +62,7 @@
 
 (5am:in-suite interval-construction)
 
-(5am:test adding-intervals
+(5am:test pairs-of-intervals
   (let ((interval-lists '(;; simple addition within an octave, ascending
                           ((tono ascendente 0) (tono ascendente 0)
                            (ditono ascendente 0))
@@ -163,3 +163,25 @@
                       *ordine-naturale*
                       'diapason)
                      (apply #'make-interval (third trio)))))))
+
+(5am:test interval-chains
+  (let ((chain-1 '(((tono) (tono) (semiditono))
+                   (diapente ascendente 0)))
+        (chain-2 '(((tono) (tono) (tono) (tritono discendente))
+                   (unisono nil 0)))
+        ;; failure
+        (chain-3 '(((tono) (tono) (tono) (diapason discendente) (semidiapente))
+                   (unisono nil 0))))
+    (flet ((process-chain (chain)
+             (5am:is (equal (interval-path (mapcar (lambda (interval-data)
+                                                     (make-interval (first interval-data)
+                                                                    (if (second interval-data)
+                                                                        (second interval-data)
+                                                                        'ascendente)
+                                                                    (if (third interval-data)
+                                                                        (third interval-data)
+                                                                        0)))
+                                                   (first chain))
+                                           *ordine-naturale* 'diapason)
+                            (apply #'make-interval (second chain))))))
+      (mapcar #'process-chain (list chain-1 chain-2 chain-3)))))
