@@ -190,6 +190,7 @@
 
 (defun chain-intervals (a b interval-tree identity-interval-name)
   "A and B are in the form of '(quinta ascendente 0), where the first element is an interval name (symbol define in INTERVAL-TREE), the second one is NIL (only for UNISONO) or 'ASCENDENTE or 'DISCENDENTE."
+  ;; (format t "~&DEBUG: ~a:~a" a b)
   (cond ((and (null (direction b)) (null (direction a)) a))
         ((null (direction a)) b)
         ((null (direction b)) a)
@@ -197,7 +198,7 @@
               (eq (name a) (name b))
               (not (eq (direction a) (direction b))))
          (make-interval 'unisono nil 0))
-        ((and t ;;(plusp (multiplier b))
+        ((and (> (multiplier a) (multiplier b))
               (eq (name b) identity-interval-name))
          (make-interval (name a)
                         (direction b)
@@ -252,4 +253,5 @@
 
 
 (defun interval-path (interval-list interval-tree identity-interval)
+  ;; (format t "~&DEBUG: NEW CHAIN.")
   (reduce (lambda (a b) (chain-intervals a b interval-tree identity-interval)) interval-list))

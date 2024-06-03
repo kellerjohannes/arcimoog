@@ -110,6 +110,10 @@
                            (diapente discendente 3))
                           ((diapason discendente 1) (diapason discendente 2)
                            (diapason discendente 4))
+                          ((diapente ascendente 0) (diapason discendente 0)
+                           (diatessaron discendente 0))
+                          ((diapente discendente 0) (diapason ascendente 0)
+                           (diatessaron ascendente 0))
 
                           ;; simple subtraction, within an octave, in commutative pairs
                           ((diapente ascendente 0) (diatessaron discendente 0)
@@ -169,9 +173,26 @@
                    (diapente ascendente 0)))
         (chain-2 '(((tono) (tono) (tono) (tritono discendente))
                    (unisono nil 0)))
-        ;; failure
         (chain-3 '(((tono) (tono) (tono) (diapason discendente) (semidiapente))
-                   (unisono nil 0))))
+                   (unisono nil 0)))
+        ;; N. Vicentino, L'antica musica, fol. 49r, "Essempio del secondo diatonico semplice"
+        (chain-4 '(((tono) (limma) (tono) (tono) (diapente discendente) (tono discendente)
+                    (limma discendente) (tono discendente) (diatessaron) (tono discendente) (tono)
+                    (diapente) (tono discendente) (tono) (diapente discendente) (tono) (limma)
+                    (tono) (tono) (diapason discendente) (tono) (limma) (tono)
+                    (diatessaron discendente) (diatessaron) (tono discendente) (limma discendente)
+                    (tono discendente))
+                   (diatessaron discendente 0)))
+        ;; N. Vicentino, L'antica musica, fol. 49r, "Essempio del secondo modo per ♭. molle"
+        (chain-5 '(((diatessaron discendente) (diatessaron ascendente) (tono discendente)
+                    (limma discendente) (tono discendente) (tono discendente) (tono)
+                    (diapente discendente) (diapente) (limma) (semiditono discendente)
+                    (tono discendente) (semiditono discendente) (diapason) (tono discendente)
+                    (tono) (tono) (limma) (diatessaron discendente) (tono)
+                    (diatessaron discendente) (diapente discendente) (diapente) (limma)
+                    (semiditono discendente) (tono) (diapente discendente) (diapente)
+                    (diapente discendente))
+                   (diapason discendente 0))))
     (flet ((process-chain (chain)
              (5am:is (equal (interval-path (mapcar (lambda (interval-data)
                                                      (make-interval (first interval-data)
@@ -184,4 +205,8 @@
                                                    (first chain))
                                            *ordine-naturale* 'diapason)
                             (apply #'make-interval (second chain))))))
-      (mapcar #'process-chain (list chain-1 chain-2 chain-3)))))
+      (mapcar #'process-chain (list chain-1 chain-2
+                                    chain-3
+                                    chain-4
+                                    chain-5
+                                    )))))
