@@ -75,11 +75,10 @@
 (defclass font-render-class ()
   ((character-set :initform "" :initarg :character-set :accessor character-set)
    (font-source :initform nil :initarg :font-source :accessor font-source)
-   (pixel-size :initform 48 :initarg :pixel-size :accessor pixel-size)
+   (pixel-size :initform 16 :initarg :pixel-size :accessor pixel-size)
    (ft-face :accessor ft-face)
    (textures :initform (make-hash-table) :accessor textures
-             :documentation "Keys are CHARs, values are lists where the first element is the GL texture id, the second is the
-width of the texture and the third its height.")
+             :documentation "Keys are CHARs, values are lists where the first element is the GL texture id, the second is the width of the texture and the third its height.")
    (glyph-vao :initform -1 :accessor glyph-vao)
    (glyph-vbo :initform -1 :accessor glyph-vbo)
    (shader-instance :initform nil :initarg :shader-instance :accessor shader-instance)))
@@ -215,22 +214,43 @@ width of the texture and the third its height.")
 
 
 (defclass display-element ()
-  ((color :initform (vector 1.0 1.0 1.0) :initarg :color :accessor color)))
-
-
+  ((color :initform (vector 1.0 1.0 1.0) :initarg :color :accessor color)
+   (scaling :initform 1.0 :initarg :scaling :accessor scaling)
+   (x-position :initform 0 :initarg :x-position :accessor x-position)
+   (y-position :initform 0 :initarg :y-position :accessor y-position)))
 
 (defclass display-element-panel (display-element)
   ((width :initform 300 :initarg :width :accessor width)
    (height :initform 500 :initarg :height :accessor height)
-   (x-position :initform 0 :initarg :x-position :accessor x-position)
-   (y-position :initform 0 :initarg :y-position :accessor y-position)
-   (scaling :initform 1.0 :initarg :scaling :accessor scaling)
    (title :initform "[no title]" :initarg :title :accessor title)
    (title-x-padding :initform 12 :initarg :title-x-padding :accessor title-x-padding)
    (title-y-padding :initform 3 :initarg :title-y-padding :accessor title-y-padding)
    (selectedp :initform nil :initarg :selectedp :accessor selectedp)
    (selected-color :initform (vector 0.3 1.0 1.0) :initarg :selected-color :accessor selected-color)
    (selected-margin :initform 5 :initarg :selected-margin :accessor selected-margin)))
+
+(defclass display-element-table (display-element)
+  ((width :initform 300 :initarg :width :accessor width)
+   (column-widths :initform (vector 50 50) :initarg :column-widths :accessor column-widths)
+   (row-height :initform 20 :initarg :row-height :accessor row-height)
+   (cell-padding :initform 1 :initarg :cell-padding :accessor cell-padding)
+   (contents :initform (make-array '(2 2) :initial-element 0 :adjustable t)
+             :initarg :contents :accessor contents)))
+
+(defmethod number-of-columns ((element display-element-table))
+  (array-dimension (contents element) 1))
+
+(defmethod number-of-rows ((element display-element-table))
+  (array-dimension (contents element) 0))
+
+(defmethod column-width ((element display-element-table) column-index)
+  (aref (column-widths element) column-index))
+
+(defmethod get-cell-content ((element display-element-table) row-index column-index)
+  (aref (contents element) row-index column-index))
+
+(defmethod set-cell-content ((element display-element-table) row-index column-index content)
+  (setf (aref (contents element) row-index column-index) content))
 
 
 (defclass display-class ()
@@ -262,8 +282,8 @@ width of the texture and the third its height.")
     (setf projection (glm:ortho 0.0 (screen-width display) 0.0 (screen-height display) 0.1 100.0))
     (glm:transform-matrix projection glm:translate (global-translation display))
     (glm:transform-matrix projection glm:scale (vector (global-scaling display)
-                                               (global-scaling display)
-                                               1.0))))
+                                                       (global-scaling display)
+                                                       1.0))))
 
 (defmethod reset-display-projection-parameters ((display display-class))
   (setf (global-scaling display) 1.0)
@@ -351,7 +371,6 @@ width of the texture and the third its height.")
   (gl:pixel-store :unpack-alignment 1)
   (gl:enable :blend)
   (gl:blend-func :src-alpha :one-minus-src-alpha)
-
   (with-accessors ((shader shader-instance)
                    (vao glyph-vao)
                    (vbo glyph-vbo)
@@ -360,7 +379,8 @@ width of the texture and the third its height.")
       renderer
     (set-uniform shader "textColor" 'float
                  (aref rgb-vector 0) (aref rgb-vector 1) (aref rgb-vector 2))
-    (set-uniform-matrix shader "projection" (glm:lisp-to-gl-matrix (global-projection-matrix display)))
+    (set-uniform-matrix shader "projection"
+                        (glm:lisp-to-gl-matrix (global-projection-matrix display)))
     (gl:active-texture :texture0)
     (gl:bind-vertex-array vao)
     (utility:with-params (text x-origin y-origin)
@@ -386,6 +406,8 @@ width of the texture and the third its height.")
             (gl:draw-arrays :triangles 0 6)))))
     (gl:bind-vertex-array 0)
     (gl:bind-texture :texture-2d 0)))
+
+
 
 
 (defmethod draw ((display display-class) (element display-element-panel)
@@ -428,11 +450,52 @@ width of the texture and the third its height.")
                        (+ (/ y sc-f) h (- (title-y-padding element)))
                        :scale-factor (scaling element))))))
 
+(defmethod draw-text ((display display-class) (element display-element-table)
+                      (font-renderer font-render-class))
+  (dotimes (i (number-of-rows element))
+    (let ((cumulative-width 0))
+      (dotimes (j (number-of-columns element))
+        (let ((x (+ (x-position element) cumulative-width (cell-padding element)))
+              (y (- (y-position element) (* i (row-height element)) (cell-padding element))))
+          (render-string display
+                         font-renderer
+                         (format nil "~a" (get-cell-content element i j))
+                         x
+                         y))
+        (incf cumulative-width (column-width element j))))))
+
+(defmethod draw-cell-backgrounds ((display display-class) (element display-element-table)
+                                  (renderer renderer-2d-class))
+  (dotimes (i (number-of-rows element))
+    (let ((cumulative-width 0))
+      (dotimes (j (number-of-columns element))
+        (let ((x (+ (x-position element) cumulative-width (cell-padding element)))
+              (y (- (y-position element) (* i (row-height element)) (cell-padding element)))
+              (w (- (column-width element j) (* 2 (cell-padding element))))
+              (h (- (row-height element) (* 2 (cell-padding element)))))
+          (render display renderer (vector
+                                    0 0
+                                    w 0
+                                    w (- h)
+                                    0 0
+                                    w (- h)
+                                    0 (- h))
+                  :mode :triangles
+                  :translation (vector x y 0.0)
+                  :scaling (vector (scaling element) (scaling element) 1.0)
+                  :color (color element)))
+        (incf cumulative-width (column-width element j))))))
+
+(defmethod draw ((display display-class) (element display-element-table)
+                 (renderer renderer-2d-class) (font-renderer font-render-class))
+  (draw-cell-backgrounds display element renderer)
+  (draw-text display element font-renderer))
+
+
 
 
 (defmethod add-element ((display display-class) (element display-element) id)
   (setf (gethash id (display-elements display)) element))
-
 
 (defmacro set-element-value (display element-id slot-name value)
   `(setf (,slot-name (gethash ,element-id (display-elements ,display))) ,value))
@@ -450,8 +513,20 @@ width of the texture and the third its height.")
   (boot *display*))
 
 
-(add-element *display* (make-instance 'display-element-panel :title "Test !=") :main)
+(add-element *display* (make-instance 'display-element-panel :title "Table configuration") :main)
 (set-element-value *display* :main color (vector 0.6 0.1 0.1))
+
+(add-element *display* (make-instance 'display-element-table :x-position 10 :y-position 500) :table)
+(set-element-value *display* :table y-position 400)
+(set-element-value *display* :table x-position 10)
+(set-element-value *display* :table column-height 19)
+(set-element-value *display* :table color (vector 0.6 0.25 0.25))
+
+(set-element-value *display* :table column-widths #(20 50))
+(set-element-value *display* :table
+                   contents
+                   (make-array '(5 2)
+                               :initial-contents '(("A" 2) ("B" 4) ("C" 6) ("D" 8) ("E" 10))))
 
 ;; (add-element *display* (make-instance 'display-element-panel :title "Lookup-table") :table)
 
