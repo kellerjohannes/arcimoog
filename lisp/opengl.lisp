@@ -2,13 +2,12 @@
 
 ;; TODO
 ;;
-;; * explore Bravura usage
-;;
 ;; * move opengl stuff to separate package - start implementing an abstraction layer for graphics on top of opengl package, in its own package
 ;;
 ;; * create another abstraction layer for 'panels', representing the configuration and real time values for each arcimoog module
 ;;
 ;; * think about a way to organise panels and the connection to the faderfox slots. some are hardwired (global projection), others need to be changed dynamically (parameters for multiple (polyphonic) pipelines)
+
 
 (defparameter *shader-path* "/home/johannes/common-lisp/arcimoog/lisp/shaders/")
 (defparameter *texture-path* "/home/johannes/common-lisp/arcimoog/lisp/textures/")
@@ -169,9 +168,14 @@
 
 
 (defclass renderer-2d-class ()
-  ((shader :initform nil :accessor shader)
-   (vao :initform nil :accessor vao)
-   (vbo :initform nil :accessor vbo)
+  ((shape-shader :initform nil :accessor shape-shader)
+   (texture-shader :initform nil :accessor texture-shader)
+   (shape-vao :initform nil :accessor shape-vao)
+   (shape-vbo :initform nil :accessor shape-vbo)
+   (texture-vao :initform nil :accessor texture-vao)
+   (texture-vbo :initform nil :accessor texture-vbo)
+   (texture-array-size :initform 100 :accessor texture-array-size)
+   (texture-array :initform nil :accessor texture-array)
    (default-color :initform (vector 1.0 1.0 1.0) :initarg :color :accessor default-color)
    (view-matrix :initform nil :accessor view-matrix)
    (model-matrix :initform nil :accessor model-matrix)
@@ -179,23 +183,35 @@
                         :documentation "Max number of 2d-coordinates that will be allocated in the VBO.")))
 
 (defmethod initialize-instance :after ((renderer renderer-2d-class) &key)
-  (with-accessors ((shader shader)
+  (with-accessors ((shader shape-shader)
+                   (texture-shader texture-shader)
                    (view view-matrix)
                    (model model-matrix)
-                   (vao vao)
-                   (vbo vbo))
+                   (vao shape-vao)
+                   (vbo shape-vbo)
+                   (texture-vao texture-vao)
+                   (texture-vbo texture-vbo))
       renderer
     (setf shader (make-instance 'shader-class
                                 :vertex-source (concatenate 'string *shader-path*
                                                             "shader-2d.vert")
                                 :fragment-source (concatenate 'string *shader-path*
                                                               "shader-2d.frag")))
+    (setf texture-shader (make-instance 'shader-class
+                                        :vertex-source (concatenate 'string *shader-path*
+                                                                    "texture-shader.vert")
+                                        :fragment-source (concatenate 'string *shader-path*
+                                                                      "texture-shader.frag")))
+    (loop for i from 0 below (texture-array-size renderer) do
+          (setf (aref (texture-array renderer) i) (gl:gen-texture)))
     (setf model (glm:create-identity-matrix 4))
     ;; view matrix is constant for now. Later it could be used to represent different layers of a 2d
     ;; display
     (setf view (glm:create-identity-matrix 4))
     (glm:transform-matrix view glm:translate (vector 0.0 0.0 -0.5))
     (set-uniform-matrix shader "view" (glm:lisp-to-gl-matrix view))
+    (set-uniform-matrix texture-shader "view" (glm:lisp-to-gl-matrix view))
+
     (setf vao (gl:gen-vertex-array))
     (setf vbo (gl:gen-buffer))
     (gl:bind-vertex-array vao)
@@ -213,8 +229,104 @@
                               (cffi:null-pointer))
     (gl:enable-vertex-attrib-array 0)
     (gl:bind-buffer :array-buffer 0)
+    (gl:bind-vertex-array 0)
+
+    (setf texture-vao (gl:gen-vertex-array))
+    (setf texture-vbo (gl:gen-buffer))
+    (gl:bind-vertex-array texture-vao)
+    (gl:bind-buffer :array-buffer texture-vbo)
+    (gl:buffer-data :array-buffer :static-draw (array-to-gl-array
+                                                (make-array (* 6 4) :initial-element 0.0) :float))
+    (gl:vertex-attrib-pointer 0
+                              4
+                              :float
+                              nil
+                              (* 4 (cffi:foreign-type-size :float))
+                              (cffi:null-pointer))
+    (gl:enable-vertex-attrib-array 0)
+    (gl:bind-buffer :array-buffer 0)
     (gl:bind-vertex-array 0)))
 
+
+
+
+(defclass display-element ()
+  ((color :initform (vector 1.0 1.0 1.0) :initarg :color :accessor color)
+   (scaling :initform 1.0 :initarg :scaling :accessor scaling)
+   (x-position :initform 0 :initarg :x-position :accessor x-position)
+   (y-position :initform 0 :initarg :y-position :accessor y-position)))
+
+(defclass display-element-panel (display-element)
+  ((width :initform 300 :initarg :width :accessor width)
+   (height :initform 500 :initarg :height :accessor height)
+   (title :initform "[no title]" :initarg :title :accessor title)
+   (title-x-padding :initform 12 :initarg :title-x-padding :accessor title-x-padding)
+   (title-y-padding :initform 3 :initarg :title-y-padding :accessor title-y-padding)
+   (selectedp :initform nil :initarg :selectedp :accessor selectedp)
+   (selected-color :initform (vector 0.3 1.0 1.0) :initarg :selected-color :accessor selected-color)
+   (selected-margin :initform 5 :initarg :selected-margin :accessor selected-margin)))
+
+(defclass display-element-table (display-element)
+  ((width :initform 300 :initarg :width :accessor width)
+   (column-widths :initform (vector 50 50) :initarg :column-widths :accessor column-widths)
+   (row-height :initform 20 :initarg :row-height :accessor row-height)
+   (cell-padding :initform 1 :initarg :cell-padding :accessor cell-padding)
+   (text-x-padding :initform 1 :initarg :text-padding :accessor text-x-padding)
+   (text-y-padding :initform 0 :initarg :text-padding :accessor text-y-padding)
+   (contents :initform (make-array '(2 2) :initial-element 0 :adjustable t)
+             :initarg :contents :accessor contents)))
+
+(defmethod number-of-columns ((element display-element-table))
+  (array-dimension (contents element) 1))
+
+(defmethod number-of-rows ((element display-element-table))
+  (array-dimension (contents element) 0))
+
+(defmethod column-width ((element display-element-table) column-index)
+  (aref (column-widths element) column-index))
+
+(defmethod get-cell-content ((element display-element-table) row-index column-index)
+  (aref (contents element) row-index column-index))
+
+(defmethod set-cell-content ((element display-element-table) row-index column-index content)
+  (setf (aref (contents element) row-index column-index) content))
+
+
+(defclass display-element-image (display-element)
+  ((image-file-path :initform nil :initarg :image-file-path :accessor image-file-path)
+   (image-width :initform nil :accessor image-width)
+   (image-height :initform nil :accessor image-height)
+   (texture-id :initform nil :initarg :texture-id :accessor texture-id)))
+
+(defmethod initialize-instance :after ((element display-element-image) &key)
+  (format t "~&Initialising image ~a." (image-file-path element))
+  (with-accessors ((path image-file-path)
+                   (width image-width)
+                   (height image-height)
+                   (texture texture-id))
+      element
+    (gl:bind-texture :texture-2d texture)
+    (gl:tex-parameter :texture-2d :texture-wrap-s :repeat)
+    (gl:tex-parameter :texture-2d :texture-wrap-t :repeat)
+    (gl:tex-parameter :texture-2d :texture-min-filter :linear)
+    (gl:tex-parameter :texture-2d :texture-mag-filter :linear)
+    (multiple-value-bind (jpg-data jpg-height jpg-width)
+        (cl-jpeg:decode-image (concatenate 'string *texture-path* path))
+      (setf width jpg-width
+            height jpg-height)
+      (cond (jpg-data
+             (gl:tex-image-2d :texture-2d
+                              0
+                              :rgb
+                              jpg-width
+                              jpg-height
+                              0
+                              :rgb
+                              :unsigned-byte
+                              jpg-data)
+             (gl:generate-mipmap :texture-2d)
+             (format t "~&Texture ~a loaded." path))
+            (t (format t "~&Failed to load texture2."))))))
 
 ;; (defclass renderer-texture-class ()
 ;;   ((image-file-path :initform "" :initarg :image-file-path :accessor image-file-path)
@@ -292,49 +404,6 @@
 ;;         (gl:enable-vertex-attrib-array 0)
 ;;         (gl:bind-buffer :array-buffer 0)
 ;;         (gl:bind-vertex-array 0)))))
-
-
-(defclass display-element ()
-  ((color :initform (vector 1.0 1.0 1.0) :initarg :color :accessor color)
-   (scaling :initform 1.0 :initarg :scaling :accessor scaling)
-   (x-position :initform 0 :initarg :x-position :accessor x-position)
-   (y-position :initform 0 :initarg :y-position :accessor y-position)))
-
-(defclass display-element-panel (display-element)
-  ((width :initform 300 :initarg :width :accessor width)
-   (height :initform 500 :initarg :height :accessor height)
-   (title :initform "[no title]" :initarg :title :accessor title)
-   (title-x-padding :initform 12 :initarg :title-x-padding :accessor title-x-padding)
-   (title-y-padding :initform 3 :initarg :title-y-padding :accessor title-y-padding)
-   (selectedp :initform nil :initarg :selectedp :accessor selectedp)
-   (selected-color :initform (vector 0.3 1.0 1.0) :initarg :selected-color :accessor selected-color)
-   (selected-margin :initform 5 :initarg :selected-margin :accessor selected-margin)))
-
-(defclass display-element-table (display-element)
-  ((width :initform 300 :initarg :width :accessor width)
-   (column-widths :initform (vector 50 50) :initarg :column-widths :accessor column-widths)
-   (row-height :initform 20 :initarg :row-height :accessor row-height)
-   (cell-padding :initform 1 :initarg :cell-padding :accessor cell-padding)
-   (text-x-padding :initform 1 :initarg :text-padding :accessor text-x-padding)
-   (text-y-padding :initform 0 :initarg :text-padding :accessor text-y-padding)
-   (contents :initform (make-array '(2 2) :initial-element 0 :adjustable t)
-             :initarg :contents :accessor contents)))
-
-(defmethod number-of-columns ((element display-element-table))
-  (array-dimension (contents element) 1))
-
-(defmethod number-of-rows ((element display-element-table))
-  (array-dimension (contents element) 0))
-
-(defmethod column-width ((element display-element-table) column-index)
-  (aref (column-widths element) column-index))
-
-(defmethod get-cell-content ((element display-element-table) row-index column-index)
-  (aref (contents element) row-index column-index))
-
-(defmethod set-cell-content ((element display-element-table) row-index column-index content)
-  (setf (aref (contents element) row-index column-index) content))
-
 
 ;; (defclass display-element-image (display-element)
 ;;   ((image-path :initform nil :initarg :image-path :accessor image-path)
@@ -431,10 +500,10 @@
                      translation
                      rotation
                      (color (default-color renderer)))
-  (with-accessors ((vao vao)
-                   (vbo vbo)
+  (with-accessors ((vao shape-vao)
+                   (vbo shape-vbo)
                    (model model-matrix)
-                   (shader shader))
+                   (shader shape-shader))
       renderer
     (gl:bind-vertex-array vao)
     (gl:bind-buffer :array-buffer vbo)
@@ -444,7 +513,9 @@
                                                (utility:coerce-vector vertex-data 'single-float))
                                            :float))
     (gl:bind-buffer :array-buffer 0)
-    (set-uniform-matrix shader "projection" (glm:lisp-to-gl-matrix (global-projection-matrix display)))
+    (set-uniform-matrix shader
+                        "projection"
+                        (glm:lisp-to-gl-matrix (global-projection-matrix display)))
     (setf model (glm:create-identity-matrix 4))
     (when scaling (glm:transform-matrix model glm:scale scaling))
     (when translation (glm:transform-matrix model glm:translate translation))
@@ -453,6 +524,56 @@
     (set-uniform shader "vertexColor" 'float (aref color 0) (aref color 1) (aref color 2))
     (gl:draw-arrays mode 0 (floor (/ (length vertex-data) 2)))
     (gl:bind-vertex-array 0)))
+
+(defmethod render-texture ((display display-class) (renderer renderer-2d-class)
+                           (element display-element-image)
+                           x-origin y-origin &key scaling translation rotation)
+  (with-accessors ((shader texture-shader)
+                   (model model-matrix)
+                   (vao texture-vao)
+                   (vbo texture-vbo))
+      renderer
+    (gl:enable :blend)
+    (gl:blend-func :src-alpha :one-minus-src-alpha)
+    (set-uniform-matrix shader "projection"
+                        (glm:lisp-to-gl-matrix (global-projection-matrix display)))
+    (gl:active-texture :texture0)
+    (gl:bind-vertex-array vao)
+    (gl:bind-texture :texture-2d (texture-id element))
+    (let ((w (coerce (image-width element) 'single-float))
+          (h (coerce (image-height element) 'single-float)))
+      (declare (ignore w h))
+      (let (
+            ;; (quad-vertices (vector 0.0 h   0.0 0.0
+            ;;                        0.0 0.0 0.0 1.0
+            ;;                        w 0.0   1.0 1.0
+            ;;                        0.0 h   0.0 0.0
+            ;;                        w 0.0   1.0 1.0
+            ;;                        w h     1.0 0.0))
+            ;; TODO only for debugging:
+            (quad-vertices (vector 0.0 700.0   0.0 0.0
+                                   0.0 0.0 0.0 1.0
+                                   400.0 0.0   1.0 1.0
+                                   0.0 300.0   0.0 0.0
+                                   400.0 0.0   1.0 1.0
+                                   400.0 300.0     1.0 0.0))
+            )
+        (gl:bind-buffer :array-buffer vbo)
+        (gl:buffer-sub-data :array-buffer
+                            (array-to-gl-array quad-vertices :float))
+        (gl:bind-buffer :array-buffer 0)))
+    (set-uniform-matrix shader
+                        "projection"
+                        (glm:lisp-to-gl-matrix (global-projection-matrix display)))
+    (setf model (glm:create-identity-matrix 4))
+    (when scaling (glm:transform-matrix model glm:scale scaling))
+    (when translation (glm:transform-matrix model glm:translate translation))
+    (when rotation (glm:transform-matrix model glm:rotate (car rotation) (cdr rotation)))
+    (set-uniform-matrix shader "model" (glm:lisp-to-gl-matrix model))
+    (gl:draw-arrays :triangles 0 6)
+    (gl:bind-vertex-array 0)
+    (gl:bind-texture :texture-2d 0)
+    ))
 
 
 (defmethod render-string ((display display-class)
@@ -499,32 +620,8 @@
     (gl:bind-texture :texture-2d 0)))
 
 
-;; (defmethod render-texture ((display display-class) (renderer renderer-texture-class)
-;;                            x-origin y-origin &key (scale-factor 1.0) (z-origin 0.0))
-;;   ;; TODO implement scale-factor and z-origin
-;;   (declare (ignore scale-factor z-origin))
-;;   (gl:enable :blend)
-;;   (gl:blend-func :src-alpha :one-minus-src-alpha)
-;;   (with-accessors ((shader shader-instance)
-;;                    (texture texture-id)
-;;                    (vao quad-vao)
-;;                    (vbo quad-vbo))
-;;       renderer
-;;     (set-uniform-matrix shader "projection"
-;;                         (glm:lisp-to-gl-matrix (global-projection-matrix display)))
-;;     (gl:active-texture :texture0)
-;;     (gl:bind-vertex-array vao)
-;;     (gl:bind-texture :texture-2d texture)
-;;     (gl:bind-buffer :array-buffer vbo)
-;;     (gl:draw-arrays :triangles 0 6)
-;;     (gl:bind-vertex-array 0)
-;;     (gl:bind-texture :texture-2d 0)))
 
 
-
-
-;; in progress
-;;(defgeneric draw (display display-element shape-renderer ))
 
 (defmethod draw ((display display-class) (element display-element-panel)
                  (renderer renderer-2d-class) (font-renderer font-render-class))
@@ -567,15 +664,12 @@
                        :scale-factor (scaling element))))))
 
 
-;; (defmethod draw ((display display-class) (element display-element-image)
-;;                  (renderer renderer-2d-class) (font-renderer font-render-class))
-;;   (with-accessors ((x x-position)
-;;                    (y y-position))
-;;       element
-;;     (render-texture display (texture-renderer element) x y)))
+(defmethod draw ((display display-class) (element display-element-image)
+                 (renderer renderer-2d-class) (font-renderer font-render-class))
+  (render-texture display renderer element (x-position element) (y-position element)))
 
 
-(defmethod draw-text ((display display-class) (element display-element-table)
+(defmethod draw-cell-text ((display display-class) (element display-element-table)
                       (font-renderer font-render-class))
   (dotimes (i (number-of-rows element))
     (let ((cumulative-width 0))
@@ -615,7 +709,7 @@
 (defmethod draw ((display display-class) (element display-element-table)
                  (renderer renderer-2d-class) (font-renderer font-render-class))
   (draw-cell-backgrounds display element renderer)
-  (draw-text display element font-renderer))
+  (draw-cell-text display element font-renderer))
 
 
 
@@ -661,8 +755,22 @@
                                                    ("?" 12 "undef")
                                                    ("?" 14 "undef"))))
 
-;; (add-element *display* (make-instance 'display-element-image :image-path "vicentino-test.jpg")
-;;              :vicentino)
+(add-element *display* (make-instance 'display-element-image :image-file-path "vicentino-test.jpg")
+             :vicentino)
+(set-element-value *display* :vicentino y-position 600)
+(set-element-value *display* :vicentino x-position 300)
+(set-element-value *display* :vicentino scaling 0.1)
+
+
+(setf (background-color *display*) (vector 0.2 0.2 0.2))
+
+;; (add-element *display* (make-instance 'display-element-panel :title "hi" :x-position 500 :y-position 500) :test)
+
+
+
+
+
+
 
 ;; (init-faderfox-communication)
 
