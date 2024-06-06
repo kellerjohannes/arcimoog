@@ -216,82 +216,82 @@
     (gl:bind-vertex-array 0)))
 
 
-(defclass renderer-texture-class ()
-  ((image-file-path :initform "" :initarg :image-file-path :accessor image-file-path)
-   (image-width :initform nil :accessor image-width)
-   (image-height :initform nil :accessor image-height)
-   (texture-id :initform -1 :accessor texture-id)
-   (quad-vao :initform -1 :accessor quad-vao)
-   (quad-vbo :initform -1 :accessor quad-vbo)
-   (shader-instance :initform nil :accessor shader-instance)))
+;; (defclass renderer-texture-class ()
+;;   ((image-file-path :initform "" :initarg :image-file-path :accessor image-file-path)
+;;    (image-width :initform nil :accessor image-width)
+;;    (image-height :initform nil :accessor image-height)
+;;    (texture-id :initform -1 :accessor texture-id)
+;;    (quad-vao :initform -1 :accessor quad-vao)
+;;    (quad-vbo :initform -1 :accessor quad-vbo)
+;;    (shader-instance :initform nil :accessor shader-instance)))
 
-(defmethod initialize-instance :after ((renderer renderer-texture-class) &key)
-  (with-accessors ((image image-file-path)
-                   (image-width image-width)
-                   (image-height image-height)
-                   (vao quad-vao)
-                   (vbo quad-vbo)
-                   (texture texture-id)
-                   (shader shader-instance))
-      renderer
-    (unless shader
-      (setf shader (make-instance 'shader-class
-                                  :vertex-source (concatenate 'string
-                                                              *shader-path*
-                                                              "texture-shader.vert")
-                                  :fragment-source (concatenate 'string
-                                                                *shader-path*
-                                                                "texture-shader.frag"))))
+;; (defmethod initialize-instance :after ((renderer renderer-texture-class) &key)
+;;   (with-accessors ((image image-file-path)
+;;                    (image-width image-width)
+;;                    (image-height image-height)
+;;                    (vao quad-vao)
+;;                    (vbo quad-vbo)
+;;                    (texture texture-id)
+;;                    (shader shader-instance))
+;;       renderer
+;;     (unless shader
+;;       (setf shader (make-instance 'shader-class
+;;                                   :vertex-source (concatenate 'string
+;;                                                               *shader-path*
+;;                                                               "texture-shader.vert")
+;;                                   :fragment-source (concatenate 'string
+;;                                                                 *shader-path*
+;;                                                                 "texture-shader.frag"))))
 
-    (setf texture (gl:gen-texture))
-    (gl:bind-texture :texture-2d texture)
-    (gl:tex-parameter :texture-2d :texture-wrap-s :repeat)
-    (gl:tex-parameter :texture-2d :texture-wrap-t :repeat)
-    (gl:tex-parameter :texture-2d :texture-min-filter :linear)
-    (gl:tex-parameter :texture-2d :texture-mag-filter :linear)
-    (multiple-value-bind (data height width)
-        (cl-jpeg:decode-image (concatenate 'string *texture-path* image))
-      (setf image-width width
-            image-height height)
-      (cond (data
-             (gl:tex-image-2d :texture-2d 0 :rgb width height 0 :rgb :unsigned-byte data)
-             (gl:generate-mipmap :texture-2d))
-            (t (format t "~&Failed to load texture2."))))
+;;     (setf texture (gl:gen-texture))
+;;     (gl:bind-texture :texture-2d texture)
+;;     (gl:tex-parameter :texture-2d :texture-wrap-s :repeat)
+;;     (gl:tex-parameter :texture-2d :texture-wrap-t :repeat)
+;;     (gl:tex-parameter :texture-2d :texture-min-filter :linear)
+;;     (gl:tex-parameter :texture-2d :texture-mag-filter :linear)
+;;     (multiple-value-bind (data height width)
+;;         (cl-jpeg:decode-image (concatenate 'string *texture-path* image))
+;;       (setf image-width width
+;;             image-height height)
+;;       (cond (data
+;;              (gl:tex-image-2d :texture-2d 0 :rgb width height 0 :rgb :unsigned-byte data)
+;;              (gl:generate-mipmap :texture-2d))
+;;             (t (format t "~&Failed to load texture2."))))
 
-    (set-uniform shader "aTexture" 'int 0)
+;;     (set-uniform shader "aTexture" 'int 0)
 
 
-    (let ((w (coerce image-width 'single-float))
-          (h (coerce image-height 'single-float)))
-      (let ((vertices (vector 0.0 h 0.0                 0.0 0.0
-                              0.0 0.0 0.0                          0.0 1.0
-                              w 0.0 0.0                  1.0 1.0
-                              0.0 h 0.0                 0.0 0.0
-                              w 0.0 0.0                  1.0 1.0
-                              w h 0.0         1.0 0.0)))
-        (setf vao (gl:gen-vertex-array)
-              vbo (gl:gen-buffer))
-        (gl:bind-vertex-array vao)
-        (gl:bind-buffer :array-buffer vbo)
-        (gl:buffer-data :array-buffer
-                        :static-draw
-                        (array-to-gl-array vertices :float))
-        (gl:vertex-attrib-pointer 0
-                                  3
-                                  :float
-                                  nil
-                                  (* 3 (cffi:foreign-type-size :float))
-                                  (cffi:null-pointer))
-        (gl:enable-vertex-attrib-array 0)
-        (gl:vertex-attrib-pointer 1
-                                  2
-                                  :float
-                                  nil
-                                  (* 2 (cffi:foreign-type-size :float))
-                                  (cffi:null-pointer))
-        (gl:enable-vertex-attrib-array 0)
-        (gl:bind-buffer :array-buffer 0)
-        (gl:bind-vertex-array 0)))))
+;;     (let ((w (coerce image-width 'single-float))
+;;           (h (coerce image-height 'single-float)))
+;;       (let ((vertices (vector 0.0 h 0.0                 0.0 0.0
+;;                               0.0 0.0 0.0                          0.0 1.0
+;;                               w 0.0 0.0                  1.0 1.0
+;;                               0.0 h 0.0                 0.0 0.0
+;;                               w 0.0 0.0                  1.0 1.0
+;;                               w h 0.0         1.0 0.0)))
+;;         (setf vao (gl:gen-vertex-array)
+;;               vbo (gl:gen-buffer))
+;;         (gl:bind-vertex-array vao)
+;;         (gl:bind-buffer :array-buffer vbo)
+;;         (gl:buffer-data :array-buffer
+;;                         :static-draw
+;;                         (array-to-gl-array vertices :float))
+;;         (gl:vertex-attrib-pointer 0
+;;                                   3
+;;                                   :float
+;;                                   nil
+;;                                   (* 3 (cffi:foreign-type-size :float))
+;;                                   (cffi:null-pointer))
+;;         (gl:enable-vertex-attrib-array 0)
+;;         (gl:vertex-attrib-pointer 1
+;;                                   2
+;;                                   :float
+;;                                   nil
+;;                                   (* 2 (cffi:foreign-type-size :float))
+;;                                   (cffi:null-pointer))
+;;         (gl:enable-vertex-attrib-array 0)
+;;         (gl:bind-buffer :array-buffer 0)
+;;         (gl:bind-vertex-array 0)))))
 
 
 (defclass display-element ()
@@ -335,17 +335,18 @@
 (defmethod set-cell-content ((element display-element-table) row-index column-index content)
   (setf (aref (contents element) row-index column-index) content))
 
-(defclass display-element-image (display-element)
-  ((image-path :initform nil :initarg :image-path :accessor image-path)
-   (texture-renderer :initform nil :accessor texture-renderer)))
 
-(defmethod initialize-instance :after ((element display-element-image) &key)
-  (let ((renderer (make-instance 'renderer-texture-class
-                                 :image-file-path (image-path element))))
-    (format t "~&Texture renderer class instantiated.")
-    (if renderer
-        (setf (texture-renderer element) renderer)
-        (format t "~&Error: could not create RENDERER-TEXTURE-CLASS."))))
+;; (defclass display-element-image (display-element)
+;;   ((image-path :initform nil :initarg :image-path :accessor image-path)
+;;    (texture-renderer :initform nil :accessor texture-renderer)))
+
+;; (defmethod initialize-instance :after ((element display-element-image) &key)
+;;   (let ((renderer (make-instance 'renderer-texture-class
+;;                                  :image-file-path (image-path element))))
+;;     (format t "~&Texture renderer class instantiated.")
+;;     (if renderer
+;;         (setf (texture-renderer element) renderer)
+;;         (format t "~&Error: could not create RENDERER-TEXTURE-CLASS."))))
 
 
 
@@ -417,12 +418,6 @@
     ;; (destroy our-shader)
     ))
 
-;; (panel (make-instance 'display-element-panel
-;;                                 :width 500 :height 400
-;;                                 :x-position 20 :y-position 20
-;;                                 :color (vector 0.4 0.5 0.9)
-;;                                 :selectedp t
-;;                                 :title "Arcimoog main"))
 
 (defmethod boot ((display display-class))
   (bt:make-thread (lambda () (create-render-context display)) :name "Arcimoog OpenGL display"))
@@ -504,28 +499,32 @@
     (gl:bind-texture :texture-2d 0)))
 
 
-(defmethod render-texture ((display display-class) (renderer renderer-texture-class)
-                           x-origin y-origin &key (scale-factor 1.0) (z-origin 0.0))
-  ;; TODO implement scale-factor and z-origin
-  (declare (ignore scale-factor z-origin))
-  (gl:enable :blend)
-  (gl:blend-func :src-alpha :one-minus-src-alpha)
-  (with-accessors ((shader shader-instance)
-                   (texture texture-id)
-                   (vao quad-vao)
-                   (vbo quad-vbo))
-      renderer
-    (set-uniform-matrix shader "projection"
-                        (glm:lisp-to-gl-matrix (global-projection-matrix display)))
-    (gl:active-texture :texture0)
-    (gl:bind-vertex-array vao)
-    (gl:bind-texture :texture-2d texture)
-    (gl:bind-buffer :array-buffer vbo)
-    (gl:draw-arrays :triangles 0 6)
-    (gl:bind-vertex-array 0)
-    (gl:bind-texture :texture-2d 0)))
+;; (defmethod render-texture ((display display-class) (renderer renderer-texture-class)
+;;                            x-origin y-origin &key (scale-factor 1.0) (z-origin 0.0))
+;;   ;; TODO implement scale-factor and z-origin
+;;   (declare (ignore scale-factor z-origin))
+;;   (gl:enable :blend)
+;;   (gl:blend-func :src-alpha :one-minus-src-alpha)
+;;   (with-accessors ((shader shader-instance)
+;;                    (texture texture-id)
+;;                    (vao quad-vao)
+;;                    (vbo quad-vbo))
+;;       renderer
+;;     (set-uniform-matrix shader "projection"
+;;                         (glm:lisp-to-gl-matrix (global-projection-matrix display)))
+;;     (gl:active-texture :texture0)
+;;     (gl:bind-vertex-array vao)
+;;     (gl:bind-texture :texture-2d texture)
+;;     (gl:bind-buffer :array-buffer vbo)
+;;     (gl:draw-arrays :triangles 0 6)
+;;     (gl:bind-vertex-array 0)
+;;     (gl:bind-texture :texture-2d 0)))
 
 
+
+
+;; in progress
+;;(defgeneric draw (display display-element shape-renderer ))
 
 (defmethod draw ((display display-class) (element display-element-panel)
                  (renderer renderer-2d-class) (font-renderer font-render-class))
@@ -568,12 +567,12 @@
                        :scale-factor (scaling element))))))
 
 
-(defmethod draw ((display display-class) (element display-element-image)
-                 (renderer renderer-2d-class) (font-renderer font-render-class))
-  (with-accessors ((x x-position)
-                   (y y-position))
-      element
-    (render-texture display (texture-renderer element) x y)))
+;; (defmethod draw ((display display-class) (element display-element-image)
+;;                  (renderer renderer-2d-class) (font-renderer font-render-class))
+;;   (with-accessors ((x x-position)
+;;                    (y y-position))
+;;       element
+;;     (render-texture display (texture-renderer element) x y)))
 
 
 (defmethod draw-text ((display display-class) (element display-element-table)
@@ -662,8 +661,8 @@
                                                    ("?" 12 "undef")
                                                    ("?" 14 "undef"))))
 
-(add-element *display* (make-instance 'display-element-image :image-path "vicentino-test.jpg")
-             :vicentino)
+;; (add-element *display* (make-instance 'display-element-image :image-path "vicentino-test.jpg")
+;;              :vicentino)
 
 ;; (init-faderfox-communication)
 
