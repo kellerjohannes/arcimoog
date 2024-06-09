@@ -176,6 +176,7 @@
    (texture-vbo :initform nil :accessor texture-vbo)
    (texture-array-size :initform 100 :accessor texture-array-size)
    (texture-array :initform nil :accessor texture-array)
+   (texture-use-flags :initform nil :accessor texture-use-flags)
    (default-color :initform (vector 1.0 1.0 1.0) :initarg :color :accessor default-color)
    (view-matrix :initform nil :accessor view-matrix)
    (model-matrix :initform nil :accessor model-matrix)
@@ -202,8 +203,14 @@
                                                                     "texture-shader.vert")
                                         :fragment-source (concatenate 'string *shader-path*
                                                                       "texture-shader.frag")))
+
+    (setf (texture-array renderer) (make-array (texture-array-size renderer)
+                                               :initial-element -1))
+    (setf (texture-use-flags renderer) (make-array (texture-array-size renderer)
+                                                   :initial-element nil))
     (loop for i from 0 below (texture-array-size renderer) do
           (setf (aref (texture-array renderer) i) (gl:gen-texture)))
+
     (setf model (glm:create-identity-matrix 4))
     ;; view matrix is constant for now. Later it could be used to represent different layers of a 2d
     ;; display
@@ -247,7 +254,17 @@
     (gl:bind-buffer :array-buffer 0)
     (gl:bind-vertex-array 0)))
 
+;; TODO: this is unacceptable and will only work for one and only one texture!
+(defmethod book-first-available-texture-id ((renderer renderer-2d-class))
+  ;; (loop for i from 0 below (texture-array-size renderer) do
+  ;;   (unless (aref (texture-use-flags renderer) i)
+  ;;     (setf (aref (texture-use-flags renderer)) t)
+  ;;     (return (aref (texture-array renderer) i))))
+  (aref (texture-array renderer) 0)
+  )
 
+(defmethod get-texture-id ((renderer renderer-2d-class) slot-number)
+  (aref (texture-array renderer) slot-number))
 
 
 (defclass display-element ()
@@ -299,7 +316,7 @@
    (texture-id :initform nil :initarg :texture-id :accessor texture-id)))
 
 (defmethod initialize-instance :after ((element display-element-image) &key)
-  (format t "~&Initialising image ~a." (image-file-path element))
+  (format t "~&Initialising image ~a with texture id ~a." (image-file-path element) (texture-id element))
   (with-accessors ((path image-file-path)
                    (width image-width)
                    (height image-height)
@@ -326,7 +343,7 @@
                               jpg-data)
              (gl:generate-mipmap :texture-2d)
              (format t "~&Texture ~a loaded." path))
-            (t (format t "~&Failed to load texture2."))))))
+            (t (format t "~&Failed to load texture ~a." (image-file-path element)))))))
 
 ;; (defclass renderer-texture-class ()
 ;;   ((image-file-path :initform "" :initarg :image-file-path :accessor image-file-path)
@@ -540,6 +557,10 @@
     (gl:active-texture :texture0)
     (gl:bind-vertex-array vao)
     (gl:bind-texture :texture-2d (texture-id element))
+
+    ;; TODO: not sure what this does
+    (set-uniform shader "text" 'int 1)
+
     (let ((w (coerce (image-width element) 'single-float))
           (h (coerce (image-height element) 'single-float)))
       (declare (ignore w h))
@@ -714,8 +735,20 @@
 
 
 
-(defmethod add-element ((display display-class) (element display-element) id)
-  (setf (gethash id (display-elements display)) element))
+(defmethod add-element ((display display-class) id display-element-type &rest make-arguments)
+  (let ((element-instance
+          (case display-element-type
+            (display-element-table (apply #'make-instance
+                                          (cons 'display-element-table make-arguments)))
+            (display-element-panel (apply #'make-instance
+                                          (cons 'display-element-panel make-arguments)))
+            (display-element-image (apply #'make-instance
+                                            (append (list 'display-element-image
+                                                          :texture-id
+                                                          (book-first-available-texture-id
+                                                           (renderer display)))
+                                                    make-arguments))))))
+    (setf (gethash id (display-elements display)) element-instance)))
 
 (defmacro set-element-value (display element-id slot-name value)
   `(setf (,slot-name (gethash ,element-id (display-elements ,display))) ,value))
@@ -729,40 +762,41 @@
 (defparameter *display* (make-instance 'display-class))
 
 
+(defun scene ()
+
+  (add-element *display* :main 'display-element-panel :title "Table configuration")
+  (set-element-value *display* :main color (vector 0.6 0.1 0.1))
+
+  (add-element *display* :table 'display-element-table :x-position 10 :y-position 500)
+  (set-element-value *display* :table y-position 470)
+  (set-element-value *display* :table x-position 10)
+  (set-element-value *display* :table text-x-padding 2)
+  (set-element-value *display* :table row-height 19)
+  (set-element-value *display* :table color (vector 0.0 0.0 0.0))
+
+  (set-element-value *display* :table column-widths #(20 50 100))
+  (set-element-value *display* :table
+                     contents
+                     (make-array '(7 3)
+                                 :initial-contents `(("A" 2 1.5)
+                                                     ("B" 4 3.4283)
+                                                     ("C" 6 1/2)
+                                                     ("D" 8 1/15)
+                                                     ("E" 10 ,(expt 2 1/12))
+                                                     ("?" 12 "undef")
+                                                     ("?" 14 "undef"))))
+
+  (add-element *display* :vicentino 'display-element-image :image-file-path "vicentino-test.jpg")
+  (set-element-value *display* :vicentino y-position 600)
+  (set-element-value *display* :vicentino x-position 300)
+  (set-element-value *display* :vicentino scaling 0.1)
+
+
+  (setf (background-color *display*) (vector 0.2 0.2 0.2)))
+
 (defun start ()
-  (boot *display*))
-
-
-(add-element *display* (make-instance 'display-element-panel :title "Table configuration") :main)
-(set-element-value *display* :main color (vector 0.6 0.1 0.1))
-
-(add-element *display* (make-instance 'display-element-table :x-position 10 :y-position 500) :table)
-(set-element-value *display* :table y-position 470)
-(set-element-value *display* :table x-position 10)
-(set-element-value *display* :table text-x-padding 2)
-(set-element-value *display* :table row-height 19)
-(set-element-value *display* :table color (vector 0.0 0.0 0.0))
-
-(set-element-value *display* :table column-widths #(20 50 100))
-(set-element-value *display* :table
-                   contents
-                   (make-array '(7 3)
-                               :initial-contents `(("A" 2 1.5)
-                                                   ("B" 4 3.4283)
-                                                   ("C" 6 1/2)
-                                                   ("D" 8 1/15)
-                                                   ("E" 10 ,(expt 2 1/12))
-                                                   ("?" 12 "undef")
-                                                   ("?" 14 "undef"))))
-
-(add-element *display* (make-instance 'display-element-image :image-file-path "vicentino-test.jpg")
-             :vicentino)
-(set-element-value *display* :vicentino y-position 600)
-(set-element-value *display* :vicentino x-position 300)
-(set-element-value *display* :vicentino scaling 0.1)
-
-
-(setf (background-color *display*) (vector 0.2 0.2 0.2))
+  (boot *display*)
+  (scene))
 
 ;; (add-element *display* (make-instance 'display-element-panel :title "hi" :x-position 500 :y-position 500) :test)
 
