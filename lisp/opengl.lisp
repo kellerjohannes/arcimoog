@@ -64,10 +64,12 @@
   (when (or (eq (glfw:get-key :escape) :press)
             (eq (glfw:get-key :q) :press))
     (glfw:set-window-should-close))
-  (when-key-safe :space #'progress-global-mode-player)
-  (when-key-safe :g #'step-genus)
-  (when-key-safe :m #'step-modus)
-  (when-key-safe :p #'plmi))
+  ;; (when-key-safe :space #'progress-global-mode-player)
+  ;; (when-key-safe :g #'step-genus)
+  (when-key-safe :s #'scene)
+  ;; (when-key-safe :m #'step-modus)
+  ;; (when-key-safe :p #'plmi)
+  )
 
 
 
@@ -335,13 +337,17 @@
              (gl:tex-image-2d :texture-2d
                               0
                               :rgb
-                              jpg-width
-                              jpg-height
+                              width
+                              height
                               0
                               :rgb
                               :unsigned-byte
                               jpg-data)
-             (gl:generate-mipmap :texture-2d)
+             (format t "~&JPG size: ~a x ~a" width height)
+             (format t "~&Texture size: ~a x ~a"
+                     (gl:get-tex-level-parameter :texture-2d 0 :texture-height)
+                     (gl:get-tex-level-parameter :texture-2d 0 :texture-width)
+                     )
              (format t "~&Texture ~a loaded." path))
             (t (format t "~&Failed to load texture ~a." (image-file-path element)))))))
 
@@ -550,43 +556,21 @@
                    (vao texture-vao)
                    (vbo texture-vbo))
       renderer
-    (gl:enable :blend)
-    (gl:blend-func :src-alpha :one-minus-src-alpha)
     (set-uniform-matrix shader "projection"
                         (glm:lisp-to-gl-matrix (global-projection-matrix display)))
     (gl:active-texture :texture0)
-    (gl:bind-vertex-array vao)
     (gl:bind-texture :texture-2d (texture-id element))
-
-    ;; TODO: not sure what this does
-    ;; (set-uniform shader "text" 'int 1)
+    (use shader)
+    (gl:bind-vertex-array vao)
 
     (let ((w (coerce (image-width element) 'single-float))
           (h (coerce (image-height element) 'single-float)))
-      (declare (ignore w h))
-      (let (
-            ;; (quad-vertices (vector 0.0 h   0.0 0.0
-            ;;                        0.0 0.0 0.0 1.0
-            ;;                        w 0.0   1.0 1.0
-            ;;                        0.0 h   0.0 0.0
-            ;;                        w 0.0   1.0 1.0
-            ;;                        w h     1.0 0.0))
-            ;; TODO only for debugging:
-            ;; Old Texture coords:
-            ;; (quad-vertices (vector 0.0 700.0   0.0 0.0
-            ;;                        0.0 0.0     0.0 1.0
-            ;;                        400.0 0.0   1.0 1.0
-            ;;                        0.0 300.0   0.0 0.0
-            ;;                        400.0 0.0   1.0 1.0
-            ;;                        400.0 300.0 1.0 0.0))
-            ;; New Texture coords:
-            (quad-vertices (vector 0.0 700.0   0.0 1.0
-                                   0.0 0.0     0.0 0.0
-                                   400.0 0.0   1.0 0.0
-                                   0.0 300.0   0.0 1.0
-                                   400.0 0.0   1.0 0.0
-                                   400.0 300.0 1.0 1.0))
-            )
+      (let ((quad-vertices (vector 0.0 h   0.0 0.0
+                                   0.0 0.0 0.0 1.0
+                                   w 0.0   1.0 1.0
+                                   0.0 h   0.0 0.0
+                                   w 0.0   1.0 1.0
+                                   w h     1.0 0.0)))
         (gl:bind-buffer :array-buffer vbo)
         (gl:buffer-sub-data :array-buffer
                             (array-to-gl-array quad-vertices :float))
@@ -695,7 +679,9 @@
 
 (defmethod draw ((display display-class) (element display-element-image)
                  (renderer renderer-2d-class) (font-renderer font-render-class))
-  (render-texture display renderer element (x-position element) (y-position element)))
+  (render-texture display renderer element (x-position element) (y-position element)
+                  ;; TODO: only for debug
+                  :scaling (vector 0.2 0.2 0.0)))
 
 
 (defmethod draw-cell-text ((display display-class) (element display-element-table)
@@ -771,7 +757,6 @@
 
 
 (defun scene ()
-
   (add-element *display* :main 'display-element-panel :title "Table configuration")
   (set-element-value *display* :main color (vector 0.6 0.1 0.1))
 
@@ -803,8 +788,7 @@
   (setf (background-color *display*) (vector 0.2 0.2 0.2)))
 
 (defun start ()
-  (boot *display*)
-  (scene))
+  (boot *display*))
 
 ;; (add-element *display* (make-instance 'display-element-panel :title "hi" :x-position 500 :y-position 500) :test)
 
