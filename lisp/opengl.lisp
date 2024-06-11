@@ -176,9 +176,6 @@
    (shape-vbo :initform nil :accessor shape-vbo)
    (texture-vao :initform nil :accessor texture-vao)
    (texture-vbo :initform nil :accessor texture-vbo)
-   (texture-array-size :initform 100 :accessor texture-array-size)
-   (texture-array :initform nil :accessor texture-array)
-   (texture-use-flags :initform nil :accessor texture-use-flags)
    (default-color :initform (vector 1.0 1.0 1.0) :initarg :color :accessor default-color)
    (view-matrix :initform nil :accessor view-matrix)
    (model-matrix :initform nil :accessor model-matrix)
@@ -205,14 +202,6 @@
                                                                     "texture-shader.vert")
                                         :fragment-source (concatenate 'string *shader-path*
                                                                       "texture-shader.frag")))
-
-    (setf (texture-array renderer) (make-array (texture-array-size renderer)
-                                               :initial-element -1))
-    (setf (texture-use-flags renderer) (make-array (texture-array-size renderer)
-                                                   :initial-element nil))
-    (loop for i from 0 below (texture-array-size renderer) do
-          (setf (aref (texture-array renderer) i) (gl:gen-texture)))
-
     (setf model (glm:create-identity-matrix 4))
     ;; view matrix is constant for now. Later it could be used to represent different layers of a 2d
     ;; display
@@ -255,18 +244,6 @@
     (gl:enable-vertex-attrib-array 0)
     (gl:bind-buffer :array-buffer 0)
     (gl:bind-vertex-array 0)))
-
-;; TODO: this is unacceptable and will only work for one and only one texture!
-(defmethod book-first-available-texture-id ((renderer renderer-2d-class))
-  ;; (loop for i from 0 below (texture-array-size renderer) do
-  ;;   (unless (aref (texture-use-flags renderer) i)
-  ;;     (setf (aref (texture-use-flags renderer)) t)
-  ;;     (return (aref (texture-array renderer) i))))
-  (aref (texture-array renderer) 0)
-  )
-
-(defmethod get-texture-id ((renderer renderer-2d-class) slot-number)
-  (aref (texture-array renderer) slot-number))
 
 
 (defclass display-element ()
@@ -324,6 +301,7 @@
                    (height image-height)
                    (texture texture-id))
       element
+    (setf texture (gl:gen-texture))
     (gl:bind-texture :texture-2d texture)
     (gl:tex-parameter :texture-2d :texture-wrap-s :repeat)
     (gl:tex-parameter :texture-2d :texture-wrap-t :repeat)
@@ -350,95 +328,6 @@
                      )
              (format t "~&Texture ~a loaded." path))
             (t (format t "~&Failed to load texture ~a." (image-file-path element)))))))
-
-;; (defclass renderer-texture-class ()
-;;   ((image-file-path :initform "" :initarg :image-file-path :accessor image-file-path)
-;;    (image-width :initform nil :accessor image-width)
-;;    (image-height :initform nil :accessor image-height)
-;;    (texture-id :initform -1 :accessor texture-id)
-;;    (quad-vao :initform -1 :accessor quad-vao)
-;;    (quad-vbo :initform -1 :accessor quad-vbo)
-;;    (shader-instance :initform nil :accessor shader-instance)))
-
-;; (defmethod initialize-instance :after ((renderer renderer-texture-class) &key)
-;;   (with-accessors ((image image-file-path)
-;;                    (image-width image-width)
-;;                    (image-height image-height)
-;;                    (vao quad-vao)
-;;                    (vbo quad-vbo)
-;;                    (texture texture-id)
-;;                    (shader shader-instance))
-;;       renderer
-;;     (unless shader
-;;       (setf shader (make-instance 'shader-class
-;;                                   :vertex-source (concatenate 'string
-;;                                                               *shader-path*
-;;                                                               "texture-shader.vert")
-;;                                   :fragment-source (concatenate 'string
-;;                                                                 *shader-path*
-;;                                                                 "texture-shader.frag"))))
-
-;;     (setf texture (gl:gen-texture))
-;;     (gl:bind-texture :texture-2d texture)
-;;     (gl:tex-parameter :texture-2d :texture-wrap-s :repeat)
-;;     (gl:tex-parameter :texture-2d :texture-wrap-t :repeat)
-;;     (gl:tex-parameter :texture-2d :texture-min-filter :linear)
-;;     (gl:tex-parameter :texture-2d :texture-mag-filter :linear)
-;;     (multiple-value-bind (data height width)
-;;         (cl-jpeg:decode-image (concatenate 'string *texture-path* image))
-;;       (setf image-width width
-;;             image-height height)
-;;       (cond (data
-;;              (gl:tex-image-2d :texture-2d 0 :rgb width height 0 :rgb :unsigned-byte data)
-;;              (gl:generate-mipmap :texture-2d))
-;;             (t (format t "~&Failed to load texture2."))))
-
-;;     (set-uniform shader "aTexture" 'int 0)
-
-
-;;     (let ((w (coerce image-width 'single-float))
-;;           (h (coerce image-height 'single-float)))
-;;       (let ((vertices (vector 0.0 h 0.0                 0.0 0.0
-;;                               0.0 0.0 0.0                          0.0 1.0
-;;                               w 0.0 0.0                  1.0 1.0
-;;                               0.0 h 0.0                 0.0 0.0
-;;                               w 0.0 0.0                  1.0 1.0
-;;                               w h 0.0         1.0 0.0)))
-;;         (setf vao (gl:gen-vertex-array)
-;;               vbo (gl:gen-buffer))
-;;         (gl:bind-vertex-array vao)
-;;         (gl:bind-buffer :array-buffer vbo)
-;;         (gl:buffer-data :array-buffer
-;;                         :static-draw
-;;                         (array-to-gl-array vertices :float))
-;;         (gl:vertex-attrib-pointer 0
-;;                                   3
-;;                                   :float
-;;                                   nil
-;;                                   (* 3 (cffi:foreign-type-size :float))
-;;                                   (cffi:null-pointer))
-;;         (gl:enable-vertex-attrib-array 0)
-;;         (gl:vertex-attrib-pointer 1
-;;                                   2
-;;                                   :float
-;;                                   nil
-;;                                   (* 2 (cffi:foreign-type-size :float))
-;;                                   (cffi:null-pointer))
-;;         (gl:enable-vertex-attrib-array 0)
-;;         (gl:bind-buffer :array-buffer 0)
-;;         (gl:bind-vertex-array 0)))))
-
-;; (defclass display-element-image (display-element)
-;;   ((image-path :initform nil :initarg :image-path :accessor image-path)
-;;    (texture-renderer :initform nil :accessor texture-renderer)))
-
-;; (defmethod initialize-instance :after ((element display-element-image) &key)
-;;   (let ((renderer (make-instance 'renderer-texture-class
-;;                                  :image-file-path (image-path element))))
-;;     (format t "~&Texture renderer class instantiated.")
-;;     (if renderer
-;;         (setf (texture-renderer element) renderer)
-;;         (format t "~&Error: could not create RENDERER-TEXTURE-CLASS."))))
 
 
 
@@ -729,20 +618,8 @@
 
 
 
-(defmethod add-element ((display display-class) id display-element-type &rest make-arguments)
-  (let ((element-instance
-          (case display-element-type
-            (display-element-table (apply #'make-instance
-                                          (cons 'display-element-table make-arguments)))
-            (display-element-panel (apply #'make-instance
-                                          (cons 'display-element-panel make-arguments)))
-            (display-element-image (apply #'make-instance
-                                            (append (list 'display-element-image
-                                                          :texture-id
-                                                          (book-first-available-texture-id
-                                                           (renderer display)))
-                                                    make-arguments))))))
-    (setf (gethash id (display-elements display)) element-instance)))
+(defmethod add-element ((display display-class) id (element display-element))
+    (setf (gethash id (display-elements display)) element))
 
 (defmacro set-element-value (display element-id slot-name value)
   `(setf (,slot-name (gethash ,element-id (display-elements ,display))) ,value))
@@ -757,10 +634,12 @@
 
 
 (defun scene ()
-  (add-element *display* :main 'display-element-panel :title "Table configuration")
+  (add-element *display* :main (make-instance 'display-element-panel :title "Table configuration"))
   (set-element-value *display* :main color (vector 0.6 0.1 0.1))
 
-  (add-element *display* :table 'display-element-table :x-position 10 :y-position 500)
+  (add-element *display* :table (make-instance 'display-element-table
+                                               :x-position 10
+                                               :y-position 500))
   (set-element-value *display* :table y-position 470)
   (set-element-value *display* :table x-position 10)
   (set-element-value *display* :table text-x-padding 2)
@@ -779,7 +658,8 @@
                                                      ("?" 12 "undef")
                                                      ("?" 14 "undef"))))
 
-  (add-element *display* :vicentino 'display-element-image :image-file-path "vicentino-test.jpg")
+  (add-element *display* :vicentino (make-instance 'display-element-image
+                                                   :image-file-path "vicentino-test.jpg"))
   (set-element-value *display* :vicentino y-position 600)
   (set-element-value *display* :vicentino x-position 300)
   (set-element-value *display* :vicentino scaling 0.1)
@@ -790,173 +670,5 @@
 (defun start ()
   (boot *display*))
 
-;; (add-element *display* (make-instance 'display-element-panel :title "hi" :x-position 500 :y-position 500) :test)
-
-
-
-
-
-
 
 ;; (init-faderfox-communication)
-
-
-
-;;; obsolete, kept for reference because texture stuff hasn't been migrated to new class system
-;; TODO
-;; - Migrate texture handling to a class
-
-
-;; (defun main ()
-;;   (init-faderfox-communication)
-;;   (setf *root-position* (cons 0.0 0.0))
-;;   (setf *mix-amount* 0.5)
-;;   (glfw:with-init-window (:title "Arcimoog Display" :width *screen-width* :height *screen-height*)
-;;     (glfw:set-framebuffer-size-callback 'framebuffer-size-callback)
-;;     (gl:viewport 0 0 *screen-width* *screen-height*)
-
-;;     (update-global-projection)
-
-;;     (let* ((font-shader (make-instance 'shader-class
-;;                                        :vertex-source (concatenate 'string *shader-path*
-;;                                                                    "font-shader.vert")
-;;                                        :fragment-source (concatenate 'string *shader-path*
-;;                                                                      "font-shader.frag")))
-;;            (font (make-instance 'font-render-class
-;;                                 :character-set *global-character-set*
-;;                                 :shader-instance font-shader))
-;;            (shape-drawer (make-instance 'renderer-2d-class)))
-
-;;       (let ((our-shader (make-instance 'shader-class
-;;                                        :vertex-source (concatenate 'string *shader-path*
-;;                                                                    "shader-texture.vs")
-;;                                        :fragment-source (concatenate 'string *shader-path*
-;;                                                                      "shader-texture.fs"))))
-
-;;         (let ((vertices (vector 0.5 0.5 0.0    1.0 0.0 0.0    1.0 1.0
-;;                                 0.5 -0.5 0.0   0.0 1.0 0.0    1.0 0.0
-;;                                 -0.5 -0.5 0.0  0.0 0.0 1.0    0.0 0.0
-;;                                 -0.5 0.5 0.0   1.0 1.0 0.0    0.0 1.0))
-;;               (indices (vector 0 1 3
-;;                                1 2 3))
-;;               (vao (gl:gen-vertex-array))
-;;               (vbo (gl:gen-buffer))
-;;               (ebo (gl:gen-buffer)))
-;;           (gl:bind-vertex-array vao)
-;;           (gl:bind-buffer :array-buffer vbo)
-;;           (gl:buffer-data :array-buffer :static-draw (array-to-gl-array vertices :float))
-;;           (gl:bind-buffer :element-array-buffer ebo)
-;;           (gl:buffer-data :element-array-buffer :static-draw (array-to-gl-array indices :unsigned-int))
-;;           (gl:vertex-attrib-pointer 0 3 :float nil (* 8 (cffi:foreign-type-size :float))
-;;                                     (cffi:null-pointer))
-;;           (gl:enable-vertex-attrib-array 0)
-;;           (gl:vertex-attrib-pointer 1 3 :float nil (* 8 (cffi:foreign-type-size :float))
-;;                                     (cffi:inc-pointer (cffi:null-pointer)
-;;                                                       (* 3 (cffi:foreign-type-size :float))))
-;;           (gl:enable-vertex-attrib-array 1)
-;;           (gl:vertex-attrib-pointer 2 2 :float nil (* 8 (cffi:foreign-type-size :float))
-;;                                     (cffi:inc-pointer (cffi:null-pointer)
-;;                                                       (* 6 (cffi:foreign-type-size :float))))
-;;           (gl:enable-vertex-attrib-array 2)
-;;           (gl:bind-buffer :array-buffer 0)
-;;           (gl:bind-vertex-array 0)
-
-
-;;           (let ((texture1 (gl:gen-texture))
-;;                 (texture2 (gl:gen-texture))
-;;                 (image-size))
-;;             (gl:bind-texture :texture-2d texture1)
-;;             (gl:tex-parameter :texture-2d :texture-wrap-s :repeat)
-;;             (gl:tex-parameter :texture-2d :texture-wrap-t :repeat)
-;;             (gl:tex-parameter :texture-2d :texture-min-filter :linear)
-;;             (gl:tex-parameter :texture-2d :texture-mag-filter :linear)
-;;             (multiple-value-bind (data height width)
-;;                 (cl-jpeg:decode-image (concatenate 'string *texture-path* "vicentino-test.jpg"))
-;;               (cond (data
-;;                      (gl:tex-image-2d :texture-2d 0 :rgb width height 0 :rgb :unsigned-byte data)
-;;                      (gl:generate-mipmap :texture-2d))
-;;                     (t (format t "~&Failed to load texture."))))
-
-;;             (gl:bind-texture :texture-2d texture2)
-;;             (gl:tex-parameter :texture-2d :texture-wrap-s :repeat)
-;;             (gl:tex-parameter :texture-2d :texture-wrap-t :repeat)
-;;             (gl:tex-parameter :texture-2d :texture-min-filter :linear)
-;;             (gl:tex-parameter :texture-2d :texture-mag-filter :linear)
-;;             (multiple-value-bind (data height width)
-;;                 (cl-jpeg:decode-image (concatenate 'string *texture-path* "aron.jpg"))
-;;               (setf image-size (cons width height))
-;;               (cond (data
-;;                      (gl:tex-image-2d :texture-2d 0 :rgb width height 0 :rgb :unsigned-byte data)
-;;                      (gl:generate-mipmap :texture-2d))
-;;                     (t (format t "~&Failed to load texture2."))))
-;;             (use our-shader)
-;;             (set-uniform our-shader "texture1" 'int 0)
-;;             (set-uniform our-shader "texture2" 'int 1)
-
-
-;; ;;; Scheduling-based loop, in the INCUDINE real time thread:
-
-;;             ;; (format t "~&Starting scheduling based render loop.")
-;;             ;; (let ((frame-counter 0))
-;;             ;;   (labels ((loop-trigger ()
-;;             ;;              (cond ((glfw:window-should-close-p)
-;;             ;;                     (gl:delete-vertex-arrays (list vao))
-;;             ;;                     (gl:delete-buffers (list vbo ebo))
-;;             ;;                     (destroy our-shader)
-;;             ;;                     (format t "~&Rendering terminated."))
-;;             ;;                    (t (render-loop font shape-drawer)
-;;             ;;                       (format t "~&Frame counter: ~a." frame-counter)
-;;             ;;                       (incudine:at (+ (incudine:now) #[0.5 s]) #'loop-trigger)))))
-;;             ;;     (loop-trigger)))
-
-;; ;;; Gentle loop, with SLEEP
-;;             (loop until (glfw:window-should-close-p) do
-;;               (render-loop font shape-drawer)
-;;               (sleep (/ 1 30)))
-
-
-;; ;;; Hardcore loop, max FPS
-;;             ;; (loop until (glfw:window-should-close-p) do
-;;             ;; (progn
-;;             ;;   (process-input)
-;;             ;;   (clear-global-background)
-;;             ;;   (update-global-projection)
-;;             ;;   (gl:active-texture :texture0)
-;;             ;;   (gl:bind-texture :texture-2d texture1)
-;;             ;;   (gl:active-texture :texture1)
-;;             ;;   (gl:bind-texture :texture-2d texture2)
-;;             ;;   (use our-shader)
-;;             ;;   (gl:bind-vertex-array vao)
-;;             ;;   (set-uniform our-shader "mixAmount" 'float *mix-amount*)
-;;             ;;   (setf *view-matrix* (glm:create-identity-matrix 4))
-;;             ;;   (glm:transform-matrix *view-matrix* glm:translate (vector 0.0 0.0 -0.5))
-;;             ;;   (update-global-projection)
-;;             ;;   (set-uniform-matrix our-shader "projection" (glm:lisp-to-gl-matrix *projection-matrix*))
-;;             ;;   (set-uniform-matrix our-shader "view" (glm:lisp-to-gl-matrix *view-matrix*))
-;;             ;;   (setf *model-matrix* (glm:create-identity-matrix 4))
-;;             ;;   (glm:transform-matrix *model-matrix* glm:scale (vector (* 0.2 (car image-size))
-;;             ;;                                                  (* 0.2 (cdr image-size))
-;;             ;;                                                  1.0))
-;;             ;;   (glm:transform-matrix *model-matrix* glm:translate (vector 400.0 300.0 0.0))
-;;             ;;   (glm:transform-matrix *model-matrix* glm:translate (vector (car *root-position*)
-;;             ;;                                                      (cdr *root-position*)
-;;             ;;                                                      0.0))
-
-
-;;             ;;   (render-vicentinos our-shader)
-
-;;             ;;   (render-all-texts font)
-
-;;             ;;   (render-shapes shape-drawer font)
-
-
-;;             ;;   (glfw:swap-buffers)
-;;             ;;   (glfw:poll-events))
-;;             ;; )
-
-
-;;             (gl:delete-vertex-arrays (list vao))
-;;             (gl:delete-buffers (list vbo ebo))
-;;             (destroy our-shader)
-
-;;             ))))))
