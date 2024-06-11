@@ -559,7 +559,7 @@
     (gl:bind-texture :texture-2d (texture-id element))
 
     ;; TODO: not sure what this does
-    (set-uniform shader "text" 'int 1)
+    ;; (set-uniform shader "text" 'int 1)
 
     (let ((w (coerce (image-width element) 'single-float))
           (h (coerce (image-height element) 'single-float)))
@@ -572,12 +572,20 @@
             ;;                        w 0.0   1.0 1.0
             ;;                        w h     1.0 0.0))
             ;; TODO only for debugging:
-            (quad-vertices (vector 0.0 700.0   0.0 0.0
-                                   0.0 0.0 0.0 1.0
-                                   400.0 0.0   1.0 1.0
-                                   0.0 300.0   0.0 0.0
-                                   400.0 0.0   1.0 1.0
-                                   400.0 300.0     1.0 0.0))
+            ;; Old Texture coords:
+            ;; (quad-vertices (vector 0.0 700.0   0.0 0.0
+            ;;                        0.0 0.0     0.0 1.0
+            ;;                        400.0 0.0   1.0 1.0
+            ;;                        0.0 300.0   0.0 0.0
+            ;;                        400.0 0.0   1.0 1.0
+            ;;                        400.0 300.0 1.0 0.0))
+            ;; New Texture coords:
+            (quad-vertices (vector 0.0 700.0   0.0 1.0
+                                   0.0 0.0     0.0 0.0
+                                   400.0 0.0   1.0 0.0
+                                   0.0 300.0   0.0 1.0
+                                   400.0 0.0   1.0 0.0
+                                   400.0 300.0 1.0 1.0))
             )
         (gl:bind-buffer :array-buffer vbo)
         (gl:buffer-sub-data :array-buffer
