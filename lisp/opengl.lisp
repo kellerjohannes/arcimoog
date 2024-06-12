@@ -173,8 +173,6 @@
 
 
 
-
-
 (defclass renderer-2d-class ()
   ((shape-shader :initform nil :accessor shape-shader)
    (texture-shader :initform nil :accessor texture-shader)
@@ -247,6 +245,95 @@
                               nil
                               (* 4 (cffi:foreign-type-size :float))
                               (cffi:null-pointer))
+    (gl:enable-vertex-attrib-array 0)
+    (gl:bind-buffer :array-buffer 0)
+    (gl:bind-vertex-array 0)))
+
+
+(defclass renderer-3d-class ()
+  ((shader :initform nil :accessor shader)
+   (vao :initform -1 :accessor vao)
+   (vbo :initform -1 :accessor vbo)
+   ;; only for testing
+   (tmp-rotation :initform 0 :accessor tmp-rotation)
+   (view-matrix :initform nil :accessor view-matrix)
+   (model-matrix :initform nil :accessor model-matrix)))
+
+(defmethod initialize-instance :after ((renderer renderer-3d-class) &key)
+  (with-accessors ((shader shader)
+                   (vao vao)
+                   (vbo vbo)
+                   (view view-matrix)
+                   (model model-matrix))
+      renderer
+    (setf shader (make-instance 'shader-class
+                                :vertex-source (concatenate 'string *shader-path*
+                                                            "shader-3d.vert")
+                                :fragment-source (concatenate 'string *shader-path*
+                                                              "shader-3d.frag")))
+    (setf model (glm:create-identity-matrix 4))
+    (setf view (glm:create-identity-matrix 4))
+    (set-uniform-matrix shader "view" (glm:lisp-to-gl-matrix view))
+
+    (setf vao (gl:gen-vertex-array))
+    (setf vbo (gl:gen-buffer))
+    (gl:bind-vertex-array vao)
+    (gl:bind-buffer :array-buffer vbo)
+
+    (let ((vertices (make-array 300 :initial-element 0.0)))
+      ;; (loop for i from 0 below 100 by 3 do
+      ;;   (setf (aref vertices (+ 0 (* i 3))) (- (random 400.0) 200.0)
+      ;;         (aref vertices (+ 1 (* i 3))) (- (random 400.0) 200.0)
+      ;;         (aref vertices (+ 2 (* i 3))) (- (random 200.0) 0.0)))
+      (let ((l 100.0))
+        (setf (aref vertices 0) 0.0
+              (aref vertices 1) 0.0
+              (aref vertices 2) 0.0
+
+              (aref vertices 3) l
+              (aref vertices 4) 0.0
+              (aref vertices 5) 0.0
+
+              (aref vertices 6) l
+              (aref vertices 7) l
+              (aref vertices 8) 0.0
+
+              (aref vertices 9) 0.0
+              (aref vertices 10) l
+              (aref vertices 11) 0.0
+
+              (aref vertices 12) 0.0
+              (aref vertices 13) 0.0
+              (aref vertices 14) 0.0
+
+              (aref vertices 15) 0.0
+              (aref vertices 16) 0.0
+              (aref vertices 17) l
+
+              (aref vertices 18) l
+              (aref vertices 19) 0.0
+              (aref vertices 20) l
+
+              (aref vertices 21) l
+              (aref vertices 22) l
+              (aref vertices 23) l
+
+              (aref vertices 24) 0.0
+              (aref vertices 25) l
+              (aref vertices 26) l
+
+              (aref vertices 27) 0.0
+              (aref vertices 28) 0.0
+              (aref vertices 29) l))
+      (gl:buffer-data :array-buffer
+                      :static-draw
+                      (array-to-gl-array vertices :float)))
+    (gl:vertex-attrib-pointer 0
+                            3
+                            :float
+                            nil
+                            (* 3 (cffi:foreign-type-size :float))
+                            (cffi:null-pointer))
     (gl:enable-vertex-attrib-array 0)
     (gl:bind-buffer :array-buffer 0)
     (gl:bind-vertex-array 0)))
@@ -341,16 +428,23 @@
    (rendering-p :initform nil :accessor rendering-p)
    (frame-buffer-object :initform -1 :accessor frame-buffer-object)
    (texture-color-buffer :initform -1 :accessor texture-color-buffer)
-   (render-buffer-object :initform -1 :accessor render-buffer-object)))
+   (render-buffer-object :initform -1 :accessor render-buffer-object)
+   (3d-renderer :initform nil :accessor 3d-renderer)
+   (projection-matrix :initform nil :accessor projection-matrix)))
 
 (defmethod initialize-instance :after ((element display-element-canvas) &key)
+  (with-accessors ((renderer 3d-renderer))
+      element
+    (setf renderer (make-instance 'renderer-3d-class)))
   (with-accessors ((fbo frame-buffer-object)
                    (tcb texture-color-buffer)
                    (rbo render-buffer-object)
+                   (projection projection-matrix)
                    (width width)
                    (height height))
       element
 
+    (setf projection (glm:ortho 0.0 (width element) 0.0 (height element) 0.1 500.0))
     (setf fbo (gl:gen-framebuffer))
     (gl:bind-framebuffer :framebuffer fbo)
 
@@ -368,8 +462,8 @@
     (gl:tex-parameter :texture-2d :texture-min-filter :linear)
     (gl:tex-parameter :texture-2d :texture-mag-filter :linear)
     (format t "~&TCB: ~a x ~a"
-            (gl:get-tex-level-parameter :texture-2d 0 :texture-height)
-            (gl:get-tex-level-parameter :texture-2d 0 :texture-width))
+            (gl:get-tex-level-parameter :texture-2d 0 :texture-width)
+            (gl:get-tex-level-parameter :texture-2d 0 :texture-height))
     (gl:bind-texture :texture-2d 0)
     (gl:framebuffer-texture-2d :framebuffer :color-attachment0 :texture-2d tcb 0)
 
@@ -428,6 +522,7 @@
   (setf (global-translation display) (vector 0.0 0.0 0.0)))
 
 (defmethod render-display-elements ((display display-class))
+  (gl:viewport 0 0 (screen-width display) (screen-height display))
   (process-input)
   (clear-display display)
   (update-projection display)
@@ -478,6 +573,7 @@
                    (shader shape-shader))
       renderer
     (gl:bind-vertex-array vao)
+    (gl:viewport 0 0 (screen-width display) (screen-height display))
     (gl:bind-buffer :array-buffer vbo)
     (gl:buffer-sub-data :array-buffer
                         (array-to-gl-array (if (typep vertex-data '(vector single-float *))
@@ -505,13 +601,11 @@
                    (vao texture-vao)
                    (vbo texture-vbo))
       renderer
-    (set-uniform-matrix shader "projection"
-                        (glm:lisp-to-gl-matrix (global-projection-matrix display)))
+    (gl:viewport 0 0 (screen-width display) (screen-height display))
     (gl:active-texture :texture0)
     (gl:bind-texture :texture-2d (texture-id element))
     (use shader)
     (gl:bind-vertex-array vao)
-
     (let ((w (coerce (image-width element) 'single-float))
           (h (coerce (image-height element) 'single-float)))
       (let ((quad-vertices (vector 0.0 h   0.0 0.0
@@ -541,68 +635,90 @@
 (defmethod render-canvas ((display display-class) (renderer renderer-2d-class)
                           (element display-element-canvas)
                           x-origin y-origin &key scaling translation rotation)
+  ;; first pass, render into the texture
+  (when (rendering-p element)
+    (with-accessors ((fbo frame-buffer-object))
+        element
+      (gl:bind-framebuffer :framebuffer fbo)
+      (when (fbo-complete-p)
+        (gl:clear-color 0.2 0.5 0.5 1.0)
+        (gl:clear :color-buffer-bit :depth-buffer-bit)
+        (gl:enable :depth-test)
+        (gl:viewport 0 0 (width element) (height element))
+
+        ;; (let ((vertices (make-array 100 :initial-element 0.0)))
+        ;;   (loop for i from 0 below 100 do
+        ;;         (setf (aref vertices i) (random 400.0)))
+        ;;   (render display renderer vertices :mode :lines :color (vector 1.0 1.0 1.0)))
+
+        (render-scene display element)
+        (gl:disable :depth-test))
+
+      (gl:bind-framebuffer :framebuffer 0)))
+
+  ;; second pass, render the texture itself (might be abstracted out)
   (with-accessors ((shader texture-shader)
                    (model model-matrix)
                    (vao texture-vao)
                    (vbo texture-vbo))
       renderer
-    (with-accessors ((fbo frame-buffer-object))
-        element
+    (gl:viewport 0 0 (screen-width display) (screen-height display))
+    (gl:active-texture :texture0)
+    (gl:bind-texture :texture-2d (texture-color-buffer element))
+    (use shader)
+    (gl:bind-vertex-array vao)
+    (let ((w (coerce (width element) 'single-float))
+          (h (coerce (height element) 'single-float)))
+      (let ((quad-vertices (vector 0.0 h   0.0 0.0
+                                   0.0 0.0 0.0 1.0
+                                   w 0.0   1.0 1.0
+                                   0.0 h   0.0 0.0
+                                   w 0.0   1.0 1.0
+                                   w h     1.0 0.0)))
+        (gl:bind-buffer :array-buffer vbo)
+        (gl:buffer-sub-data :array-buffer
+                            (array-to-gl-array quad-vertices :float))
+        (gl:bind-buffer :array-buffer 0)))
+    (set-uniform-matrix shader
+                        "projection"
+                        (glm:lisp-to-gl-matrix (global-projection-matrix display)))
+    (setf model (glm:create-identity-matrix 4))
+    (when scaling (glm:transform-matrix model glm:scale scaling))
+    (when translation (glm:transform-matrix model glm:translate translation))
+    (when rotation (glm:transform-matrix model glm:rotate (car rotation) (cdr rotation)))
+    (set-uniform-matrix shader "model" (glm:lisp-to-gl-matrix (model-matrix renderer)))
+    (gl:draw-arrays :triangles 0 6)
+    (gl:bind-vertex-array 0)
+    (gl:bind-texture :texture-2d 0)))
 
-      ;; first pass, render into the texture
-      (when (rendering-p element)
-        (gl:bind-framebuffer :framebuffer fbo)
-        (when (fbo-complete-p)
-          (gl:clear-color 0.2 0.2 0.5 1.0)
-          (gl:clear :color-buffer-bit :depth-buffer-bit)
-          (gl:enable :depth-test)
+(defmethod render-scene ((display display-class) (element display-element-canvas))
+  (with-accessors ((vao vao)
+                   (vbo vbo)
+                   (model model-matrix)
+                   (rotation tmp-rotation)
+                   (shader shader))
+      (3d-renderer element)
+    (gl:bind-vertex-array vao)
+    (set-uniform-matrix shader
+                        "projection"
+                        (glm:lisp-to-gl-matrix (projection-matrix element)))
+    (setf model (glm:create-identity-matrix 4))
+    (let ((scaling 0.3))
+      (glm:transform-matrix model glm:scale (vector scaling scaling scaling)))
+    (glm:transform-matrix model glm:rotate rotation (vector 0.3 0.1 1.0))
+    (incf rotation 1.5)
+    (glm:transform-matrix model glm:translate (vector 130.0 50.0 -150.0))
+    (set-uniform-matrix shader "model" (glm:lisp-to-gl-matrix model))
+    (set-uniform shader "vertexColor" 'float 1.0 1.0 1.0)
+    (gl:draw-arrays :line-strip 0 300)
+    (gl:bind-vertex-array 0)))
 
-          (let ((vertices (make-array 100 :initial-element 0.0)))
-            (loop for i from 0 below 100 do
-                  (setf (aref vertices i) (random 400.0)))
-            (render display renderer vertices :mode :lines :color (vector 1.0 1.0 1.0)))
-
-          (gl:disable :depth-test))
-
-        (gl:bind-framebuffer :framebuffer 0))
-
-      ;; second pass, render the texture itself (might be abstracted out)
-      (set-uniform-matrix shader "projection"
-                          (glm:lisp-to-gl-matrix (global-projection-matrix display)))
-      (gl:active-texture :texture0)
-      (gl:bind-texture :texture-2d (texture-color-buffer element))
-      (use shader)
-      (gl:bind-vertex-array vao)
-
-      (let ((w (coerce (width element) 'single-float))
-            (h (coerce (height element) 'single-float)))
-        (let ((quad-vertices (vector 0.0 h   0.0 0.0
-                                     0.0 0.0 0.0 1.0
-                                     w 0.0   1.0 1.0
-                                     0.0 h   0.0 0.0
-                                     w 0.0   1.0 1.0
-                                     w h     1.0 0.0)))
-          (gl:bind-buffer :array-buffer vbo)
-          (gl:buffer-sub-data :array-buffer
-                              (array-to-gl-array quad-vertices :float))
-          (gl:bind-buffer :array-buffer 0)))
-      (set-uniform-matrix shader
-                          "projection"
-                          (glm:lisp-to-gl-matrix (global-projection-matrix display)))
-      (setf model (glm:create-identity-matrix 4))
-      (when scaling (glm:transform-matrix model glm:scale scaling))
-      (when translation (glm:transform-matrix model glm:translate translation))
-      (when rotation (glm:transform-matrix model glm:rotate (car rotation) (cdr rotation)))
-      (set-uniform-matrix shader "model" (glm:lisp-to-gl-matrix model))
-      (gl:draw-arrays :triangles 0 6)
-      (gl:bind-vertex-array 0)
-      (gl:bind-texture :texture-2d 0)
-      )))
 
 (defmethod render-string ((display display-class)
                           (renderer font-render-class) text x-origin y-origin
                           &key (scale-factor 1.0) (rgb-vector (vector 1.0 1.0 1.0)))
   "TEXT, X-ORIGIN and Y-ORIGIN can be params."
+  (gl:viewport 0 0 (screen-width display) (screen-height display))
   (gl:pixel-store :unpack-alignment 1)
   (gl:enable :blend)
   (gl:blend-func :src-alpha :one-minus-src-alpha)
@@ -693,7 +809,8 @@
   (gl:bind-framebuffer :framebuffer 0)
   (render-texture display renderer element (x-position element) (y-position element)
                   ;; TODO: only for debug
-                  :scaling (vector 0.2 0.2 0.0)))
+                  :scaling (vector 0.2 0.2 0.0)
+                  :translation (vector 100.0 20.0 0.0)))
 
 
 (defmethod draw-cell-text ((display display-class) (element display-element-table)
@@ -743,7 +860,8 @@
 (defmethod draw ((display display-class) (element display-element-canvas)
                  (renderer renderer-2d-class) (font-renderer font-render-class))
   (gl:bind-framebuffer :framebuffer 0)
-  (render-canvas display renderer element 300.0 300.0))
+  (render-canvas display renderer element 300.0 300.0
+                 :translation (vector 400.0 200.0 0.0)))
 
 
 
