@@ -30,6 +30,12 @@
             (setf (gl:glaref gl-array i) item))
     gl-array))
 
+;;;; Often used OpenGL-things
+
+(defun fbo-complete-p ()
+  (member (gl:check-framebuffer-status :framebuffer)
+          (list :framebuffer-complete :framebuffer-complete-oes :framebuffer-complete-ext)))
+
 ;; Necessary, because gl:draw-elements contains a problematic implementation of the offset
 ;; parameter.
 
@@ -332,6 +338,7 @@
 (defclass display-element-canvas (display-element)
   ((width :initform nil :initarg :width :accessor width)
    (height :initform nil :initarg :height :accessor height)
+   (rendering-p :initform nil :accessor rendering-p)
    (frame-buffer-object :initform -1 :accessor frame-buffer-object)
    (texture-color-buffer :initform -1 :accessor texture-color-buffer)
    (render-buffer-object :initform -1 :accessor render-buffer-object)))
@@ -360,6 +367,9 @@
                      (cffi:null-pointer))
     (gl:tex-parameter :texture-2d :texture-min-filter :linear)
     (gl:tex-parameter :texture-2d :texture-mag-filter :linear)
+    (format t "~&TCB: ~a x ~a"
+            (gl:get-tex-level-parameter :texture-2d 0 :texture-height)
+            (gl:get-tex-level-parameter :texture-2d 0 :texture-width))
     (gl:bind-texture :texture-2d 0)
     (gl:framebuffer-texture-2d :framebuffer :color-attachment0 :texture-2d tcb 0)
 
@@ -369,9 +379,15 @@
     (gl:bind-renderbuffer :renderbuffer 0)
     (gl:framebuffer-renderbuffer :framebuffer :depth-stencil-attachment :renderbuffer rbo)
 
-    (if (eq (gl:check-framebuffer-status :framebuffer) :framebuffer-complete)
-        (format t "~&Framebuffer completed.")
-        (format t "~&Problem with framebuffer, not ready."))
+    (let ((fbo-status (gl:check-framebuffer-status :framebuffer)))
+      (case fbo-status
+        (:framebuffer-complete (format t "~&Framebuffer complete.~%"))
+        (:framebuffer-complete-oes (format t "~&Framebuffer OES complete.~%"))
+        (:framebuffer-complete-ext (format t "~&Framebuffer EXT complete.~%"))
+        (otherwise (format t "~&Problem with framebuffer, not ready.~%FBO: ~a~%TCB: ~a~%RBO: ~a~%Error: '~s'~%"
+                           fbo tcb rbo (gl:check-framebuffer-status :framebuffer)))))
+    (when (fbo-complete-p)
+      (setf (rendering-p element) t))
 
     (gl:bind-framebuffer :framebuffer 0)))
 
@@ -521,6 +537,7 @@
     (gl:bind-texture :texture-2d 0)
     ))
 
+
 (defmethod render-canvas ((display display-class) (renderer renderer-2d-class)
                           (element display-element-canvas)
                           x-origin y-origin &key scaling translation rotation)
@@ -533,16 +550,21 @@
         element
 
       ;; first pass, render into the texture
-      (gl:bind-framebuffer :framebuffer fbo)
+      (when (rendering-p element)
+        (gl:bind-framebuffer :framebuffer fbo)
+        (when (fbo-complete-p)
+          (gl:clear-color 0.2 0.2 0.5 1.0)
+          (gl:clear :color-buffer-bit :depth-buffer-bit)
+          (gl:enable :depth-test)
 
-      ;;(gl:clear-color 0.2 0.2 0.2 1.0)
-      ;;(gl:clear :color-buffer-bit :depth-buffer-bit)
-      ;;(gl:enable :depth-test)
+          (let ((vertices (make-array 100 :initial-element 0.0)))
+            (loop for i from 0 below 100 do
+                  (setf (aref vertices i) (random 400.0)))
+            (render display renderer vertices :mode :lines :color (vector 1.0 1.0 1.0)))
 
-      ;; draw stuff
+          (gl:disable :depth-test))
 
-      (gl:bind-framebuffer :framebuffer 0)
-
+        (gl:bind-framebuffer :framebuffer 0))
 
       ;; second pass, render the texture itself (might be abstracted out)
       (set-uniform-matrix shader "projection"
