@@ -250,19 +250,67 @@
     (gl:bind-vertex-array 0)))
 
 
-(defun generate-pseudocube (l array-size)
-  (let ((vertices (make-array array-size :initial-element 0.0)))
+(defun generate-pseudocube (l)
+  (let ((vertices (make-array 24 :initial-element 0.0))
+        (indices (make-array 36 :initial-element 0)))
     (setf (aref vertices 0) 0.0 (aref vertices 1) 0.0 (aref vertices 2) 0.0
           (aref vertices 3) l (aref vertices 4) 0.0 (aref vertices 5) 0.0
           (aref vertices 6) l (aref vertices 7) l (aref vertices 8) 0.0
           (aref vertices 9) 0.0 (aref vertices 10) l (aref vertices 11) 0.0
-          (aref vertices 12) 0.0 (aref vertices 13) 0.0 (aref vertices 14) 0.0
-          (aref vertices 15) 0.0 (aref vertices 16) 0.0 (aref vertices 17) l
-          (aref vertices 18) l (aref vertices 19) 0.0 (aref vertices 20) l
-          (aref vertices 21) l (aref vertices 22) l (aref vertices 23) l
-          (aref vertices 24) 0.0 (aref vertices 25) l (aref vertices 26) l
-          (aref vertices 27) 0.0 (aref vertices 28) 0.0 (aref vertices 29) l)
-    vertices))
+          (aref vertices 12) 0.0 (aref vertices 13) 0.0 (aref vertices 14) l
+          (aref vertices 15) l (aref vertices 16) 0.0 (aref vertices 17) l
+          (aref vertices 18) l (aref vertices 19) l (aref vertices 20) l
+          (aref vertices 21) 0.0 (aref vertices 22) l (aref vertices 23) l)
+    (setf
+     (aref indices 0) 0
+     (aref indices 1) 1
+     (aref indices 2) 2
+
+     (aref indices 3) 1
+     (aref indices 4) 2
+     (aref indices 5) 3
+
+     (aref indices 6) 4
+     (aref indices 7) 5
+     (aref indices 8) 6
+
+     (aref indices 9) 5
+     (aref indices 10) 6
+     (aref indices 11) 7
+
+     (aref indices 12) 0
+     (aref indices 13) 1
+     (aref indices 14) 2
+
+     (aref indices 15) 0
+     (aref indices 16) 1
+     (aref indices 17) 2
+
+     (aref indices 18) 0
+     (aref indices 19) 1
+     (aref indices 20) 2
+
+     (aref indices 21) 0
+     (aref indices 22) 1
+     (aref indices 23) 2
+
+     (aref indices 24) 0
+     (aref indices 25) 1
+     (aref indices 26) 2
+
+     (aref indices 27) 0
+     (aref indices 28) 1
+     (aref indices 29) 2
+
+     (aref indices 30) 0
+     (aref indices 31) 1
+     (aref indices 32) 2
+
+     (aref indices 33) 0
+     (aref indices 34) 1
+     (aref indices 35) 2
+     )
+    (values vertices indices)))
 
 (defun generate-random-volume (x y z array-size)
   (let ((vertices (make-array array-size :initial-element 0.0)))
@@ -276,6 +324,7 @@
   ((shader :initform nil :accessor shader)
    (vao :initform -1 :accessor vao)
    (vbo :initform -1 :accessor vbo)
+   (ebo :initform -1 :accessor ebo)
    ;; only for testing
    (tmp-rotation :initform 0 :accessor tmp-rotation)
    (view-matrix :initform nil :accessor view-matrix)
@@ -285,6 +334,7 @@
   (with-accessors ((shader shader)
                    (vao vao)
                    (vbo vbo)
+                   (ebo ebo)
                    (view view-matrix)
                    (model model-matrix))
       renderer
@@ -303,22 +353,29 @@
     (gl:bind-buffer :array-buffer vbo)
 
     (let (
-          (vertices (generate-random-volume (cons 0.0 200.0)
-                                            (cons 0.0 200.0)
-                                            (cons 10.0 210.0)
-                                            900))
-          ;; (vertices (generate-pseudocube 200.0 100))
+          ;; (vertices (generate-random-volume (cons -100.0 100.0)
+          ;;                                   (cons -100.0 100.0)
+          ;;                                   (cons -100.0 100.0)
+          ;;                                   900))
+          ;;(vertices (generate-pseudocube 200.0 100))
           )
-      (gl:buffer-data :array-buffer :static-draw (array-to-gl-array vertices :float)))
-    (gl:vertex-attrib-pointer 0
-                            3
-                            :float
-                            nil
-                            (* 3 (cffi:foreign-type-size :float))
-                            (cffi:null-pointer))
-    (gl:enable-vertex-attrib-array 0)
-    (gl:bind-buffer :array-buffer 0)
-    (gl:bind-vertex-array 0)))
+      (multiple-value-bind (vertices indices)
+          (generate-pseudocube 200.0)
+        (gl:buffer-data :array-buffer :static-draw (array-to-gl-array vertices :float))
+        (gl:vertex-attrib-pointer 0
+                                  3
+                                  :float
+                                  nil
+                                  (* 3 (cffi:foreign-type-size :float))
+                                  (cffi:null-pointer))
+        (gl:enable-vertex-attrib-array 0)
+        (gl:bind-buffer :array-buffer 0)
+
+        (setf ebo (gl:gen-buffer))
+        (gl:bind-buffer :element-array-buffer ebo)
+        (gl:buffer-data :element-array-buffer :static-draw (array-to-gl-array indices :int))
+        (gl:bind-buffer :element-array-buffer 0)
+        (gl:bind-vertex-array 0)))))
 
 
 (defclass display-element ()
@@ -429,7 +486,7 @@
     (setf projection
           ;;(glm:ortho 0.0 (width element) 0.0 (height element) 0.1 500.0)
           ;; TODO: perspective implementation does not work
-          ;;(glm:perspective 45.0 (* 1.0 (/ (width element) (height element))) 0.1 300.0)
+          (glm:perspective 45.0 (* 1.0 (/ (width element) (height element))) 0.1 500.0)
           )
     (setf fbo (gl:gen-framebuffer))
     (gl:bind-framebuffer :framebuffer fbo)
@@ -674,6 +731,7 @@
 (defmethod render-scene ((display display-class) (element display-element-canvas))
   (with-accessors ((vao vao)
                    (vbo vbo)
+                   (ebo ebo)
                    (model model-matrix)
                    (rotation tmp-rotation)
                    (shader shader))
@@ -685,14 +743,19 @@
     (setf model (glm:create-identity-matrix 4))
     (let ((scaling 0.3))
       (glm:transform-matrix model glm:scale (vector scaling scaling scaling)))
+    (glm:transform-matrix model glm:translate (vector -25.0 -25.0 0.0))
     (glm:transform-matrix model glm:rotate rotation (vector 1.0 0.0 0.0))
     (glm:transform-matrix model glm:rotate (* 0.7 rotation) (vector 0.0 1.0 0.0))
     (glm:transform-matrix model glm:rotate (* 0.2 rotation) (vector 0.0 0.0 1.0))
     (incf rotation 0.5)
-    (glm:transform-matrix model glm:translate (vector 220.0 120.0 -150.0))
+    (glm:transform-matrix model glm:translate (vector 0.0 0.0 -280.0))
     (set-uniform-matrix shader "model" (glm:lisp-to-gl-matrix model))
     (set-uniform shader "vertexColor" 'float 1.0 1.0 0.0)
-    (gl:draw-arrays :points 0 300)
+    ;;(gl:draw-arrays :points 0 300)
+    ;;(gl:draw-arrays :line-strip 0 300)
+    (gl:bind-buffer :element-array-buffer ebo)
+    (my-gl-draw-elements :triangles 34 :unsigned-int)
+    (gl:bind-buffer :element-array-buffer 0)
     (gl:bind-vertex-array 0)))
 
 
