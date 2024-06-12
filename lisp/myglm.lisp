@@ -54,8 +54,8 @@
     (setf (aref result 0 0) (/ 1.0 (* aspect tan-half-fovy))
           (aref result 1 1) (/ 1.0 tan-half-fovy)
           (aref result 2 2) (- (/ (+ z-far z-near) (- z-far z-near)))
-          (aref result 3 2) -1.0
-          (aref result 2 3) (- (/ (* 2.0 z-far z-near) (- z-far z-near))))
+          (aref result 2 3) -1.0
+          (aref result 3 2) (- (/ (* 2.0 z-far z-near) (- z-far z-near))))
     result))
 
 

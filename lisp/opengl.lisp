@@ -427,9 +427,9 @@
       element
 
     (setf projection
-          (glm:ortho 0.0 (width element) 0.0 (height element) 0.1 500.0)
+          ;;(glm:ortho 0.0 (width element) 0.0 (height element) 0.1 500.0)
           ;; TODO: perspective implementation does not work
-          ;;(glm:perspective 45.0 (* 1.0 (/ (width element) (height element))) 0.1 500.0)
+          (glm:perspective 45.0 (* 1.0 (/ (width element) (height element))) 0.1 500.0)
           )
     (setf fbo (gl:gen-framebuffer))
     (gl:bind-framebuffer :framebuffer fbo)
