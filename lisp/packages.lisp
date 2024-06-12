@@ -49,6 +49,7 @@
   (:export #:rad->deg
            #:deg->rad
            #:ortho
+           #:perspective
            #:create-identity-matrix
            #:translate
            #:scale

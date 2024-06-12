@@ -28,6 +28,37 @@
           )
     result))
 
+
+;;;; Taken from https://stackoverflow.com/questions/22623405/replicating-glmperspective-in-code
+;;
+;; With swapped row / column
+;;
+;; valType const rad = glm::radians(fovy);
+;; valType tanHalfFovy = tan(rad / valType(2));
+;; detail::tmat4x4<valType, defaultp> Result(valType(0));
+;; Result[0][0] = valType(1) / (aspect * tanHalfFovy);
+;; Result[1][1] = valType(1) / (tanHalfFovy);
+;; Result[2][2] = - (zFar + zNear) / (zFar - zNear);
+;; Result[2][3] = - valType(1);
+;; Result[3][2] = - (valType(2) * zFar * zNear) / (zFar - zNear);
+
+;; TODO
+;; does not work currently
+(defun perspective (fovy aspect z-near z-far)
+  (format t "~&Constructing perspective: ~a ~a ~a ~a" fovy aspect z-near z-far)
+  (assert (not (zerop aspect)))
+  (assert (not (= z-far z-near)))
+  (let* ((fovy-rad (deg->rad fovy))
+         (tan-half-fovy (tan (/ fovy-rad 2.0)))
+         (result (make-array '(4 4) :element-type 'float :initial-element 0.0)))
+    (setf (aref result 0 0) (/ 1.0 (* aspect tan-half-fovy))
+          (aref result 1 1) (/ 1.0 tan-half-fovy)
+          (aref result 2 2) (- (/ (+ z-far z-near) (- z-far z-near)))
+          (aref result 3 2) -1.0
+          (aref result 2 3) (- (/ (* 2.0 z-far z-near) (- z-far z-near))))
+    result))
+
+
 (defun create-identity-matrix (dimension)
   (let ((result (make-array (list dimension dimension) :initial-element 0.0)))
     (loop for i from 0 below dimension do
