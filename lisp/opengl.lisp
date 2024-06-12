@@ -329,7 +329,51 @@
              (format t "~&Texture ~a loaded." path))
             (t (format t "~&Failed to load texture ~a." (image-file-path element)))))))
 
+(defclass display-element-canvas (display-element)
+  ((width :initform nil :initarg :width :accessor width)
+   (height :initform nil :initarg :height :accessor height)
+   (frame-buffer-object :initform -1 :accessor frame-buffer-object)
+   (texture-color-buffer :initform -1 :accessor texture-color-buffer)
+   (render-buffer-object :initform -1 :accessor render-buffer-object)))
 
+(defmethod initialize-instance :after ((element display-element-canvas) &key)
+  (with-accessors ((fbo frame-buffer-object)
+                   (tcb texture-color-buffer)
+                   (rbo render-buffer-object)
+                   (width width)
+                   (height height))
+      element
+
+    (setf fbo (gl:gen-framebuffer))
+    (gl:bind-framebuffer :framebuffer fbo)
+
+    (setf tcb (gl:gen-texture))
+    (gl:bind-texture :texture-2d tcb)
+    (gl:tex-image-2d :texture-2d
+                     0
+                     :rgb
+                     width
+                     height
+                     0
+                     :rgb
+                     :unsigned-byte
+                     (cffi:null-pointer))
+    (gl:tex-parameter :texture-2d :texture-min-filter :linear)
+    (gl:tex-parameter :texture-2d :texture-mag-filter :linear)
+    (gl:bind-texture :texture-2d 0)
+    (gl:framebuffer-texture-2d :framebuffer :color-attachment0 :texture-2d tcb 0)
+
+    (setf rbo (gl:gen-renderbuffer))
+    (gl:bind-renderbuffer :renderbuffer rbo)
+    (gl:renderbuffer-storage :renderbuffer :depth24-stencil8 width height)
+    (gl:bind-renderbuffer :renderbuffer 0)
+    (gl:framebuffer-renderbuffer :framebuffer :depth-stencil-attachment :renderbuffer rbo)
+
+    (if (eq (gl:check-framebuffer-status :framebuffer) :framebuffer-complete)
+        (format t "~&Framebuffer completed.")
+        (format t "~&Problem with framebuffer, not ready."))
+
+    (gl:bind-framebuffer :framebuffer 0)))
 
 (defclass display-class ()
   ((renderer :initform nil :accessor renderer)
@@ -477,6 +521,61 @@
     (gl:bind-texture :texture-2d 0)
     ))
 
+(defmethod render-canvas ((display display-class) (renderer renderer-2d-class)
+                          (element display-element-canvas)
+                          x-origin y-origin &key scaling translation rotation)
+  (with-accessors ((shader texture-shader)
+                   (model model-matrix)
+                   (vao texture-vao)
+                   (vbo texture-vbo))
+      renderer
+    (with-accessors ((fbo frame-buffer-object))
+        element
+
+      ;; first pass, render into the texture
+      (gl:bind-framebuffer :framebuffer fbo)
+
+      ;;(gl:clear-color 0.2 0.2 0.2 1.0)
+      ;;(gl:clear :color-buffer-bit :depth-buffer-bit)
+      ;;(gl:enable :depth-test)
+
+      ;; draw stuff
+
+      (gl:bind-framebuffer :framebuffer 0)
+
+
+      ;; second pass, render the texture itself (might be abstracted out)
+      (set-uniform-matrix shader "projection"
+                          (glm:lisp-to-gl-matrix (global-projection-matrix display)))
+      (gl:active-texture :texture0)
+      (gl:bind-texture :texture-2d (texture-color-buffer element))
+      (use shader)
+      (gl:bind-vertex-array vao)
+
+      (let ((w (coerce (width element) 'single-float))
+            (h (coerce (height element) 'single-float)))
+        (let ((quad-vertices (vector 0.0 h   0.0 0.0
+                                     0.0 0.0 0.0 1.0
+                                     w 0.0   1.0 1.0
+                                     0.0 h   0.0 0.0
+                                     w 0.0   1.0 1.0
+                                     w h     1.0 0.0)))
+          (gl:bind-buffer :array-buffer vbo)
+          (gl:buffer-sub-data :array-buffer
+                              (array-to-gl-array quad-vertices :float))
+          (gl:bind-buffer :array-buffer 0)))
+      (set-uniform-matrix shader
+                          "projection"
+                          (glm:lisp-to-gl-matrix (global-projection-matrix display)))
+      (setf model (glm:create-identity-matrix 4))
+      (when scaling (glm:transform-matrix model glm:scale scaling))
+      (when translation (glm:transform-matrix model glm:translate translation))
+      (when rotation (glm:transform-matrix model glm:rotate (car rotation) (cdr rotation)))
+      (set-uniform-matrix shader "model" (glm:lisp-to-gl-matrix model))
+      (gl:draw-arrays :triangles 0 6)
+      (gl:bind-vertex-array 0)
+      (gl:bind-texture :texture-2d 0)
+      )))
 
 (defmethod render-string ((display display-class)
                           (renderer font-render-class) text x-origin y-origin
@@ -534,6 +633,7 @@
                    (h height)
                    (m selected-margin))
       element
+    (gl:bind-framebuffer :framebuffer 0)
     (utility:with-params (x y w h)
       (let ((sc (vector sc-f sc-f 1.0)))
         (when (selectedp element)
@@ -568,6 +668,7 @@
 
 (defmethod draw ((display display-class) (element display-element-image)
                  (renderer renderer-2d-class) (font-renderer font-render-class))
+  (gl:bind-framebuffer :framebuffer 0)
   (render-texture display renderer element (x-position element) (y-position element)
                   ;; TODO: only for debug
                   :scaling (vector 0.2 0.2 0.0)))
@@ -612,14 +713,20 @@
 
 (defmethod draw ((display display-class) (element display-element-table)
                  (renderer renderer-2d-class) (font-renderer font-render-class))
+  (gl:bind-framebuffer :framebuffer 0)
   (draw-cell-backgrounds display element renderer)
   (draw-cell-text display element font-renderer))
 
 
+(defmethod draw ((display display-class) (element display-element-canvas)
+                 (renderer renderer-2d-class) (font-renderer font-render-class))
+  (gl:bind-framebuffer :framebuffer 0)
+  (render-canvas display renderer element 300.0 300.0))
+
 
 
 (defmethod add-element ((display display-class) id (element display-element))
-    (setf (gethash id (display-elements display)) element))
+  (setf (gethash id (display-elements display)) element))
 
 (defmacro set-element-value (display element-id slot-name value)
   `(setf (,slot-name (gethash ,element-id (display-elements ,display))) ,value))
@@ -665,7 +772,11 @@
   (set-element-value *display* :vicentino scaling 0.1)
 
 
-  (setf (background-color *display*) (vector 0.2 0.2 0.2)))
+  (setf (background-color *display*) (vector 0.2 0.2 0.2))
+
+  (add-element *display* :canvas (make-instance 'display-element-canvas :width 500 :height 300))
+
+  )
 
 (defun start ()
   (boot *display*))
