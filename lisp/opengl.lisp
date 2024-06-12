@@ -429,7 +429,7 @@
     (setf projection
           ;;(glm:ortho 0.0 (width element) 0.0 (height element) 0.1 500.0)
           ;; TODO: perspective implementation does not work
-          (glm:perspective 45.0 (* 1.0 (/ (width element) (height element))) 0.1 500.0)
+          ;;(glm:perspective 45.0 (* 1.0 (/ (width element) (height element))) 0.1 300.0)
           )
     (setf fbo (gl:gen-framebuffer))
     (gl:bind-framebuffer :framebuffer fbo)
@@ -631,12 +631,6 @@
         (gl:clear :color-buffer-bit :depth-buffer-bit)
         (gl:enable :depth-test)
         (gl:viewport 0 0 (width element) (height element))
-
-        ;; (let ((vertices (make-array 100 :initial-element 0.0)))
-        ;;   (loop for i from 0 below 100 do
-        ;;         (setf (aref vertices i) (random 400.0)))
-        ;;   (render display renderer vertices :mode :lines :color (vector 1.0 1.0 1.0)))
-
         (render-scene display element)
         (gl:disable :depth-test))
 
@@ -697,7 +691,7 @@
     (incf rotation 0.5)
     (glm:transform-matrix model glm:translate (vector 220.0 120.0 -150.0))
     (set-uniform-matrix shader "model" (glm:lisp-to-gl-matrix model))
-    (set-uniform shader "vertexColor" 'float 1.0 1.0 1.0)
+    (set-uniform shader "vertexColor" 'float 1.0 1.0 0.0)
     (gl:draw-arrays :points 0 300)
     (gl:bind-vertex-array 0)))
 
