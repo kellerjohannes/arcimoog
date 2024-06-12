@@ -250,6 +250,28 @@
     (gl:bind-vertex-array 0)))
 
 
+(defun generate-pseudocube (l array-size)
+  (let ((vertices (make-array array-size :initial-element 0.0)))
+    (setf (aref vertices 0) 0.0 (aref vertices 1) 0.0 (aref vertices 2) 0.0
+          (aref vertices 3) l (aref vertices 4) 0.0 (aref vertices 5) 0.0
+          (aref vertices 6) l (aref vertices 7) l (aref vertices 8) 0.0
+          (aref vertices 9) 0.0 (aref vertices 10) l (aref vertices 11) 0.0
+          (aref vertices 12) 0.0 (aref vertices 13) 0.0 (aref vertices 14) 0.0
+          (aref vertices 15) 0.0 (aref vertices 16) 0.0 (aref vertices 17) l
+          (aref vertices 18) l (aref vertices 19) 0.0 (aref vertices 20) l
+          (aref vertices 21) l (aref vertices 22) l (aref vertices 23) l
+          (aref vertices 24) 0.0 (aref vertices 25) l (aref vertices 26) l
+          (aref vertices 27) 0.0 (aref vertices 28) 0.0 (aref vertices 29) l)
+    vertices))
+
+(defun generate-random-volume (x y z array-size)
+  (let ((vertices (make-array array-size :initial-element 0.0)))
+    (loop for i from 0 below array-size by 3 do
+      (setf (aref vertices (+ 0 i)) (+ (random (+ (- (car x)) (cdr x))) (car x))
+            (aref vertices (+ 1 i)) (+ (random (+ (- (car y)) (cdr y))) (car y))
+            (aref vertices (+ 2 i)) (+ (random (+ (- (car z)) (cdr z))) (car z))))
+    vertices))
+
 (defclass renderer-3d-class ()
   ((shader :initform nil :accessor shader)
    (vao :initform -1 :accessor vao)
@@ -280,54 +302,14 @@
     (gl:bind-vertex-array vao)
     (gl:bind-buffer :array-buffer vbo)
 
-    (let ((vertices (make-array 300 :initial-element 0.0)))
-      ;; (loop for i from 0 below 100 by 3 do
-      ;;   (setf (aref vertices (+ 0 (* i 3))) (- (random 400.0) 200.0)
-      ;;         (aref vertices (+ 1 (* i 3))) (- (random 400.0) 200.0)
-      ;;         (aref vertices (+ 2 (* i 3))) (- (random 200.0) 0.0)))
-      (let ((l 100.0))
-        (setf (aref vertices 0) 0.0
-              (aref vertices 1) 0.0
-              (aref vertices 2) 0.0
-
-              (aref vertices 3) l
-              (aref vertices 4) 0.0
-              (aref vertices 5) 0.0
-
-              (aref vertices 6) l
-              (aref vertices 7) l
-              (aref vertices 8) 0.0
-
-              (aref vertices 9) 0.0
-              (aref vertices 10) l
-              (aref vertices 11) 0.0
-
-              (aref vertices 12) 0.0
-              (aref vertices 13) 0.0
-              (aref vertices 14) 0.0
-
-              (aref vertices 15) 0.0
-              (aref vertices 16) 0.0
-              (aref vertices 17) l
-
-              (aref vertices 18) l
-              (aref vertices 19) 0.0
-              (aref vertices 20) l
-
-              (aref vertices 21) l
-              (aref vertices 22) l
-              (aref vertices 23) l
-
-              (aref vertices 24) 0.0
-              (aref vertices 25) l
-              (aref vertices 26) l
-
-              (aref vertices 27) 0.0
-              (aref vertices 28) 0.0
-              (aref vertices 29) l))
-      (gl:buffer-data :array-buffer
-                      :static-draw
-                      (array-to-gl-array vertices :float)))
+    (let (
+          (vertices (generate-random-volume (cons 0.0 200.0)
+                                            (cons 0.0 200.0)
+                                            (cons 10.0 210.0)
+                                            900))
+          ;; (vertices (generate-pseudocube 200.0 100))
+          )
+      (gl:buffer-data :array-buffer :static-draw (array-to-gl-array vertices :float)))
     (gl:vertex-attrib-pointer 0
                             3
                             :float
@@ -641,7 +623,7 @@
         element
       (gl:bind-framebuffer :framebuffer fbo)
       (when (fbo-complete-p)
-        (gl:clear-color 0.2 0.5 0.5 1.0)
+        (gl:clear-color 0.1 0.1 0.2 1.0)
         (gl:clear :color-buffer-bit :depth-buffer-bit)
         (gl:enable :depth-test)
         (gl:viewport 0 0 (width element) (height element))
@@ -705,12 +687,14 @@
     (setf model (glm:create-identity-matrix 4))
     (let ((scaling 0.3))
       (glm:transform-matrix model glm:scale (vector scaling scaling scaling)))
-    (glm:transform-matrix model glm:rotate rotation (vector 0.3 0.1 1.0))
-    (incf rotation 1.5)
-    (glm:transform-matrix model glm:translate (vector 130.0 50.0 -150.0))
+    (glm:transform-matrix model glm:rotate rotation (vector 1.0 0.0 0.0))
+    (glm:transform-matrix model glm:rotate (* 0.7 rotation) (vector 0.0 1.0 0.0))
+    (glm:transform-matrix model glm:rotate (* 0.2 rotation) (vector 0.0 0.0 1.0))
+    (incf rotation 0.5)
+    (glm:transform-matrix model glm:translate (vector 220.0 120.0 -150.0))
     (set-uniform-matrix shader "model" (glm:lisp-to-gl-matrix model))
     (set-uniform shader "vertexColor" 'float 1.0 1.0 1.0)
-    (gl:draw-arrays :line-strip 0 300)
+    (gl:draw-arrays :points 0 300)
     (gl:bind-vertex-array 0)))
 
 
@@ -861,7 +845,9 @@
                  (renderer renderer-2d-class) (font-renderer font-render-class))
   (gl:bind-framebuffer :framebuffer 0)
   (render-canvas display renderer element 300.0 300.0
-                 :translation (vector 400.0 200.0 0.0)))
+                 :translation (vector 400.0 200.0 0.0)
+                 ;;:scaling (vector 1.5 1.5 1.5)
+                 ))
 
 
 
