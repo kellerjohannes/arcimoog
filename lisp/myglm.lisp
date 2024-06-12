@@ -24,8 +24,8 @@
           (aref result 3 3) 1.0
           (aref result 3 0) (- (/ (+ right left) (- right left)))
           (aref result 3 1) (- (/ (+ top bottom) (- top bottom)))
-          (aref result 3 2) (- (/ (+ far near) (- far near)))
-          )
+          (aref result 3 2) (- (/ (+ far near) (- far near))))
+    ;;(format t "~&Ortho projection matrix: ~a" result)
     result))
 
 
@@ -45,17 +45,25 @@
 ;; TODO
 ;; does not work currently
 (defun perspective (fovy aspect z-near z-far)
-  (format t "~&Constructing perspective: ~a ~a ~a ~a" fovy aspect z-near z-far)
   (assert (not (zerop aspect)))
   (assert (not (= z-far z-near)))
   (let* ((fovy-rad (deg->rad fovy))
-         (tan-half-fovy (tan (/ fovy-rad 2.0)))
+         (tan-half-fovy (coerce (tan (/ fovy 2.0)) 'single-float))
+         (f (coerce (/ 1.0 (tan (/ fovy-rad 2.0))) 'single-float))
          (result (make-array '(4 4) :element-type 'float :initial-element 0.0)))
-    (setf (aref result 0 0) (/ 1.0 (* aspect tan-half-fovy))
-          (aref result 1 1) (/ 1.0 tan-half-fovy)
-          (aref result 2 2) (- (/ (+ z-far z-near) (- z-far z-near)))
-          (aref result 3 2) -1.0
-          (aref result 2 3) (- (/ (* 2.0 z-far z-near) (- z-far z-near))))
+    (format t "~&Constructing perspective: ~a ~a ~a ~a" tan-half-fovy aspect z-near z-far)
+    ;; (setf (aref result 0 0) (/ 1.0 (* aspect tan-half-fovy))
+    ;;       (aref result 1 1) (/ 1.0 tan-half-fovy)
+    ;;       (aref result 2 2) (- (/ (+ z-far z-near) (- z-far z-near)))
+    ;;       (aref result 2 3) -1.0
+    ;;       (aref result 3 2) (- (/ (* 2.0 z-far z-near) (- z-far z-near))))
+    ;; taken from http://www.opengl.org/sdk/docs/man2/xhtml/gluPerspective.xml
+    (setf (aref result 0 0) (/ f aspect)
+          (aref result 1 1) f
+          (aref result 2 2) (/ (+ z-far z-near) (- z-near z-far))
+          (aref result 2 3) -1.0
+          (aref result 3 2) (/ (* 2.0 z-far z-near) (- z-near z-far)))
+    (format t "~&Perspective matrix: ~a" result)
     result))
 
 
