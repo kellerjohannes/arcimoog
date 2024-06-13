@@ -249,6 +249,25 @@
     (gl:bind-buffer :array-buffer 0)
     (gl:bind-vertex-array 0)))
 
+;; Taken from https://opengl.org.ru/docs/pg/0208.html
+(defun generate-icosaeder ()
+  (let* ((x .525731112119133606)
+         (z .850650808352039932)
+         (vertices (make-array (* 12 3) :initial-contents (list
+                                                           (- x) 0.0 z
+                                                           x 0.0 z
+                                                           (- x) 0.0 z
+                                                           x 0.0 (- z)
+                                                           0.0 z x
+                                                           0.0 z (- x)
+                                                           0.0 (- z) x
+                                                           0.0 (- z) (- x)
+                                                           z x 0.0
+                                                           (- z) x 0.0
+                                                           z (- x) 0.0
+                                                           (- z) (- x) 0.0)))
+        (indices (make-array (* 20 3) :initial-contents (list 0 4 1 0 9 4 9 5 4 4 5 8 4 8 1 8 10 1 8 3 10 5 3 8 5 2 3 2 7 3 7 10 3 7 6 10 7 11 6 11 0 6 0 1 6 6 1 10 9 0 11 9 11 2 9 2 5 7 2 11))))
+    (values vertices indices)))
 
 (defun generate-pseudocube (l)
   (let ((vertices (make-array 24 :initial-element 0.0))
@@ -352,30 +371,24 @@
     (gl:bind-vertex-array vao)
     (gl:bind-buffer :array-buffer vbo)
 
-    (let (
-          ;; (vertices (generate-random-volume (cons -100.0 100.0)
-          ;;                                   (cons -100.0 100.0)
-          ;;                                   (cons -100.0 100.0)
-          ;;                                   900))
-          ;;(vertices (generate-pseudocube 200.0 100))
-          )
-      (multiple-value-bind (vertices indices)
-          (generate-pseudocube 200.0)
-        (gl:buffer-data :array-buffer :static-draw (array-to-gl-array vertices :float))
-        (gl:vertex-attrib-pointer 0
-                                  3
-                                  :float
-                                  nil
-                                  (* 3 (cffi:foreign-type-size :float))
-                                  (cffi:null-pointer))
-        (gl:enable-vertex-attrib-array 0)
-        (gl:bind-buffer :array-buffer 0)
+    (multiple-value-bind (vertices indices)
+;;        (generate-pseudocube 200.0)
+        (generate-icosaeder)
+      (gl:buffer-data :array-buffer :static-draw (array-to-gl-array vertices :float))
+      (gl:vertex-attrib-pointer 0
+                                3
+                                :float
+                                nil
+                                (* 3 (cffi:foreign-type-size :float))
+                                (cffi:null-pointer))
+      (gl:enable-vertex-attrib-array 0)
+      (gl:bind-buffer :array-buffer 0)
 
-        (setf ebo (gl:gen-buffer))
-        (gl:bind-buffer :element-array-buffer ebo)
-        (gl:buffer-data :element-array-buffer :static-draw (array-to-gl-array indices :int))
-        (gl:bind-buffer :element-array-buffer 0)
-        (gl:bind-vertex-array 0)))))
+      (setf ebo (gl:gen-buffer))
+      (gl:bind-buffer :element-array-buffer ebo)
+      (gl:buffer-data :element-array-buffer :static-draw (array-to-gl-array indices :int))
+      (gl:bind-buffer :element-array-buffer 0)
+      (gl:bind-vertex-array 0))))
 
 
 (defclass display-element ()
@@ -741,7 +754,7 @@
                         "projection"
                         (glm:lisp-to-gl-matrix (projection-matrix element)))
     (setf model (glm:create-identity-matrix 4))
-    (let ((scaling 0.3))
+    (let ((scaling 100.3))
       (glm:transform-matrix model glm:scale (vector scaling scaling scaling)))
     (glm:transform-matrix model glm:translate (vector -25.0 -25.0 0.0))
     (glm:transform-matrix model glm:rotate rotation (vector 1.0 0.0 0.0))
@@ -751,11 +764,24 @@
     (glm:transform-matrix model glm:translate (vector 0.0 0.0 -280.0))
     (set-uniform-matrix shader "model" (glm:lisp-to-gl-matrix model))
     (set-uniform shader "vertexColor" 'float 1.0 1.0 0.0)
-    ;;(gl:draw-arrays :points 0 300)
-    ;;(gl:draw-arrays :line-strip 0 300)
     (gl:bind-buffer :element-array-buffer ebo)
-    (my-gl-draw-elements :triangles 34 :unsigned-int)
+    (my-gl-draw-elements :line-strip 60 :unsigned-int)
     (gl:bind-buffer :element-array-buffer 0)
+
+    (setf model (glm:create-identity-matrix 4))
+    (let ((scaling 50.3))
+      (glm:transform-matrix model glm:scale (vector scaling scaling scaling)))
+    (glm:transform-matrix model glm:translate (vector -100.0 -25.0 0.0))
+    (glm:transform-matrix model glm:rotate rotation (vector 1.0 0.0 0.0))
+    (glm:transform-matrix model glm:rotate (* 0.7 rotation) (vector 0.0 1.0 0.0))
+    (glm:transform-matrix model glm:rotate (* 0.2 rotation) (vector 0.0 0.0 1.0))
+    (glm:transform-matrix model glm:translate (vector 0.0 0.0 -280.0))
+    (set-uniform-matrix shader "model" (glm:lisp-to-gl-matrix model))
+    (set-uniform shader "vertexColor" 'float 1.0 1.0 0.0)
+    (gl:bind-buffer :element-array-buffer ebo)
+    (my-gl-draw-elements :triangles 60 :unsigned-int)
+    (gl:bind-buffer :element-array-buffer 0)
+
     (gl:bind-vertex-array 0)))
 
 
