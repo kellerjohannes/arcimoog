@@ -48,6 +48,8 @@
   (:nicknames :glm)
   (:export #:rad->deg
            #:deg->rad
+           #:vector-length
+           #:normalize
            #:ortho
            #:perspective
            #:create-identity-matrix

@@ -249,6 +249,125 @@
     (gl:bind-buffer :array-buffer 0)
     (gl:bind-vertex-array 0)))
 
+
+(defun generate-geodesic-sphere (mode depth)
+  (let ((x .525731112119133606)
+        (z .850650808352039932))
+    (let ((v-data (make-array '(12 3)
+                              :initial-contents
+                              `((,(- x) 0.0 ,z) (,x 0.0 ,z) (,(- x) 0.0 ,(- z)) (,x 0.0 ,(- z))
+                                (0.0 ,z ,x) (0.0 ,z ,(- x)) (0.0 ,(- z) ,x) (0.0 ,(- z) ,(- x))
+                                (,z ,x 0.0) (,(- z) ,x 0.0) (,z ,(- x) 0.0) (,(- z) ,(- x) 0.0))))
+          (t-indices #2A((0 4 1) (0 9 4) (9 5 4) (4 5 8) (4 8 1) (8 10 1) (8 3 10) (5 3 8) (5 2 3)
+                         (2 7 3) (7 10 3) (7 6 10) (7 11 6) (11 0 6) (0 1 6) (6 1 10) (9 0 11)
+                         (9 11 2) (9 2 5) (7 2 11)))
+          (result nil))
+      (labels ((draw-triangle (v1 v2 v3)
+                 (case mode
+                   (:triangle
+                    (push (aref v1 0) result) (push (aref v1 1) result) (push (aref v1 2) result)
+                    (push (aref v2 0) result) (push (aref v2 1) result) (push (aref v2 2) result)
+                    (push (aref v3 0) result) (push (aref v3 1) result) (push (aref v3 2) result))
+                   (:lines
+                    (push (aref v1 0) result) (push (aref v1 1) result) (push (aref v1 2) result)
+                    (push (aref v2 0) result) (push (aref v2 1) result) (push (aref v2 2) result)
+                    (push (aref v2 0) result) (push (aref v2 1) result) (push (aref v2 2) result)
+                    (push (aref v3 0) result) (push (aref v3 1) result) (push (aref v3 2) result)
+                    (push (aref v3 0) result) (push (aref v3 1) result) (push (aref v3 2) result)
+                    (push (aref v1 0) result) (push (aref v1 1) result) (push (aref v1 2) result))))
+               (subdivide (v1 v2 v3 d)
+                 (if (zerop d)
+                     (draw-triangle v1 v2 v3)
+                     (let ((v12 (make-array 3 :initial-element 0.0))
+                           (v23 (make-array 3 :initial-element 0.0))
+                           (v31 (make-array 3 :initial-element 0.0)))
+                       (loop for i from 0 below 3 do
+                         (progn (setf (aref v12 i) (+ (aref v1 i) (aref v2 i)))
+                                (setf (aref v23 i) (+ (aref v2 i) (aref v3 i)))
+                                (setf (aref v31 i) (+ (aref v3 i) (aref v1 i)))))
+                       (setf v12 (glm:normalize v12))
+                       (setf v23 (glm:normalize v23))
+                       (setf v31 (glm:normalize v31))
+                       (subdivide v1 v12 v31 (1- d))
+                       (subdivide v2 v23 v12 (1- d))
+                       (subdivide v3 v31 v23 (1- d))
+                       (subdivide v12 v23 v31 (1- d))))))
+        (loop for i from 0 below 20 do
+              (let ((v1 (vector (aref v-data (aref t-indices i 0) 0)
+                                (aref v-data (aref t-indices i 0) 1)
+                                (aref v-data (aref t-indices i 0) 2)))
+                    (v2 (vector (aref v-data (aref t-indices i 1) 0)
+                                (aref v-data (aref t-indices i 1) 1)
+                                (aref v-data (aref t-indices i 1) 2)))
+                    (v3 (vector (aref v-data (aref t-indices i 2) 0)
+                                (aref v-data (aref t-indices i 2) 1)
+                                (aref v-data (aref t-indices i 2) 2))))
+                (subdivide v1 v2 v3 depth))))
+      (make-array (length result) :initial-contents (reverse result))))
+
+;;  #define X .525731112119133606 #define Z .850650808352039932 static GLfloat vdata[12][3] = { {-X, 0.0, Z}, {X, 0.0, Z}, {-X, 0.0, -Z}, {X, 0.0, -Z}, {0.0, Z, X}, {0.0, Z, -X}, {0.0, -Z, X}, {0.0, -Z, -X}, {Z, X, 0.0}, {-Z, X, 0.0}, {Z, -X, 0.0}, {-Z, -X, 0.0} }; static GLuint tindices[20][3] = { {0,4,1}, {0,9,4}, {9,5,4}, {4,5,8}, {4,8,1}, {8,10,1}, {8,3,10}, {5,3,8}, {5,2,3}, {2,7,3}, {7,10,3}, {7,6,10}, {7,11,6}, {11,0,6}, {0,1,6}, {6,1,10}, {9,0,11}, {9,11,2}, {9,2,5}, {7,2,11} }; int i; glBegin(GL_TRIANGLES); for (i = 0; i < 20; i++) { /* color information here */ glVertex3fv(&vdata[tindices[i][0]][0]); glVertex3fv(&vdata[tindices[i][1]][0]); glVertex3fv(&vdata[tindices[i][2]][0]); } glEnd();
+
+;; Источник: https://opengl.org.ru/docs/pg/0208.html
+  )
+
+
+
+(defun generate-icosaeder (mode)
+  (let ((x .525731112119133606)
+        (z .850650808352039932))
+    (let ((v-data (make-array '(12 3)
+                              :initial-contents
+                              `((,(- x) 0.0 ,z) (,x 0.0 ,z) (,(- x) 0.0 ,(- z)) (,x 0.0 ,(- z))
+                                (0.0 ,z ,x) (0.0 ,z ,(- x)) (0.0 ,(- z) ,x) (0.0 ,(- z) ,(- x))
+                                (,z ,x 0.0) (,(- z) ,x 0.0) (,z ,(- x) 0.0) (,(- z) ,(- x) 0.0))))
+          (t-indices #2A((0 4 1) (0 9 4) (9 5 4) (4 5 8) (4 8 1) (8 10 1) (8 3 10) (5 3 8) (5 2 3)
+                         (2 7 3) (7 10 3) (7 6 10) (7 11 6) (11 0 6) (0 1 6) (6 1 10) (9 0 11)
+                         (9 11 2) (9 2 5) (7 2 11)))
+          (result nil))
+      (case mode
+        (:triangles (loop for i from 0 below 20
+                          do (progn (push (aref v-data (aref t-indices i 2) 0) result)
+                                    (push (aref v-data (aref t-indices i 2) 1) result)
+                                    (push (aref v-data (aref t-indices i 2) 2) result)
+                                    (push (aref v-data (aref t-indices i 1) 0) result)
+                                    (push (aref v-data (aref t-indices i 1) 1) result)
+                                    (push (aref v-data (aref t-indices i 1) 2) result)
+                                    (push (aref v-data (aref t-indices i 0) 0) result)
+                                    (push (aref v-data (aref t-indices i 0) 1) result)
+                                    (push (aref v-data (aref t-indices i 0) 2) result))))
+        (:lines (loop for i from 0 below 20
+                      do (progn
+                           (push (aref v-data (aref t-indices i 2) 0) result)
+                           (push (aref v-data (aref t-indices i 2) 1) result)
+                           (push (aref v-data (aref t-indices i 2) 2) result)
+
+                           (push (aref v-data (aref t-indices i 1) 0) result)
+                           (push (aref v-data (aref t-indices i 1) 1) result)
+                           (push (aref v-data (aref t-indices i 1) 2) result)
+
+                           (push (aref v-data (aref t-indices i 1) 0) result)
+                           (push (aref v-data (aref t-indices i 1) 1) result)
+                           (push (aref v-data (aref t-indices i 1) 2) result)
+
+                           (push (aref v-data (aref t-indices i 0) 0) result)
+                           (push (aref v-data (aref t-indices i 0) 1) result)
+                           (push (aref v-data (aref t-indices i 0) 2) result)
+
+                           (push (aref v-data (aref t-indices i 0) 0) result)
+                           (push (aref v-data (aref t-indices i 0) 1) result)
+                           (push (aref v-data (aref t-indices i 0) 2) result)
+
+                           (push (aref v-data (aref t-indices i 1) 0) result)
+                           (push (aref v-data (aref t-indices i 1) 1) result)
+                           (push (aref v-data (aref t-indices i 1) 2) result)))))
+      (make-array (length result) :initial-contents (reverse result))))
+
+  ;;  #define X .525731112119133606 #define Z .850650808352039932 static GLfloat vdata[12][3] = { {-X, 0.0, Z}, {X, 0.0, Z}, {-X, 0.0, -Z}, {X, 0.0, -Z}, {0.0, Z, X}, {0.0, Z, -X}, {0.0, -Z, X}, {0.0, -Z, -X}, {Z, X, 0.0}, {-Z, X, 0.0}, {Z, -X, 0.0}, {-Z, -X, 0.0} }; static GLuint tindices[20][3] = { {0,4,1}, {0,9,4}, {9,5,4}, {4,5,8}, {4,8,1}, {8,10,1}, {8,3,10}, {5,3,8}, {5,2,3}, {2,7,3}, {7,10,3}, {7,6,10}, {7,11,6}, {11,0,6}, {0,1,6}, {6,1,10}, {9,0,11}, {9,11,2}, {9,2,5}, {7,2,11} }; int i; glBegin(GL_TRIANGLES); for (i = 0; i < 20; i++) { /* color information here */ glVertex3fv(&vdata[tindices[i][0]][0]); glVertex3fv(&vdata[tindices[i][1]][0]); glVertex3fv(&vdata[tindices[i][2]][0]); } glEnd();
+
+  ;; Источник: https://opengl.org.ru/docs/pg/0208.html
+  )
+
+
 ;; Taken from https://opengl.org.ru/docs/pg/0208.html
 (defun generate-icosaeder ()
   (let* ((x .525731112119133606)
@@ -266,7 +385,7 @@
                                                            (- z) x 0.0
                                                            z (- x) 0.0
                                                            (- z) (- x) 0.0)))
-        (indices (make-array (* 20 3) :initial-contents (list 0 4 1 0 9 4 9 5 4 4 5 8 4 8 1 8 10 1 8 3 10 5 3 8 5 2 3 2 7 3 7 10 3 7 6 10 7 11 6 11 0 6 0 1 6 6 1 10 9 0 11 9 11 2 9 2 5 7 2 11))))
+         (indices (make-array (* 20 3) :initial-contents (list 0 4 1 0 9 4 9 5 4 4 5 8 4 8 1 8 10 1 8 3 10 5 3 8 5 2 3 2 7 3 7 10 3 7 6 10 7 11 6 11 0 6 0 1 6 6 1 10 9 0 11 9 11 2 9 2 5 7 2 11))))
     (values vertices indices)))
 
 (defun generate-pseudocube (l)
@@ -371,9 +490,7 @@
     (gl:bind-vertex-array vao)
     (gl:bind-buffer :array-buffer vbo)
 
-    (multiple-value-bind (vertices indices)
-;;        (generate-pseudocube 200.0)
-        (generate-icosaeder)
+    (let ((vertices (generate-geodesic-sphere :lines 1)))
       (gl:buffer-data :array-buffer :static-draw (array-to-gl-array vertices :float))
       (gl:vertex-attrib-pointer 0
                                 3
@@ -383,11 +500,6 @@
                                 (cffi:null-pointer))
       (gl:enable-vertex-attrib-array 0)
       (gl:bind-buffer :array-buffer 0)
-
-      (setf ebo (gl:gen-buffer))
-      (gl:bind-buffer :element-array-buffer ebo)
-      (gl:buffer-data :element-array-buffer :static-draw (array-to-gl-array indices :int))
-      (gl:bind-buffer :element-array-buffer 0)
       (gl:bind-vertex-array 0))))
 
 
@@ -749,38 +861,37 @@
                    (rotation tmp-rotation)
                    (shader shader))
       (3d-renderer element)
-    (gl:bind-vertex-array vao)
     (set-uniform-matrix shader
                         "projection"
                         (glm:lisp-to-gl-matrix (projection-matrix element)))
-    (setf model (glm:create-identity-matrix 4))
-    (let ((scaling 100.3))
-      (glm:transform-matrix model glm:scale (vector scaling scaling scaling)))
-    (glm:transform-matrix model glm:translate (vector -25.0 -25.0 0.0))
-    (glm:transform-matrix model glm:rotate rotation (vector 1.0 0.0 0.0))
-    (glm:transform-matrix model glm:rotate (* 0.7 rotation) (vector 0.0 1.0 0.0))
-    (glm:transform-matrix model glm:rotate (* 0.2 rotation) (vector 0.0 0.0 1.0))
-    (incf rotation 0.5)
-    (glm:transform-matrix model glm:translate (vector 0.0 0.0 -280.0))
-    (set-uniform-matrix shader "model" (glm:lisp-to-gl-matrix model))
-    (set-uniform shader "vertexColor" 'float 1.0 1.0 0.0)
-    (gl:bind-buffer :element-array-buffer ebo)
-    (my-gl-draw-elements :line-strip 60 :unsigned-int)
-    (gl:bind-buffer :element-array-buffer 0)
 
-    (setf model (glm:create-identity-matrix 4))
-    (let ((scaling 50.3))
-      (glm:transform-matrix model glm:scale (vector scaling scaling scaling)))
-    (glm:transform-matrix model glm:translate (vector -100.0 -25.0 0.0))
-    (glm:transform-matrix model glm:rotate rotation (vector 1.0 0.0 0.0))
-    (glm:transform-matrix model glm:rotate (* 0.7 rotation) (vector 0.0 1.0 0.0))
-    (glm:transform-matrix model glm:rotate (* 0.2 rotation) (vector 0.0 0.0 1.0))
-    (glm:transform-matrix model glm:translate (vector 0.0 0.0 -280.0))
-    (set-uniform-matrix shader "model" (glm:lisp-to-gl-matrix model))
-    (set-uniform shader "vertexColor" 'float 1.0 1.0 0.0)
-    (gl:bind-buffer :element-array-buffer ebo)
-    (my-gl-draw-elements :triangles 60 :unsigned-int)
-    (gl:bind-buffer :element-array-buffer 0)
+    (labels ((draw-sphere (count rot-x rot-y rot-z scale r g b x y z)
+               (setf model (glm:create-identity-matrix 4))
+               (glm:transform-matrix model glm:rotate (* rot-x rotation) (vector 1.0 0.0 0.0))
+               (glm:transform-matrix model glm:rotate (* rot-y rotation) (vector 0.0 1.0 0.0))
+               (glm:transform-matrix model glm:rotate (* rot-z rotation) (vector 0.0 0.0 1.0))
+               (glm:transform-matrix model glm:scale (vector scale scale scale))
+               (glm:transform-matrix model glm:translate (vector x y z))
+               (set-uniform-matrix shader "model" (glm:lisp-to-gl-matrix model))
+               (set-uniform shader "vertexColor" 'float r g b)
+               (gl:bind-vertex-array vao)
+               (gl:draw-arrays :lines 0 count))
+             (draw-group (c s x y z)
+               (draw-sphere c 0.7 1.3 -0.4 s 1.0 1.0 0.3 x y z)
+               (draw-sphere c -0.7 0.3 0.4 (* 1.1 s) 0.3 1.0 0.3 x y z)
+               (draw-sphere c 0.3 0.9 0.8 (* 0.9 s) 0.3 1.0 1.0 x y z)
+               (draw-sphere c 0.1 -1.3 -0.2 (* 0.8 s) 1.0 0.3 1.0 x y z)))
+      (let ((c 1440)
+            (s 30))
+        (draw-group c s 90.0 0.0 -280.0)
+        (draw-group c s -90.0 0.0 -280.0)
+        (draw-group c s 0.0 0.0 -280.0)
+        (draw-group c s -90.0 90.0 -280.0)
+        (draw-group c s 90.0 90.0 -280.0)
+        (draw-group c s -90.0 -90.0 -280.0)
+        (draw-group c s 90.0 -90.0 -280.0)
+        ))
+    (incf rotation 0.5)
 
     (gl:bind-vertex-array 0)))
 
@@ -987,7 +1098,7 @@
 
   (setf (background-color *display*) (vector 0.2 0.2 0.2))
 
-  (add-element *display* :canvas (make-instance 'display-element-canvas :width 500 :height 300))
+  (add-element *display* :canvas (make-instance 'display-element-canvas :width 800 :height 500))
 
   )
 
