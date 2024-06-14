@@ -126,3 +126,15 @@
 
 (defmacro transform-matrix (matrix transformation &rest parameters)
   `(setf ,matrix (,transformation ,matrix ,@parameters)))
+
+
+(defun vector-length (vec)
+  (sqrt (reduce #'+ (map 'vector (lambda (c) (* c c)) vec))))
+
+(defun normalize (vec)
+  (let ((result (make-array (length vec) :initial-element 0.0))
+        (len (vector-length vec)))
+    (loop for coord across vec
+          for i from 0 do
+          (setf (aref result i) (/ coord len)))
+    result))
