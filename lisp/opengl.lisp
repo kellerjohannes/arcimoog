@@ -86,8 +86,8 @@
    (ft-face :accessor ft-face)
    (textures :initform (make-hash-table) :accessor textures
              :documentation "Keys are CHARs, values are lists where the first element is the GL texture id, the second is the width of the texture and the third its height.")
-   (glyph-vao :initform -1 :accessor glyph-vao)
-   (glyph-vbo :initform -1 :accessor glyph-vbo)
+   (glyph-vertex-array-object :initform -1 :accessor glyph-vertex-array-object)
+   (glyph-vertex-buffer-object :initform -1 :accessor glyph-vertex-buffer-object)
    (shader-instance :initform nil :initarg :shader-instance :accessor shader-instance)))
 
 (defmethod lookup-texture ((renderer font-render-class) character)
@@ -151,8 +151,8 @@
                                                          *shader-path*
                                                          "font-shader.frag")))))
   (generate-textures renderer)
-  (with-accessors ((vao glyph-vao)
-                   (vbo glyph-vbo))
+  (with-accessors ((vao glyph-vertex-array-object)
+                   (vbo glyph-vertex-buffer-object))
       renderer
     (setf vao (gl:gen-vertex-array)
           vbo (gl:gen-buffer))
@@ -176,10 +176,10 @@
 (defclass renderer-2d-class ()
   ((shape-shader :initform nil :accessor shape-shader)
    (texture-shader :initform nil :accessor texture-shader)
-   (shape-vao :initform nil :accessor shape-vao)
-   (shape-vbo :initform nil :accessor shape-vbo)
-   (texture-vao :initform nil :accessor texture-vao)
-   (texture-vbo :initform nil :accessor texture-vbo)
+   (shape-vertex-array-object :initform nil :accessor shape-vertex-array-object)
+   (shape-vertex-buffer-object :initform nil :accessor shape-vertex-buffer-object)
+   (texture-vertex-array-object :initform nil :accessor texture-vertex-array-object)
+   (texture-vertex-buffer-object :initform nil :accessor texture-vertex-buffer-object)
    (default-color :initform (vector 1.0 1.0 1.0) :initarg :color :accessor default-color)
    (view-matrix :initform nil :accessor view-matrix)
    (model-matrix :initform nil :accessor model-matrix)
@@ -191,10 +191,10 @@
                    (texture-shader texture-shader)
                    (view view-matrix)
                    (model model-matrix)
-                   (vao shape-vao)
-                   (vbo shape-vbo)
-                   (texture-vao texture-vao)
-                   (texture-vbo texture-vbo))
+                   (vao shape-vertex-array-object)
+                   (vbo shape-vertex-buffer-object)
+                   (texture-vao texture-vertex-array-object)
+                   (texture-vbo texture-vertex-buffer-object))
       renderer
     (setf shader (make-instance 'shader-class
                                 :vertex-source (concatenate 'string *shader-path*
@@ -460,19 +460,21 @@
 
 (defclass renderer-3d-class ()
   ((shader :initform nil :accessor shader)
-   (vao :initform -1 :accessor vao)
-   (vbo :initform -1 :accessor vbo)
-   (ebo :initform -1 :accessor ebo)
-   ;; only for testing
+   (vertex-array-object :initform -1 :accessor vertex-array-object)
+   (vertex-buffer-object :initform -1 :accessor vertex-buffer-object)
+   ;; maybe not required:
+   ;;(element-buffer-object :initform -1 :accessor element-buffer-object)
+   ;; only for testing:
    (tmp-rotation :initform 0 :accessor tmp-rotation)
    (view-matrix :initform nil :accessor view-matrix)
    (model-matrix :initform nil :accessor model-matrix)))
 
 (defmethod initialize-instance :after ((renderer renderer-3d-class) &key)
   (with-accessors ((shader shader)
-                   (vao vao)
-                   (vbo vbo)
-                   (ebo ebo)
+                   (vao vertex-array-object)
+                   (vbo vertex-buffer-object)
+                   ;; maybe not required:
+                   ;; (ebo element-buffer-object)
                    (view view-matrix)
                    (model model-matrix))
       renderer
@@ -735,8 +737,8 @@
                      translation
                      rotation
                      (color (default-color renderer)))
-  (with-accessors ((vao shape-vao)
-                   (vbo shape-vbo)
+  (with-accessors ((vao shape-vertex-array-object)
+                   (vbo shape-vertex-buffer-object)
                    (model model-matrix)
                    (shader shape-shader))
       renderer
@@ -766,8 +768,8 @@
                            x-origin y-origin &key scaling translation rotation)
   (with-accessors ((shader texture-shader)
                    (model model-matrix)
-                   (vao texture-vao)
-                   (vbo texture-vbo))
+                   (vao texture-vertex-array-object)
+                   (vbo texture-vertex-buffer-object))
       renderer
     (gl:viewport 0 0 (screen-width display) (screen-height display))
     (gl:active-texture :texture0)
@@ -821,8 +823,8 @@
   ;; second pass, render the texture itself (might be abstracted out)
   (with-accessors ((shader texture-shader)
                    (model model-matrix)
-                   (vao texture-vao)
-                   (vbo texture-vbo))
+                   (vao texture-vertex-array-object)
+                   (vbo texture-vertex-buffer-object))
       renderer
     (gl:viewport 0 0 (screen-width display) (screen-height display))
     (gl:active-texture :texture0)
@@ -854,16 +856,24 @@
     (gl:bind-texture :texture-2d 0)))
 
 (defmethod render-scene ((display display-class) (element display-element-canvas))
-  (with-accessors ((vao vao)
-                   (vbo vbo)
-                   (ebo ebo)
+  (with-accessors ((vao vertex-array-object)
+                   (vbo vertex-buffer-object)
+                   (ebo element-buffer-object)
                    (model model-matrix)
+                   (view view-matrix)
                    (rotation tmp-rotation)
                    (shader shader))
       (3d-renderer element)
     (set-uniform-matrix shader
                         "projection"
                         (glm:lisp-to-gl-matrix (projection-matrix element)))
+
+    (setf view (glm:create-identity-matrix 4))
+    (glm:transform-matrix view glm:rotate (* 0.7 rotation) (vector 0.0 1.0 0.0))
+    (glm:transform-matrix view glm:rotate -10 (vector 1.0 0.0 0.0))
+    (glm:transform-matrix view glm:translate (vector 0.0 0.0 -380.0))
+    (set-uniform-matrix shader "view" (glm:lisp-to-gl-matrix view))
+
 
     (labels ((draw-sphere (count rot-x rot-y rot-z scale r g b x y z)
                (setf model (glm:create-identity-matrix 4))
@@ -883,13 +893,13 @@
                (draw-sphere c 0.1 -1.3 -0.2 (* 0.8 s) 1.0 0.3 1.0 x y z)))
       (let ((c 1440)
             (s 30))
-        (draw-group c s 90.0 0.0 -280.0)
-        (draw-group c s -90.0 0.0 -280.0)
-        (draw-group c s 0.0 0.0 -280.0)
-        (draw-group c s -90.0 90.0 -280.0)
-        (draw-group c s 90.0 90.0 -280.0)
-        (draw-group c s -90.0 -90.0 -280.0)
-        (draw-group c s 90.0 -90.0 -280.0)
+        (draw-group c s 90.0 0.0 0.0)
+        (draw-group c s -90.0 0.0 0.0)
+        (draw-group c s 0.0 0.0 0.0)
+        (draw-group c s -90.0 90.0 0.0)
+        (draw-group c s 90.0 90.0 0.0)
+        (draw-group c s -90.0 -90.0 0.0)
+        (draw-group c s 90.0 -90.0 0.0)
         ))
     (incf rotation 0.5)
 
@@ -905,8 +915,8 @@
   (gl:enable :blend)
   (gl:blend-func :src-alpha :one-minus-src-alpha)
   (with-accessors ((shader shader-instance)
-                   (vao glyph-vao)
-                   (vbo glyph-vbo)
+                   (vao glyph-vertex-array-object)
+                   (vbo glyph-vertex-buffer-object)
                    (face ft-face)
                    (character-set character-set))
       renderer
@@ -996,7 +1006,7 @@
 
 
 (defmethod draw-cell-text ((display display-class) (element display-element-table)
-                      (font-renderer font-render-class))
+                           (font-renderer font-render-class))
   (dotimes (i (number-of-rows element))
     (let ((cumulative-width 0))
       (dotimes (j (number-of-columns element))
@@ -1041,11 +1051,12 @@
 
 (defmethod draw ((display display-class) (element display-element-canvas)
                  (renderer renderer-2d-class) (font-renderer font-render-class))
-  (gl:bind-framebuffer :framebuffer 0)
-  (render-canvas display renderer element 300.0 300.0
-                 :translation (vector 400.0 200.0 0.0)
-                 ;;:scaling (vector 1.5 1.5 1.5)
-                 ))
+  (with-accessors ((scaling scaling))
+      element
+    (gl:bind-framebuffer :framebuffer 0)
+    (render-canvas display renderer element 300.0 300.0
+                   :translation (vector 400.0 200.0 0.0)
+                   :scaling (vector scaling scaling scaling))))
 
 
 
@@ -1098,7 +1109,10 @@
 
   (setf (background-color *display*) (vector 0.2 0.2 0.2))
 
-  (add-element *display* :canvas (make-instance 'display-element-canvas :width 800 :height 500))
+  (add-element *display* :canvas (make-instance 'display-element-canvas
+                                                :width 800
+                                                :height 800
+                                                :scaling 1.0))
 
   )
 
