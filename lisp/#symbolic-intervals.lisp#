@@ -257,3 +257,4 @@ name (symbol defined in INTERVAL-TREE), the second one is NIL (only for UNISONO)
 (defun interval-path (interval-list interval-tree identity-interval)
   ;; (format t "~&DEBUG: NEW CHAIN.")
   (reduce (lambda (a b) (chain-intervals a b interval-tree identity-interval)) interval-list))
+
