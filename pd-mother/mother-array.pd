@@ -14,6 +14,13 @@
 #X floatatom 224 371 5 0 0 0 - - - 0;
 #X obj 15 141 loadbang;
 #X msg 10 166 0.1;
+#X obj 489 339 netsend -u -b;
+#X obj 507 163 hsl 153 18 -5 5 0 0 empty empty empty -2 -9 0 12 #fcfcfc #000000 #000000 0 1;
+#X msg 295 229 connect 192.168.1.10 5800;
+#X obj 489 311 oscformat -f f arcimoog;
+#X obj 498 253 pack 1 f;
+#X msg 495 225 1;
+#X obj 515 195 t b f;
 #X connect 1 0 2 2;
 #X connect 1 1 2 1;
 #X connect 1 2 2 0;
@@ -34,3 +41,10 @@
 #X connect 12 0 0 1;
 #X connect 13 0 14 0;
 #X connect 14 0 11 5;
+#X connect 16 0 21 0;
+#X connect 17 0 15 0;
+#X connect 18 0 15 0;
+#X connect 19 0 18 0;
+#X connect 20 0 19 0;
+#X connect 21 0 20 0;
+#X connect 21 1 19 1;
