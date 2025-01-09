@@ -67,6 +67,12 @@
   (:nicknames :ly)
   (:export #:parse-ly-notation))
 
+(defpackage :osc-communication
+  (:use :cl))
+
+(defpackage :ui
+  (:use :cl :clog))
+
 (defpackage :arcimoog
   (:use :cl)
   (:nicknames :arci))

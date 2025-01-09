@@ -1,6 +1,7 @@
 (asdf:defsystem "arcimoog"
-  :depends-on (:uiop :alexandria :log4cl :bordeaux-threads :array-operations
-                     :cl-jpeg :incudine)
+  :depends-on (:uiop :alexandria :log4cl :bordeaux-threads
+               :array-operations :cl-jpeg :clog
+               :incudine)
   :serial t
   :components ((:file "packages")
                (:file "conditions")
@@ -13,4 +14,6 @@
                (:file "pitch-data")
                (:file "sampler")
                (:file "parameters")
-               (:file "configuration")))
+               (:file "configuration")
+               (:file "vc-client-test")
+               (:file "ui")))

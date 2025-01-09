@@ -1,11 +1,9 @@
-(ql:quickload :incudine)
+(in-package :osc-communication)
 
 (incudine:rt-start)
 
 (defun done ()
   (format t "~&done."))
-
-(incudine:at (+ 44100 (incudine:now)) #'done)
 
 (defparameter *osc-out* nil)
 
@@ -25,11 +23,13 @@
 
 (defun inc-mother-place (mother-id parameter-name amount out-channel)
   (incf (getf (getf *mother-state* mother-id) parameter-name) amount)
-  (osc:message *osc-out* "/arcimoog" "if" out-channel (get-mother-place mother-id parameter-name)))
+  (osc:message *osc-out* "/arcimoog" "if" out-channel (get-mother-place mother-id parameter-name))
+  (ui::change-meter-level (1- out-channel) (get-mother-place mother-id parameter-name)))
 
 (defun set-mother-place (mother-id parameter-name value out-channel)
   (setf (getf (getf *mother-state* mother-id) parameter-name) value)
-  (osc:message *osc-out* "/arcimoog" "if" out-channel (get-mother-place mother-id parameter-name)))
+  (osc:message *osc-out* "/arcimoog" "if" out-channel (get-mother-place mother-id parameter-name))
+  (ui::change-meter-level (1- out-channel) (get-mother-place mother-id parameter-name)))
 
 (defun update-precision-dial (midi-raw mother-id parameter-name update-factor out-channel)
   (let ((old-value (get-mother-place mother-id parameter-name)))
