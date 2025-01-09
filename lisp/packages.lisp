@@ -43,27 +43,6 @@
            #:write-parameters
            #:read-parameters))
 
-(defpackage :arcimoog.myglm
-  (:use :cl)
-  (:nicknames :glm)
-  (:export #:rad->deg
-           #:deg->rad
-           #:vector-length
-           #:normalize
-           #:ortho
-           #:perspective
-           #:create-identity-matrix
-           #:translate
-           #:scale
-           #:rotate
-           #:loop-across-matrix
-           #:lisp-to-gl-matrix
-           #:transform-matrix))
-
-(defpackage :arcimoog.display
-  (:use :cl)
-  (:export #:start))
-
 (defpackage :symbolic-intervals
   (:use :cl))
 

@@ -104,49 +104,6 @@
 
 
 
-
-(defclass parameter-data-rgb (parameter-data)
-  ()
-  (:documentation "Subclass for RGB values, which are represented as a SIMPLE-VECTOR of length 3, consisting of floats ranging from 0.0 to 1.0."))
-
-(defmethod valid-parameter-data-p ((parameter-data parameter-data-rgb))
-  "Tests for data type and ranges."
-  (with-accessors ((data data))
-      parameter-data
-    (let ((result t))
-      (unless (typep data '(array float (3)))
-        (setf result nil)
-        (error 'acond:parameter-data-invalid :parameter-data-instance parameter-data))
-      (loop for component across data
-            for index from 1 do
-              (when (< component 0)
-                (setf result nil)
-                (error 'acond:parameter-data-invalid :parameter-data-instance parameter-data))
-              (when (> component 1)
-                (setf result nil)
-                (error 'acond:parameter-data-invalid :parameter-data-instance parameter-data)))
-      result)))
-
-(defmethod inc-rgb ((parameter-data parameter-data-rgb) channel amount)
-  "Applies INCF to one of the channels (:R, :G or :B) without checking for the correct range."
-  (let ((index (cdr (assoc channel (list (cons :r 0) (cons :g 1) (cons :b 2))))))
-    (incf (aref (data parameter-data) index) amount)))
-
-(defmethod print-string ((rgb-data parameter-data-rgb))
-  "Returns a string describing the RGB data."
-  (with-accessors ((data data))
-      rgb-data
-    (format nil "R: ~a, G: ~a, B: ~a" (aref data 0) (aref data 1) (aref data 2))))
-
-(defmethod export-parameter-data ((rgb parameter-data-rgb))
-  "Returns a plist describing the data."
-  (list :type :rgb :data (data rgb)))
-
-(defmethod get-parameter-data ((rgb parameter-data-rgb))
-  "Returns the raw data (SIMPLE-VECTOR 3)."
-  (data rgb))
-
-
 (defun import-parameter-data (data-expression)
   "Expects an S-expression describing the data, as they are created by `EXPORT-PARAMETER-DATA'. Returns an instance of an appropriate PARAMETER-DATA subclass."
   (unless (eq data-expression :uninitialized)
@@ -155,8 +112,6 @@
                               :data (getf data-expression :data)
                               :lower-border (getf data-expression :lower-border)
                               :upper-border (getf data-expression :upper-border)))
-      (:rgb (make-instance 'parameter-data-rgb
-                           :data (getf data-expression :data)))
       (:string (make-instance 'parameter-data-string
                               :data (getf data-expression :data)))
       (otherwise (error 'acond:parameter-data-type-unsupported :data-expression data-expression)))))
@@ -189,9 +144,7 @@
                    (make-instance 'parameter-data-scalar :data ,data)))
      (string (setf (,access-fun (data ,parameter))
                    (make-instance 'parameter-data-string :data ,data)))
-     ((array float (3)) (setf (,access-fun (data ,parameter))
-                              (make-instance 'parameter-data-rgb :data ,data)))
-     ((or parameter-data-scalar parameter-data-rgb parameter-data-string)
+     ((or parameter-data-scalar parameter-data-string)
       (setf (,access-fun (data ,parameter)) ,data))
      (otherwise (error 'acond:parameter-data-type-unsupported :data-expression data))))
 
@@ -443,23 +396,23 @@
 
 ;; testing
 
-(defp :p1 0.0 0.0 "nix" "nixnix")
-(defp :px 0.0 0.0 "nix" "nixnix")
+;; (defp :p1 0.0 0.0 "nix" "nixnix")
+;; (defp :px 0.0 0.0 "nix" "nixnix")
 
-(defp :p2 1.0 1.0 "nix1" "nixnix1")
+;; (defp :p2 1.0 1.0 "nix1" "nixnix1")
 
-(setp :p1 15.0)
+;; (setp :p1 15.0)
 
-(resp :p1)
+;; (resp :p1)
 
-(defp :ts "hi" "[default]" "test-string" "testing a string")
+;; (defp :ts "hi" "[default]" "test-string" "testing a string")
 
-(defp :wrong 'd 'd "Symbol" "unsupported symbol")
+;; (defp :wrong 'd 'd "Symbol" "unsupported symbol")
 
-(defp 27 30 25 "Number" "unsupported key")
+;; (defp 27 30 25 "Number" "unsupported key")
 
-(defp :26 25 25 "Number" "unsupported key")
+;; (defp :26 25 25 "Number" "unsupported key")
 
-(write-parameters)
+;; (write-parameters)
 
-(read-parameters)
+;; (read-parameters)
