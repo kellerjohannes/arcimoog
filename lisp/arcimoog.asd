@@ -1,16 +1,6 @@
-;; * TODO Move OpenGL abstractions into separate packages
-;; * TODO Implement condition handling everywhere
-;; ** TODO MIDI connectivity (device not found etc.)
-;; ** TODO RT-START handling
-;; * TODO Test monospace fonts
-;; * TODO Solve text alignment (https://tonsky.me/blog/centering/)
-;; * TODO Start to add doc strings
-
-
 (asdf:defsystem "arcimoog"
   :depends-on (:uiop :alexandria :log4cl :bordeaux-threads :array-operations
-                     :cl-opengl :cl-glfw3 :cl-freetype2 :lla :cl-jpeg
-               :incudine)
+                     :cl-jpeg :incudine)
   :serial t
   :components ((:file "packages")
                (:file "conditions")
@@ -19,11 +9,8 @@
                (:file "score-model")
                (:file "faderfox")
                (:file "utilities")
-               (:file "myglm")
                (:file "midi")
                (:file "pitch-data")
                (:file "sampler")
-               (:file "shader-class")
-               (:file "opengl")
                (:file "parameters")
                (:file "configuration")))
