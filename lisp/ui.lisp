@@ -1,4 +1,4 @@
-(in-package :ui)
+(in-package :arcimoog.ui)
 
 (defparameter *meter-levels* (make-array 16 :initial-element 0))
 (defparameter *meter-instances* (make-array 16 :initial-element nil))
@@ -32,12 +32,12 @@
     (create-section container :h1 :content "Arcimoog")
     (create-output-meters container)))
 
-(defun start-ui ()
+(defun start ()
   (initialize 'on-main
               :static-root (merge-pathnames "clog/static-files/"
                                             (asdf/system:system-source-directory :arcimoog)))
   (open-browser))
 
-(defun restart-ui ()
+(defun reset ()
   (shutdown)
   (start-ui))

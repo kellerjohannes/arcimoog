@@ -1,78 +1,92 @@
-(defpackage :arcimoog.utilities
+(defpackage :arcimoog
   (:use :cl)
-  (:nicknames :utility)
-  (:export #:reduce-equal-keyword-list
-           #:shrink
-           #:coerce-vector
-           #:param!
-           #:param
-           #:with-params))
+  (:nicknames :am))
+
+;; (defpackage :arcimoog.utilities
+;;   (:use :cl)
+;;   (:nicknames :utility)
+;;   (:export #:reduce-equal-keyword-list
+;;            #:shrink
+;;            #:coerce-vector
+;;            #:param!
+;;            #:param
+;;            #:with-params))
 
 (defpackage :arcimoog.conditions
   (:use :cl)
   (:nicknames :acond)
   (:export #:incudine-is-not-in-rt
-           #:compile-error
+           ;;#:compile-error
+           #:midi-subscripts-out-of-range
            #:pm-error
            #:faderfox-id-not-found
            #:get-faderfox-name-from-user
-           #:instantiate-empty-parameter
-           #:no-parameter-found
-           #:get-parameter-value-from-user
-           #:buffer-file-not-found
-           #:buffer-file-not-loaded
-           #:key-not-supported
-           #:parameter-not-found
-           #:parameter-data-invalid
-           #:parameter-data-type-unsupported
-           ;; probably obsolete, figuring out
-           #:parameter-data-is-not-number
-           #:parameter-data-is-not-string
-           #:parameter-data-out-of-range
-           #:parameter-type-unsupported
+           ;; #:instantiate-empty-parameter
+           ;; #:no-parameter-found
+           ;; #:get-parameter-value-from-user
+           ;; #:buffer-file-not-found
+           ;; #:buffer-file-not-loaded
+           ;; #:key-not-supported
+           ;; #:parameter-not-found
+           ;; #:parameter-data-invalid
+           ;; #:parameter-data-type-unsupported
+           ;;;; probably obsolete, figuring out
+           ;; #:parameter-data-is-not-number
+           ;; #:parameter-data-is-not-string
+           ;; #:parameter-data-out-of-range
+           ;; #:parameter-type-unsupported
            ))
 
 
 (defpackage :arcimoog.parameters
   (:use :cl)
-  (:nicknames :apar)
-  (:export #:defp
-           #:setp
-           #:getp
-           #:resp
-           #:write-parameters
-           #:read-parameters))
+  (:nicknames :am-par)
+  (:export #:register-scalar
+           #:inc-scalar
+           ;; #:defp
+           ;; #:setp
+           ;; #:getp
+           ;; #:resp
+           ;; #:write-parameters
+           ;; #:read-parameters
+           ))
 
-(defpackage :symbolic-intervals
-  (:use :cl))
+;; (defpackage :arcimoog.symbolic-intervals
+;;   (:use :cl))
 
-(defpackage :score-model
+;; (defpackage :arcimoog.score-model
+;;   (:use :cl)
+;;   (:nicknames :sc)
+;;   (:export #:def
+;;            #:val
+;;            #:of
+;;            #:calc
+;;            #:rel
+;;            #:chain
+;;            #:series
+;;            #:diff
+;;            #:asc
+;;            #:desc
+;;            #:temper
+;;            #:edx))
+
+;; (defpackage :arcimoog.ly-parser
+;;   (:use :cl)
+;;   (:nicknames :ly)
+;;   (:export #:parse-ly-notation))
+
+(defpackage :arcimoog.midi-communication
   (:use :cl)
-  (:nicknames :sc)
-  (:export #:def
-           #:val
-           #:of
-           #:calc
-           #:rel
-           #:chain
-           #:series
-           #:diff
-           #:asc
-           #:desc
-           #:temper
-           #:edx))
+  (:nicknames :am-midi)
+  (:export #:init-faderfox-communication
+           #:register-callback))
 
-(defpackage :ly-parser
+(defpackage :arcimoog.osc-communication
   (:use :cl)
-  (:nicknames :ly)
-  (:export #:parse-ly-notation))
+  (:nicknames :am-osc))
 
-(defpackage :osc-communication
-  (:use :cl))
-
-(defpackage :ui
-  (:use :cl :clog))
-
-(defpackage :arcimoog
-  (:use :cl)
-  (:nicknames :arci))
+(defpackage :arcimoog.ui
+  (:use :cl :clog)
+  (:nicknames :ui)
+  (:export #:start
+           #:restart))

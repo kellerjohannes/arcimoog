@@ -1,25 +1,58 @@
-(in-package :arcimoog)
+(in-package :arcimoog.midi-communication)
+
+;; Storing callback functions for MIDI input, connecting MIDI controls to any place in the whole
+;; system.
+
+(defconstant +number-of-controllers+ 16
+  "Number of used controller IDs. On the Faderfox EC4 this refers to the number of 'Setups', which is 16.")
+
+(defconstant +controller-offset+ 176
+  "Value of the first controller ID. On the Faderfox EC4 this is 176.")
+
+(defconstant +number-of-channels+ 127
+  "Number of channels in use. On the Faderfox EC4 this is 127 channels per 'Setup'.")
+
+(defparameter *midi-callbacks* (make-array (list *number-of-controllers* *number-of-channels*)
+                                           :initial-element nil)
+  "Stores the callback function for each MIDI channel. Can be populated from anywhere.")
+
+(defun valid-subscripts-p (controller channel)
+  "Checks ranges."
+  (and (>= controller 0)
+       (< controller +number-of-controllers+)
+       (>= channel 0)
+       (< channel +number-of-channels+)))
+
+(defun midi-responder (controller-raw channel value-raw)
+  "Callback function for the MIDI listener. This function is called whenever there is incoming MIDI
+data. The first and the second argument are used as array subscripts, the third one represents the
+actual value."
+  ;; (format t "~&~a, ~a, ~a" channel-raw controller-raw value-raw)
+  (let ((controller (- controller-raw +controller-offset+)))
+    (if (valid-subscripts-p controller channel)
+        (let ((callback-fun (aref *midi-callbacks* controller channel)))
+          (if callback-fun
+              (funcall callback-fun value-raw)
+              (log:warn "No callback function defined for setup ~a, channel ~a."
+                        controller channel)))
+        (log:warn "No MIDI slot defined for setup ~a, channel ~a." controller channel))))
+
+(defun register-callback (controller channel callback-fun)
+  "Exported function to be used to store a callback function for a controller channel."
+  (cond ((valid-subscripts-p controller channel)
+         (when (functionp (aref *midi-callbacks* controller channel))
+           (log:info "Redefining callback function for controller ~a, channel ~a."
+                     controller channel))
+         (setf (aref *midi-callbacks* controller channel) callback-fun))
+        (t (error 'acond:midi-subscripts-out-of-range))))
+
+
+
+;; Handling the MIDI connection.
+;; TODO: from here, add doc strings.
 
 (defparameter *midi-in* nil)
 (defparameter *midi-responder* nil)
-
-
-
-;;; Obsolete, this is all covered by the parameter bank implementation
-
-(defun midi-scale (value lower upper)
-  (+ (* (/ value 127.0) (- upper lower)) lower))
-
-;; (defun set-slot (slot-number value)
-;;   (setf (aref *parameter-slots* slot-number) value))
-
-;; (defun slot (slot-number)
-;;   (aref *parameter-slots* slot-number))
-
-
-(defun midi-responder (channel-raw controller-raw value-raw)
-  ;;(format t "~&~a ~a ~a~%" channel-raw controller-raw value-raw)
-  (update *parameter-bank* channel-raw controller-raw value-raw))
 
 (defun incudine-real-time-p ()
   (let ((status (incudine:rt-status)))

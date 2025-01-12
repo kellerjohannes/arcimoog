@@ -1,7 +1,8 @@
 (in-package :arcimoog.conditions)
 
-(define-condition compile-error (error) ())
+;;(define-condition compile-error (error) ())
 
+(define-condition midi-subscripts-out-of-range (error) ())
 
 (define-condition incudine-is-not-in-rt (error) ())
 
@@ -20,32 +21,32 @@
 
 
 
-(define-condition buffer-file-not-found (error)
-  ((root-path :initarg :root-path
-              :reader root-path)
-   (sample-path :initarg :sample-path
-                :reader sample-path)))
+;; (define-condition buffer-file-not-found (error)
+;;   ((root-path :initarg :root-path
+;;               :reader root-path)
+;;    (sample-path :initarg :sample-path
+;;                 :reader sample-path)))
 
-(define-condition buffer-file-not-loaded (error)
-  ((root-path :initarg :root-path
-              :reader root-path)
-   (sample-path :initarg :sample-path
-                :reader sample-path)))
+;; (define-condition buffer-file-not-loaded (error)
+;;   ((root-path :initarg :root-path
+;;               :reader root-path)
+;;    (sample-path :initarg :sample-path
+;;                 :reader sample-path)))
 
 
 ;;; probably to be removed after parameter revision
 
-(defun instantiate-empty-parameter (condition)
-  (declare (ignore condition))
-  (invoke-restart 'instantiate-empty-parameter))
+;; (defun instantiate-empty-parameter (condition)
+;;   (declare (ignore condition))
+;;   (invoke-restart 'instantiate-empty-parameter))
 
-(define-condition no-parameter-found (error)
-  ((parameter-id :initarg :id :reader parameter-id)))
+;; (define-condition no-parameter-found (error)
+;;   ((parameter-id :initarg :id :reader parameter-id)))
 
-(defun get-parameter-value-from-user (id)
-  (format *query-io* "Enter a value for the new parameter with it ~a: " id)
-  (force-output *query-io*)
-  (list (read)))
+;; (defun get-parameter-value-from-user (id)
+;;   (format *query-io* "Enter a value for the new parameter with it ~a: " id)
+;;   (force-output *query-io*)
+;;   (list (read)))
 
 
 
@@ -64,28 +65,28 @@
 ;;   ((parameter-data-instance :initarg :parameter-data-instance
 ;;                             :reader parameter-data-instance)))
 
-(define-condition parameter-data-invalid (error)
-  ((parameter-data-instance :initarg :parameter-data-instance
-                            :reader parameter-data-instance)))
+;; (define-condition parameter-data-invalid (error)
+;;   ((parameter-data-instance :initarg :parameter-data-instance
+;;                             :reader parameter-data-instance)))
 
-(define-condition parameter-data-type-unsupported (error)
-  ((data-expression :initarg :data-expression
-                    :reader data-expression
-                    :documentation "Needs to accept alists describing a PARAMETER-DATA instance as well as single data objects (numbers,strings, vectors).")))
+;; (define-condition parameter-data-type-unsupported (error)
+;;   ((data-expression :initarg :data-expression
+;;                     :reader data-expression
+;;                     :documentation "Needs to accept alists describing a PARAMETER-DATA instance as well as single data objects (numbers,strings, vectors).")))
 
-(define-condition key-not-supported (error)
-  ((key :initarg :key
-        :reader key
-        :documentation "Keyword or string allowed.")
-   (parameter-bank-instance :initarg :parameter-bank-instance
-                            :reader parameter-bank-instance))
-  (:report (lambda (condition stream)
-             (format stream "The key ~a is not found in bank ~a."
-                     (key condition)
-                     (parameter-bank-instance condition)))))
+;; (define-condition key-not-supported (error)
+;;   ((key :initarg :key
+;;         :reader key
+;;         :documentation "Keyword or string allowed.")
+;;    (parameter-bank-instance :initarg :parameter-bank-instance
+;;                             :reader parameter-bank-instance))
+;;   (:report (lambda (condition stream)
+;;              (format stream "The key ~a is not found in bank ~a."
+;;                      (key condition)
+;;                      (parameter-bank-instance condition)))))
 
-(define-condition parameter-not-found (error)
-  ((parameter-bank-instance :initarg parameter-bank-instance
-                            :reader parameter-bank-instance)
-   (key :initarg :key
-        :reader key)))
+;; (define-condition parameter-not-found (error)
+;;   ((parameter-bank-instance :initarg parameter-bank-instance
+;;                             :reader parameter-bank-instance)
+;;    (key :initarg :key
+;;         :reader key)))
