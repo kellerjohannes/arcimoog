@@ -1,6 +1,7 @@
 (asdf:defsystem "arcimoog"
   :depends-on (:uiop :alexandria :log4cl :bordeaux-threads
-               :array-operations :cl-jpeg :clog
+               :array-operations ;;:cl-jpeg
+               :clog
                :incudine)
   :serial t
   :components ((:file "packages")
@@ -15,9 +16,7 @@
                ;;(:file "sampler")
                (:file "parameters")
                ;;(:file "configuration")
-               ;; TODO Rename this into something with OSC, create a package
-               ;; for osc-communication and properly implement it.
-               ;; (:file "vc-client-test")
+               (:file "osc-communication")
                (:file "ui")
                (:file "main")
                ))
