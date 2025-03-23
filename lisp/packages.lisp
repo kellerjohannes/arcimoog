@@ -42,17 +42,12 @@
   (:use :cl)
   (:nicknames :am-par)
   (:export #:register-scalar
+           #:get-scalar
            #:set-scalar
            #:inc-scalar
            #:clear-parameter-bank
            #:print-parameter-list
            #:register-hook
-           ;; #:defp
-           ;; #:setp
-           ;; #:getp
-           ;; #:resp
-           ;; #:write-parameters
-           ;; #:read-parameters
            ))
 
 ;; (defpackage :arcimoog.symbolic-intervals
@@ -83,7 +78,8 @@
   (:use :cl)
   (:nicknames :am-midi)
   (:export #:init
-           #:register-callback))
+           #:register-callback
+           #:print-callbacks))
 
 (defpackage :arcimoog.osc-communication
   (:use :cl)

@@ -46,6 +46,14 @@ actual value."
          (setf (aref *midi-callbacks* controller channel) callback-fun))
         (t (error 'acond:midi-subscripts-out-of-range))))
 
+(defun print-callbacks ()
+  (dotimes (controller +number-of-controllers+)
+    (dotimes (channel +number-of-channels+)
+      (let ((callback (aref *midi-callbacks* controller channel)))
+        (when callback (format t "~&Setup ~a, Controller ~a: ~a"
+                               (1+ controller)
+                               channel
+                               (documentation callback 'function)))))))
 
 
 ;; Handling the MIDI connection.
