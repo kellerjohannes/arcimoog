@@ -1,9 +1,10 @@
 (in-package :arcimoog)
 
-(ui:start)
+(am-ui:init)
 
-(am-midi:init-faderfox-communication)
+(am-midi:init)
 
+(am-osc:init 5800 "127.0.0.1")
 
 ;; TODO These kinds of calls could be condensed with simple macros, to reduce typing.
 
@@ -14,13 +15,8 @@
                            (list (lambda (name value)
                                    ,(format nil "Send OSC message to audio output channel ~a."
                                             audio-output-channel)
-                                   ;; TODO: implement. Call osc-sender for
-                                   ;; audio-output-channel and send current
-                                   ;; parameter value
                                    (declare (ignore name))
-                                   (format t "~&~a: ~a"
-                                           ,audio-output-channel
-                                           value)))))
+                                   (am-osc:send ,audio-output-channel value)))))
 
 (register-cv :vco1 0)
 (am-par:register-hook :vco1 (lambda (name value)

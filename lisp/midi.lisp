@@ -78,7 +78,7 @@ actual value."
     (if id id (error 'acond:faderfox-id-not-found
                      :faderfox-name faderfox-name-string))))
 
-(defun init-faderfox-communication ()
+(defun init ()
   (restart-case (init-port-midi)
     (continue-without-pm () :report "Don't use PortMidi from this point on." nil))
   (let ((id (restart-case (find-faderfox-id "Faderfox EC4 MIDI 1")

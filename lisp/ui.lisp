@@ -32,7 +32,7 @@
     (create-section container :h1 :content "Arcimoog")
     (create-output-meters container)))
 
-(defun start ()
+(defun init ()
   (initialize 'on-main
               :static-root (merge-pathnames "clog/static-files/"
                                             (asdf/system:system-source-directory :arcimoog)))

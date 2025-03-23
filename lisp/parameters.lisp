@@ -55,8 +55,7 @@
 (defmethod inc-value ((param parameter-scalar) val)
   (let ((new-value (+ (value param) val)))
     (cond ((valid-value-p param new-value)
-           (set-value param new-value)
-           (call-hooks param))
+           (set-value param new-value))
           ;; TODO This could be reimplemented using the condition system, by trying and ignoring
           ;; out-of-range results.
           (t (log:warn "Increment ~a for value ~a out of range." val (value param))))))
@@ -97,6 +96,9 @@
                        :range-min min
                        :range-max max
                        :hooks hooks)))
+
+(defun set-scalar (parameter-name val)
+  (set-value (find-parameter parameter-name) val))
 
 (defun inc-scalar (parameter-name val)
   (inc-value (find-parameter parameter-name) val))

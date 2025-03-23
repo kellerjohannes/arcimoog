@@ -42,6 +42,7 @@
   (:use :cl)
   (:nicknames :am-par)
   (:export #:register-scalar
+           #:set-scalar
            #:inc-scalar
            #:clear-parameter-bank
            #:print-parameter-list
@@ -81,16 +82,17 @@
 (defpackage :arcimoog.midi-communication
   (:use :cl)
   (:nicknames :am-midi)
-  (:export #:init-faderfox-communication
+  (:export #:init
            #:register-callback))
 
 (defpackage :arcimoog.osc-communication
   (:use :cl)
   (:nicknames :am-osc)
-  (:export #:init-osc-communication))
+  (:export #:init
+           #:send))
 
 (defpackage :arcimoog.ui
   (:use :cl :clog)
-  (:nicknames :ui)
-  (:export #:start
+  (:nicknames :am-ui)
+  (:export #:init
            #:restart))
