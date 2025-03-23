@@ -43,6 +43,9 @@
   (:nicknames :am-par)
   (:export #:register-scalar
            #:inc-scalar
+           #:clear-parameter-bank
+           #:print-parameter-list
+           #:register-hook
            ;; #:defp
            ;; #:setp
            ;; #:getp
@@ -83,7 +86,8 @@
 
 (defpackage :arcimoog.osc-communication
   (:use :cl)
-  (:nicknames :am-osc))
+  (:nicknames :am-osc)
+  (:export #:init-osc-communication))
 
 (defpackage :arcimoog.ui
   (:use :cl :clog)
