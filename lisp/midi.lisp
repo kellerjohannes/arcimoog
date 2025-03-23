@@ -12,7 +12,7 @@
 (defconstant +number-of-channels+ 127
   "Number of channels in use. On the Faderfox EC4 this is 127 channels per 'Setup'.")
 
-(defparameter *midi-callbacks* (make-array (list *number-of-controllers* *number-of-channels*)
+(defparameter *midi-callbacks* (make-array (list +number-of-controllers+ +number-of-channels+)
                                            :initial-element nil)
   "Stores the callback function for each MIDI channel. Can be populated from anywhere.")
 
