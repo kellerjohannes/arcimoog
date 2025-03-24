@@ -1,16 +1,10 @@
-(defpackage :arcimoog
+(defpackage :arcimoog.utilities
   (:use :cl)
-  (:nicknames :am))
-
-;; (defpackage :arcimoog.utilities
-;;   (:use :cl)
-;;   (:nicknames :utility)
-;;   (:export #:reduce-equal-keyword-list
-;;            #:shrink
-;;            #:coerce-vector
-;;            #:param!
-;;            #:param
-;;            #:with-params))
+  (:nicknames :utility)
+  (:export #:register-constant
+           #:register-cv
+           #:register-toggle-dial
+           #:register-precision-dial))
 
 (defpackage :arcimoog.conditions
   (:use :cl)
@@ -92,3 +86,13 @@
   (:nicknames :am-ui)
   (:export #:init
            #:restart))
+
+(defpackage :arcimoog
+  (:use :cl)
+  (:nicknames :am)
+  (:export #:init)
+  (:import-from :arcimoog.utilities
+                #:register-constant
+                #:register-cv
+                #:register-toggle-dial
+                #:register-precision-dial))

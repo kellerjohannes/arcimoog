@@ -5,6 +5,7 @@
                :incudine)
   :serial t
   :components ((:file "packages")
+               (:file "utilities")
                (:file "conditions")
                (:file "global-definitions")
                ;;(:file "symbolic-intervals")
@@ -18,5 +19,6 @@
                ;;(:file "configuration")
                (:file "osc-communication")
                (:file "ui")
+               (:file "setup")
                (:file "main")
                ))
