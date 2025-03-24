@@ -23,10 +23,10 @@
                                 ,doc
                                 (cond ((< value 64)
                                        (am-par:set-scalar ,target-parameter
-                                                          ,(am-par:get-scalar :toggle-off-value)))
+                                                          (am-par:get-scalar :toggle-off-value)))
                                       ((> value 64)
                                        (am-par:set-scalar ,target-parameter
-                                                          ,(am-par:get-scalar :toggle-on-value)))))))
+                                                          (am-par:get-scalar :toggle-on-value)))))))
 
 (defmacro register-precision-dial (controller
                                    channel-a
