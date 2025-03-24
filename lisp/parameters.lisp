@@ -95,7 +95,8 @@
                        :value val
                        :range-min min
                        :range-max max
-                       :hooks hooks)))
+                       :hooks hooks))
+  (set-value (find-parameter name) val))
 
 (defun get-scalar (parameter-name)
   (get-value (find-parameter parameter-name)))

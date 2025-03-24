@@ -7,12 +7,12 @@
 
 (defmacro register-cv (name audio-output-channel)
   `(progn
-     (am-par:register-scalar ,name 0.0 -1.0 1.0
+     (am-par:register-scalar ,name -1.0 -1.0 1.0
                              (list (lambda (name value)
                                      ,(format nil "Send OSC message to audio output channel ~a."
                                               audio-output-channel)
                                      (declare (ignore name))
-                                     (am-osc:send ,audio-output-channel value))))
+                                     (am-osc:send ,audio-output-channel (coerce value 'float)))))
      (am-par:register-hook ,name (lambda (name value)
                                    "Print the updated value to the REPL."
                                    (format t "~&~a updated to ~a.~%" name value)))))

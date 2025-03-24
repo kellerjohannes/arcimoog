@@ -15,7 +15,7 @@
     (register-constant :precision-factor-low 0.01)
     (register-constant :precision-factor-medium 0.001)
     (register-constant :precision-factor-high 0.0001)
-    (register-constant :precision-factor-extreme 0.00001)
+    (register-constant :precision-factor-extreme 0.000001)
     (register-constant :toggle-off-value -1.0)
     (register-constant :toggle-on-value 1.0))
 
