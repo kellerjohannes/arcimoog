@@ -8,8 +8,7 @@
   (progn
     (am-ui:init)
     (am-midi:init)
-    ;;(am-osc:init 5800 "127.0.0.1")
-    )
+    (am-osc:init 5800 "127.0.0.1"))
 
   ;; Define global constants used by callback functions.
   (progn

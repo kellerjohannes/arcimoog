@@ -49,7 +49,6 @@
       (setf (style (cv-meter-clog-element meter) "width")
             (format nil "~a" (cv-meter-value meter))))))
 
-
 (defmethod initialize-instance :after ((tile tile) &key clog-parent)
   (build-clog-elements tile clog-parent))
 
@@ -74,19 +73,32 @@
 
 ;;; Clog stuff
 
+
+(defparameter *test* nil)
+
+(defparameter *test-test* nil)
+
+(defun change-all-instances ()
+  (dolist (body *test*)
+    (if (clog:validp body)
+        (setf (clog:color body) :green)
+        (format t "~&Connection lost."))))
+
+(defun cleanup ()
+  (setf *test* (mapcan (lambda (body) (when (clog:validp body) (list body))) *test*)))
+
 (defun on-main (body)
-  (format t "~&Rebuilding page")
-  (create-div body :content "Test")
+  (push body *test*)
   (load-css (html-document body) "styles.css")
-  (format t "~&css loaded")
   (setf (title (html-document body)) "Arcimoog Main Parameters")
   (let ((main-container (create-div body :class "main-container")))
-    (create-div main-container :content "Hi There")
-    (format t "~&main-container created: ~a" main-container)
+    (setf (clog:connection-data-item body "default-parent") main-container)
+    (create-div main-container)
+    (setf *test-test* (clog:create-div main-container :content "1"))
     (build-ui main-container)))
 
 (defun init ()
-  (initialize 'on-main
+  (initialize #'on-main
               :host "127.0.0.1"
               :port 8080
               :static-root (merge-pathnames "clog/static-files/"
