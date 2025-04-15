@@ -85,7 +85,8 @@
   (:use :cl :clog)
   (:nicknames :am-ui)
   (:export #:init
-           #:restart))
+           #:reset
+           #:register-cvs-tile))
 
 (defpackage :arcimoog
   (:use :cl)

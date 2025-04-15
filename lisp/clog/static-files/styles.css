@@ -16,6 +16,17 @@ html * {
   color: white;
 }
 
+.tile {
+  width: 100%;
+  height: 100%;
+  padding: 5px;
+  margin: 5px;
+  border: solid 2px white;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-start;
+}
+
 .meter-container {
   border: solid 2px white;
   width: 400px;
@@ -23,10 +34,4 @@ html * {
   display: flex;
   flex-direction: column;
   justify-content: flex-start;
-}
-
-.meter-core {
-  margin: 2px;
-  background: orange;
-  height: 16px;
 }

@@ -8,12 +8,15 @@
   (progn
     (am-ui:init)
     (am-midi:init)
-    (am-osc:init 5800 "127.0.0.1"))
+    ;;(am-osc:init 5800 "127.0.0.1")
+    )
 
   ;; Define global constants used by callback functions.
   (progn
     (register-constant :precision-factor-low 0.01)
     (register-constant :precision-factor-medium 0.001)
+
+
     (register-constant :precision-factor-high 0.0001)
     (register-constant :precision-factor-extreme 0.000001)
     (register-constant :toggle-off-value -1.0)
@@ -58,4 +61,7 @@
     (register-precision-dial 1 36 37 38 39 "VCF3 quad precision." :vcf3)
     (register-precision-dial 1 40 41 42 43 "Res3 quad precision." :res3)
     (register-precision-dial 1 44 45 nil nil "VCA3 dual precision." :vca3)
-    (register-toggle-dial 1 46 "Gate3 toggle dial." :gate3)))
+    (register-toggle-dial 1 46 "Gate3 toggle dial." :gate3))
+
+  (progn
+    (am-ui:register-cvs-tile :cvs)))
