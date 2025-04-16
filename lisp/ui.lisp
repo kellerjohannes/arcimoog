@@ -23,14 +23,10 @@
 ;;   (update-meter meter-id))
 
 (defclass tile ()
-  ((clog-element :accessor clog-element)
-   (title :initform "" :initarg :title :accessor title)))
-
-(defstruct cv-meter name value clog-element)
+  ((title :initform "" :initarg :title :accessor title)))
 
 (defclass tile-cvs (tile)
-  ((clog-meter-container :accessor clog-meter-container)
-   (meters :initform nil :accessor meters)))
+  ((meters :initform nil :accessor meters)))
 
 
 
