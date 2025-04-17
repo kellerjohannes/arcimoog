@@ -16,25 +16,37 @@
     (when new-value
       (funcall callback-function new-value))))
 
+(defmacro intern-string (format-string &rest data)
+  `(intern (string-upcase (format nil ,format-string ,@data))))
 
 (defun build-cv-meters (parent)
-  (macrolet ((meter-row (name)
-               `(div (:class "meter-row")
-                     (div (:class "meter-visual-container")
-                          (div (:bind ,(format nil "meter-~a" name) :class "meter-visual-filler")))
-                     (div (:bind ,(format nil "label-~a" name) :class "meter-label")))))
-    (clog:with-clog-create parent
-        (div (:content "CV levels" :class "tile-title")
-             (meter-row vco1)
-             ;; (div (:class "meter-row")
-             ;;      (div (:class "meter-visual-container")
-             ;;           (div (:bind meter-vco1 :class "meter-visual-filler")))
-             ;;      (div (:bind label-vco1 :class "meter-label")))
-
-             )
-      (register-value-hook :vco1 (lambda (data) (setf (clog:text label-vco1) (write-to-string data))))
-      (register-value-hook :vco1 (lambda (data) (setf (clog:width meter-vco1) (* (+ data 1) 100)))))))
-
+  (macrolet ((meter-row (parent name)
+               (let ((row-container (gensym))
+                     (visual-container (gensym))
+                     (meter-body (gensym))
+                     (meter-label (gensym)))
+                 `(let* ((,row-container (clog:create-div ,parent :class "meter-row"))
+                         (,visual-container (clog:create-div ,row-container
+                                                             :class "meter-visual-container"))
+                         (,meter-body (clog:create-div ,visual-container
+                                                       :class "meter-visual-filler"))
+                         (,meter-label (clog:create-div ,row-container :class "meter-label")))
+                    (register-value-hook
+                     ,name (lambda (data) (setf (clog:text ,meter-label)
+                                                (format nil "~a ~a" ,(symbol-name name) data))))
+                    (register-value-hook
+                     ,name (lambda (data) (setf (clog:width ,meter-body) (* (+ data 1) 100)))))))
+             (generate-rows (prefixes index)
+               `(progn ,@(mapcar (lambda (prefix)
+                                   `(meter-row tile-container
+                                               ,(alexandria:make-keyword (format nil "~a~a"
+                                                                                 prefix
+                                                                                 index))))
+                                 prefixes))))
+    (let ((tile-container (clog:create-div parent :class "tile-title" :content "CV levels")))
+      (generate-rows (vco vcf res vca gate) 1)
+      (generate-rows (vco vcf res vca gate) 2)
+      (generate-rows (vco vcf res vca gate) 3))))
 
 (defun build-ui (parent)
   (clog:with-clog-create parent
