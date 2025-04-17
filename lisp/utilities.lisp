@@ -14,8 +14,9 @@
                                      (declare (ignore name))
                                      (am-osc:send ,audio-output-channel (coerce value 'float)))))
      (am-par:register-hook ,name (lambda (name value)
-                                   "Print the updated value to the REPL."
-                                   (format t "~&~a updated to ~a.~%" name value)))))
+                                   "Print the updated value to the REPL and update the UI meter components."
+                                   (format t "~&~a updated to ~a.~%" name value)
+                                   (am-ui:update-value name value)))))
 
 (defmacro register-toggle-dial (controller channel doc target-parameter)
   `(am-midi:register-callback ,controller ,channel

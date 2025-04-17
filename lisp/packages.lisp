@@ -86,7 +86,10 @@
   (:nicknames :am-ui)
   (:export #:init
            #:reset
-           #:register-cvs-tile))
+           ;; TODO remove this function
+           #:register-cvs-tile
+           #:update-value
+           ))
 
 (defpackage :arcimoog
   (:use :cl)

@@ -16,22 +16,41 @@ html * {
   color: white;
 }
 
+.main-title {
+  font-size: 24px;
+  color: yellow;
+}
+
+.tile-title {
+  font-size: 14px;
+  color: beige;
+}
+
 .tile {
   width: 100%;
   height: 100%;
   padding: 5px;
-  margin: 5px;
   border: solid 2px white;
   display: flex;
   flex-direction: column;
   justify-content: flex-start;
 }
 
-.meter-container {
-  border: solid 2px white;
+.meter-row {
   width: 400px;
-  height: 600px;
   display: flex;
-  flex-direction: column;
-  justify-content: flex-start;
+  flex-direction: row;
+  gap: 5px;
+}
+
+.meter-visual-container {
+  height: 8px;
+  width: 200px;
+  background-color: darkred;
+  padding: 2px;
+}
+
+.meter-visual-filler {
+  height: 100%;
+  background-color: orange;
 }
