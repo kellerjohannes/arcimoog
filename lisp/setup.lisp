@@ -60,7 +60,4 @@
     (register-precision-dial 1 36 37 38 39 "VCF3 quad precision." :vcf3)
     (register-precision-dial 1 40 41 42 43 "Res3 quad precision." :res3)
     (register-precision-dial 1 44 45 nil nil "VCA3 dual precision." :vca3)
-    (register-toggle-dial 1 46 "Gate3 toggle dial." :gate3))
-
-  (progn
-    (am-ui:register-cvs-tile :cvs)))
+    (register-toggle-dial 1 46 "Gate3 toggle dial." :gate3)))
