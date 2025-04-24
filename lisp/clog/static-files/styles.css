@@ -14,6 +14,9 @@ html * {
   height: 100%;
   background: #251d24;
   color: white;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
 }
 
 .main-title {
@@ -27,8 +30,8 @@ html * {
 }
 
 .tile {
-  width: 100%;
-  height: 100%;
+  width: fit-content;
+  height: fit-content;
   padding: 5px;
   border: solid 2px white;
   display: flex;

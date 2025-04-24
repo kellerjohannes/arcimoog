@@ -48,11 +48,21 @@
       (generate-rows (vco vcf res vca gate) 2)
       (generate-rows (vco vcf res vca gate) 3))))
 
+(defun build-cv-roll (clog-parent)
+  (let* ((container (clog:create-div clog-parent :class "tile-title" :content "CV history"))
+         (canvas (clog:create-canvas container :width 900 :height 500))
+         (context (clog:create-context2d canvas)))
+    (clog:set-border canvas :medium :solid :green)
+    (setf (clog:stroke-style context) :yellow)
+    (clog:begin-path context)
+    (clog:move-to context 10 10)
+    (clog:line-to context 20 20)
+    (clog:path-stroke context)))
+
 (defun build-ui (parent)
-  (clog:with-clog-create parent
-      (div (:content "Arcimoog Internals" :class "main-title")
-           (div (:bind cv-tile :class "tile")))
-    (build-cv-meters cv-tile)))
+  (create-div parent :class "main-title" :content "Arcimoog")
+  (build-cv-meters (create-div parent :class "tile"))
+  (build-cv-roll (create-div parent :class "tile")))
 
 (defun on-main (body)
   (load-css (html-document body) "styles.css")
