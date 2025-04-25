@@ -2,6 +2,7 @@
 
 (defparameter *parameter-hooks* (make-hash-table))
 (defparameter *parameter-values* (make-hash-table))
+(defparameter *animated-data* nil)
 
 (defun register-value-hook (name hook-function)
   (let ((hooks (gethash name *parameter-hooks*)))
@@ -15,6 +16,15 @@
   (dolist (callback-function (gethash name *parameter-hooks*))
     (when new-value
       (funcall callback-function new-value))))
+
+(defun register-animation-callback (name callback-function)
+  (register-value-hook name callback-function)
+  (push name *animated-data*))
+
+(defun update-animated-data ()
+  (dolist (name *animated-data*)
+    (dolist (callback-function (gethash name *parameter-hooks*))
+      (funcall callback-function nil))))
 
 (defun build-cv-meters (parent)
   (macrolet ((meter-row (parent name)
@@ -78,37 +88,42 @@
      (lambda (time cv)
        (clog:line-to context
                      (+ data-origin-x (coerce (funcall x-transform time) 'single-float))
-                     (- data-origin-y (funcall y-transform cv))))))
+                     (- data-origin-y (funcall y-transform cv)))))
+    (multiple-value-bind (time cv)
+        (am-ht:get-latest-data-point tracker-name)
+      (declare (ignore time))
+      (clog:line-to context
+                    (+ data-origin-x *roll-width* (* -2 *axis-padding*))
+                    (- data-origin-y (funcall y-transform cv)))))
   (clog:path-stroke context))
 
 
-(defun cv-draw-loop (clog-obj timecode)
-  (declare (ignore timecode))
-  (let ((context (clog:connection-data-item clog-obj "context2d")))
-    (clog:clear-rect context 0 0 *roll-width* 100)
-    (draw-axes context 0 100 *roll-width* 100)
-    (setf (clog:global-composite-operation context) "destination-over")
-    (draw-data context
-               :vco1
-               (lambda (x) (- (- *roll-width* (* 2 *axis-padding*))
-                              (/ (- (incudine:now) x)
-                                 (* 0.5 (incudine:rt-sample-rate)))))
-               (lambda (y) (* 40 (+ 1 y)))
-               0
-               100)
-    (draw-axes context 0 200 *roll-width* 100)
-    (draw-axes context 0 300 *roll-width* 100)
-    (draw-axes context 0 400 *roll-width* 100)
-    (draw-axes context 0 500 *roll-width* 100))
-  )
+(defun cv-draw-loop (context)
+  (clog:clear-rect context 0 0 *roll-width* 100)
+  (draw-axes context 0 100 *roll-width* 100)
+  (setf (clog:global-composite-operation context) "destination-over")
+  (draw-data context
+             :vco1
+             (lambda (x) (- (- *roll-width* (* 2 *axis-padding*))
+                            (/ (- (incudine:now) x)
+                               (* 0.5 (incudine:rt-sample-rate)))))
+             (lambda (y) (* 40 (+ 1 y)))
+             0
+             100)
+  (draw-axes context 0 200 *roll-width* 100)
+  (draw-axes context 0 300 *roll-width* 100)
+  (draw-axes context 0 400 *roll-width* 100)
+  (draw-axes context 0 500 *roll-width* 100))
+
 
 (defun build-cv-roll (clog-parent)
   (let* ((container (clog:create-div clog-parent :class "tile-title" :content "CV history"))
          (canvas (clog:create-canvas container :width *roll-width* :height *roll-height*))
          (context (clog:create-context2d canvas)))
-    (setf (clog:connection-data-item clog-parent "context2d") context)
     (clog:set-border canvas :medium :solid :green)
-    (clog:set-on-animation-frame (clog:connection-data-item clog-parent "window") #'cv-draw-loop)))
+    (register-animation-callback :cv-roll-1 (lambda (dummy)
+                                              (declare (ignore dummy))
+                                              (cv-draw-loop context)))))
 
 (defun build-ui (parent)
   (create-div parent :class "main-title" :content "Arcimoog")
@@ -116,18 +131,31 @@
   (build-cv-roll (create-div parent :class "tile")))
 
 (defun on-main (body)
-  (setf (clog:connection-data-item body "window") (clog:window body))
-  (format t "~&window: ~a" (clog:connection-data-item body "window"))
   (load-css (html-document body) "styles.css")
   (setf (title (html-document body)) "Arcimoog Main Parameters")
   (let ((main-container (create-div body :class "main-container")))
-    (build-ui main-container))
-  ;; TODO animation doesn't work like that. To try: global animation control, updating all canvases
-  ;; on all connections, similar to updating the cv meters. with a global clock, driven by incudine,
-  ;; or some other timing feature
-  ;; (bordeaux-threads:make-thread (lambda () (loop
-  ;; (clog:request-animation-frame (clog:window body)))))
+    (build-ui main-container)))
+
+
+(defparameter *animation-running-p* t)
+
+(defun stop-data-animation ()
+  (setf *animation-running-p* nil))
+
+(defun start-data-animation ()
+  (setf *animation-running-p* t)
+  (animation-loop)
+  ;; TODO figure out multiple threads
+  ;;(bordeaux-threads:make-thread (lambda () (animation-loop)))
   )
+
+(defun animation-loop ()
+  (when *animation-running-p*
+    (sleep 0.5)
+    (update-animated-data)
+    (animation-loop)))
+
+
 
 (defun init ()
   (initialize #'on-main
@@ -135,9 +163,12 @@
               :port 8080
               :static-root (merge-pathnames "clog/static-files/"
                                             (asdf/system:system-source-directory :arcimoog)))
-  (open-browser))
+  (open-browser)
+  (start-data-animation))
 
 (defun reset ()
+  (stop-data-animation)
   (setf *parameter-hooks* (make-hash-table))
   (shutdown)
-  (init))
+  (init)
+  (start-data-animation))

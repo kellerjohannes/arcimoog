@@ -97,7 +97,8 @@
   (:export #:register-tracker
            #:add-data-point
            #:loop-over-history
-           #:print-all))
+           #:print-all
+           #:get-latest-data-point))
 
 (defpackage :arcimoog
   (:use :cl)

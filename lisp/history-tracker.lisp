@@ -21,3 +21,7 @@ first. ADD-DATA-POINT will create non-existing trackers."
 (defun print-all (name &optional (output-stream t))
   (loop-over-history name (lambda (time val)
                             (format output-stream "~&~a, ~a" time val))))
+
+(defun get-latest-data-point (name)
+  (let ((data (first (gethash name *trackers*))))
+    (values (car data) (cdr data))))
