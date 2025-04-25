@@ -4,7 +4,8 @@
                :clog
                :incudine)
   :serial t
-  :components ((:file "packages")
+  :components ((:file "clog-webgl-patch")
+               (:file "packages")
                (:file "utilities")
                (:file "conditions")
                (:file "global-definitions")
