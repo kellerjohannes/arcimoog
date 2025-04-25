@@ -12,7 +12,8 @@
                                      ,(format nil "Send OSC message to audio output channel ~a."
                                               audio-output-channel)
                                      (declare (ignore name))
-                                     (am-osc:send ,audio-output-channel (coerce value 'float)))))
+                                     (am-osc:send ,audio-output-channel (coerce value 'float))
+                                     (am-ht:add-data-point ,name (incudine:now) value))))
      (am-ui:update-value ,name -1.0)
      (am-par:register-hook ,name (lambda (name value)
                                    "Print the updated value to the REPL and update the UI meter components."

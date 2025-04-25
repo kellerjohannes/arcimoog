@@ -91,6 +91,14 @@
            #:update-value
            ))
 
+(defpackage :arcimoog.history-tracker
+  (:use :cl)
+  (:nicknames :am-ht)
+  (:export #:register-tracker
+           #:add-data-point
+           #:loop-over-history
+           #:print-all))
+
 (defpackage :arcimoog
   (:use :cl)
   (:nicknames :am)

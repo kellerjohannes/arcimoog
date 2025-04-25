@@ -18,6 +18,7 @@
                (:file "parameters")
                ;;(:file "configuration")
                (:file "osc-communication")
+               (:file "history-tracker")
                (:file "ui")
                (:file "setup")
                (:file "main")
