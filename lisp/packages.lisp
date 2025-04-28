@@ -98,7 +98,8 @@
            #:add-data-point
            #:loop-over-history
            #:print-all
-           #:get-latest-data-point))
+           #:get-latest-data-point
+           #:dump-list))
 
 (defpackage :arcimoog
   (:use :cl)

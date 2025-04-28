@@ -18,6 +18,12 @@ first. ADD-DATA-POINT will create non-existing trackers."
   (dolist (data-point (reverse (gethash name *trackers*)))
     (funcall fun (car data-point) (cdr data-point))))
 
+(defun dump-list (name &optional (time-transformer (lambda (x) x)) (vc-transformer (lambda (x) x)))
+  (mapcan (lambda (data-point)
+            (list (funcall time-transformer (car data-point))
+                  (funcall vc-transformer (cdr data-point))))
+          (reverse (gethash name *trackers*))))
+
 (defun print-all (name &optional (output-stream t))
   (loop-over-history name (lambda (time val)
                             (format output-stream "~&~a, ~a" time val))))

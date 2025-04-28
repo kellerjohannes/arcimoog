@@ -181,13 +181,26 @@
   (clog-webgl:bind-vertex-array (vao obj))
   (clog-webgl:clear-webgl (webgl obj) :COLOR_BUFFER_BIT)
   (clog-webgl:bind-buffer (vbo obj) :ARRAY_BUFFER)
-  (clog-webgl:buffer-data (vbo obj)
-                          (list 0.0f0 0.0f0 (am-par:get-scalar :vco1) 0.5f0 -0.8f0 0.5f0)
-                          "Float32Array"
-                          :STATIC_DRAW)
   (clog-webgl:uniform-float (webgl obj) (clog-webgl:uniform-location (program obj) "color")
                             1.0 1.0 0.0)
-  (clog-webgl:draw-arrays (webgl obj) :LINE_STRIP 0 3))
+  (clog-webgl:uniform-float (webgl obj) (clog-webgl:uniform-location (program obj) "xFactor")
+                            0.00000001)
+  (clog-webgl:uniform-float (webgl obj) (clog-webgl:uniform-location (program obj) "yFactor")
+                            1)
+  (let ((data (am-ht:dump-list :vco1
+                               (lambda (time)
+                                 (* (coerce time 'single-float) 0.0000001))
+                               (lambda (cv)
+                                 (* 1 (+ cv 0))))))
+    (clog-webgl:buffer-data (vbo obj)
+                            ;; (list 0.0f0 0.0f0
+                            ;;       (am-par:get-scalar :vco1) 0.5f0
+                            ;;       -0.8f0 0.5f0
+                            ;;       0.1f0 0.1f0)
+                            data
+                            "Float32Array"
+                            :STATIC_DRAW)
+    (clog-webgl:draw-arrays (webgl obj) :LINE_STRIP 0 (floor (length data) 2))))
 
 (defparameter *rolls-v-shader* "#version 300 es
 in vec2 position;
