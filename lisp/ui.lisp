@@ -95,33 +95,44 @@
   (clog-webgl:uniform-float (webgl obj) (clog-webgl:uniform-location (program obj) "color")
                             1.0 1.0 0.0)
   (clog-webgl:uniform-float (webgl obj) (clog-webgl:uniform-location (program obj) "xFactor")
-                            0.00000001)
+                            0.000001)
   (clog-webgl:uniform-float (webgl obj) (clog-webgl:uniform-location (program obj) "yFactor")
-                            1)
-  (let ((data (am-ht:dump-list :vco1
-                               (lambda (time)
-                                 (* (coerce time 'single-float) 0.0000001))
-                               (lambda (cv)
-                                 (* 1 (+ cv 0))))))
-    (clog-webgl:buffer-data (vbo obj)
-                            ;; (list 0.0f0 0.0f0
-                            ;;       (am-par:get-scalar :vco1) 0.5f0
-                            ;;       -0.8f0 0.5f0
-                            ;;       0.1f0 0.1f0)
-                            data
-                            "Float32Array"
-                            :STATIC_DRAW)
-    (clog-webgl:draw-arrays (webgl obj) :LINE_STRIP 0 (floor (length data) 2))))
+                            0.7)
+
+  (macrolet ((draw-tracker (name r g b)
+               `(progn
+                  (clog-webgl:uniform-float (webgl obj)
+                                            (clog-webgl:uniform-location (program obj) "color")
+                                            ,r ,g ,b)
+                  (let ((data (am-ht:add-points
+                               (am-ht:dump-list ,name
+                                                (lambda (time)
+                                                  (coerce (- (incudine:now) time) 'single-float))))))
+                    (clog-webgl:buffer-data (vbo obj)
+                                            (append data (list 0.0 (car (last data))))
+                                            "Float32Array"
+                                            :STATIC_DRAW)
+                    (clog-webgl:draw-arrays (webgl obj)
+                                            :LINE_STRIP
+                                            0
+                                            (floor (+ 2 (length data)) 2))))))
+
+    (draw-tracker :vco1 1.0 1.0 0.0)
+    (draw-tracker :vcf1 0.0 1.0 1.0)
+    (draw-tracker :res1 1.0 0.0 1.0)
+    (draw-tracker :vca1 0.0 1.0 0.0)))
 
 (defparameter *rolls-v-shader* "#version 300 es
 in vec2 position;
 out vec3 Color;
 
 uniform vec3 color;
+uniform float xFactor;
+uniform float yFactor;
 
 void main() {
   Color = color;
-  gl_Position = vec4(position, 0.0, 1.0);
+  gl_Position = vec4(1.0 - xFactor * position.x, yFactor * position.y, 0.0, 1.0);
 }")
 
 (defparameter *rolls-f-shader* "#version 300 es
@@ -148,7 +159,6 @@ void main() {
 
 (defun animation-handler (obj time)
   (declare (ignore time))
-  ;; (format t "~&~a" time)
   (draw (clog:connection-data-item obj "rolls"))
   (clog:request-animation-frame (clog:connection-data-item obj "window")))
 

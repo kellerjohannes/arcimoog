@@ -99,6 +99,7 @@
            #:loop-over-history
            #:print-all
            #:get-latest-data-point
+           #:add-points
            #:dump-list))
 
 (defpackage :arcimoog

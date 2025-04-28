@@ -24,6 +24,10 @@ first. ADD-DATA-POINT will create non-existing trackers."
                   (funcall vc-transformer (cdr data-point))))
           (reverse (gethash name *trackers*))))
 
+(defun add-points (dump)
+  (loop for (time1 cv1 time2 cv2) on dump by #'cddr
+        nconc (list time1 cv1 time2 cv1)))
+
 (defun print-all (name &optional (output-stream t))
   (loop-over-history name (lambda (time val)
                             (format output-stream "~&~a, ~a" time val))))
