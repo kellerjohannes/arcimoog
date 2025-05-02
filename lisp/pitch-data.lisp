@@ -1,35 +1,52 @@
-(in-package :arcimoog)
+(in-package :arcimoog.pitch-data)
 ;; When adding a new PITCH-DATA subclass:
+;;
 ;; 1. Create a new section in the code below.
+;;
 ;; 2. Define a appropriate subclass.
-;; 3. Implement all generic functions (see PITCH-DATA implementation). Implement the PRINT-OBJECT method.
-;; 4. Add the class identifier (type of PITCH-DATA) to *valid-note-name-conventions*.
-;; 5. Add case statements to various TRANSFORM methods, to translate other PITCH-DATA instances into the newly created one.
+;;
+;; 3. Implement all generic functions (see PITCH-DATA implementation). Implement the PRINT-OBJECT
+;; method.
+;;
+;; 4. Add the class identifier (type of PITCH-DATA) to *note-name-conventions*, incl. a nickname.
+;;
+;; 5. Add case statements to various TRANSFORM methods, to translate other PITCH-DATA instances into
+;; the newly created one.
+;;
 ;; 6. Add a TRANSFORM method to the newly created class.
 
 
 ;; TODO
 ;; - write 5am tests for everything
 
-(defparameter *valid-note-name-conventions* (list 'note-name-smn
-                                                  'note-name-12
-                                                  'note-name-vicentino
-                                                  'note-name-arciorgano
-                                                  'key-name-vicentino
-                                                  'key-name-arciorgano))
+(defparameter *note-name-conventions* (list (cons :smn 'note-name-smn)
+                                            (cons :smn-12 'note-name-12)
+                                            (cons :nn-vic 'note-name-vicentino)
+                                            (cons :nn-arci 'note-name-arciorgano)
+                                            (cons :key-vic 'key-name-vicentino)
+                                            (cons :key-arci 'key-name-arciorgano)))
+
+(defun valid-convention-p (nickname-or-subclass)
+  (or (member nickname-or-subclass *note-name-conventions* :key #'car)
+      (member nickname-or-subclass *note-name-conventions* :key #'cdr)))
+
+(defun get-convention-class (nickname-or-subclass)
+  (if (keywordp nickname-or-subclass)
+      (cdr (assoc nickname-or-subclass *note-name-conventions*))
+      nickname-or-subclass))
 
 (defparameter *default-note-name-convention* 'note-name-smn)
 
 (defun set-default-note-name-convention (convention-class)
-  "Set the global default for the note naming convention, used to create new note name instances."
-  (if (member convention-class *valid-note-name-conventions*)
-      (setf *default-note-name-convention* convention-class)
+  "Set the global default for the note naming convention, used to create new note name instances. The argument can be the symbol naming a PITCH-DATA subclass, or a keyword representing a nickname for the subclass."
+  (if (valid-convention-p convention-class)
+      (setf *default-note-name-convention* (get-convention-class convention-class))
       (log:warn "Convention class unknown, DEFAULT-NOTE-NAME-CONVENTION will remain unchanged: "
                 *default-note-name-convention*)))
 
 (defmacro with-note-name-convention (note-name-class &body body)
   "Dynamically rebind the global symbol *default-note-name-convention*."
-  `(if (member ,note-name-class *valid-note-name-conventions*)
+  `(if (valid-convention-p ,note-name-class)
        (let ((*default-note-name-convention* ,note-name-class))
          ,@body)
        (progn
@@ -61,7 +78,7 @@
   (:documentation "Checks for validity of a pitch-data subclass. Starts with least specific method in order to test for the rough things first, and get more and more refined throughout the dispatch chain."))
 
 (defgeneric iterator (start end)
-  (:documentation "Returns an unordered list with all possible PITCH-DATA instances between start and end. Since in many cases (for example NOTE-NAME) the pitch is unknown, the list is not sorted."))
+  (:documentation "Returns an unordered list with all possible PITCH-DATA instances between start and end. Since in many cases (for example NOTE-NAME) the sounding pitch is unknown, the list is not sorted."))
 
 (defgeneric transform (pitch-data target-format)
   (:documentation "Translates pitch data into another pitch data format."))
@@ -529,7 +546,7 @@ G♯. All other alterations are accepted as input but silently mapped onto these
 
 (defmethod transform ((note note-name-smn) target)
   "Returns a new PITCH-DATA instance based on the PITCH-DATA subclass specified in TARGET. Some conversions might cause a loss of information. In this case, no warning is issued."
-  (ecase target
+  (ecase (get-convention-class target)
     (note-name-12
      (let* ((simple-note (note-name-smn-remap-multiple-accidental note))
             (result (cond ((eq (accidental simple-note) :sharp)
@@ -598,16 +615,15 @@ G♯. All other alterations are accepted as input but silently mapped onto these
           (entry :b nil :dot 35)
           (entry :b :sharp nil 36))))
 
-;; *global-mode-transposer* needs to disappear, dirty solution for salzburg
 (defmethod lookup-vicentino-key-number ((note note-name-vicentino))
   (let ((key-number (cdr (assoc note *dict-vicentino-key-number* :test (lambda (a b) (pitch-equal a b nil))))))
     (if (and (numberp (octave note))
              (numberp key-number))
-        (+ *global-mode-transposer* (+ key-number (* 36 (octave note))))
+        (+ key-number (* 36 (octave note)))
         key-number)))
 
 (defmethod transform ((note note-name-vicentino) target)
-  (ecase target
+  (ecase (get-convention-class target)
     (note-name-smn (let ((result (lookup-vicentino-smn note)))
                      (if result
                          (create-note 'note-name-smn
@@ -627,22 +643,22 @@ G♯. All other alterations are accepted as input but silently mapped onto these
 
 
 ;; TODO: finish implementation, and implement others
-(defmethod iterator ((start note-name-smn) (end note-name-smn))
-  "Returns an unordered list of possible note names of the type NOTE-NAME-SMN."
-  (cond ((and (integerp (octave start))
-              (integerp (octave end)))
-         (log:warn "Octave indicators of START or END or both are not integers. Returning an empty nil.")
-         nil)
-        ((and (integerp multiple-accidentals-depth)
-              (>= multiple-accidentals-depth 0))
-         (log:warn "MULTIPLE-ACCIDENTALS-DEPTH" multiple-accidentals-depth "is invalid. Returning NIL."))
-        (t (with-note-name-convention 'note-name-smn
-             (let ((result nil))
-               (loop for octave from (octave start) to (octave end)
-                     do (dolist (letter (list :a :b :c :d :e :f :g))
-                          (dolist (accidental (list nil :flat :sharp))
-                            (push (nn letter accidental octave) result)
-                            (when (> multiple-accidentals-depth 1)
-                              (dotimes (i (1- multiple-accidentals-depth))
-                                (push (nn letter accidental octave) result))))))
-               result)))))
+;; (defmethod iterator ((start note-name-smn) (end note-name-smn))
+;;   "Returns an unordered list of possible note names of the type NOTE-NAME-SMN."
+;;   (cond ((and (integerp (octave start))
+;;               (integerp (octave end)))
+;;          (log:warn "Octave indicators of START or END or both are not integers. Returning an empty nil.")
+;;          nil)
+;;         ((and (integerp multiple-accidentals-depth)
+;;               (>= multiple-accidentals-depth 0))
+;;          (log:warn "MULTIPLE-ACCIDENTALS-DEPTH" multiple-accidentals-depth "is invalid. Returning NIL."))
+;;         (t (with-note-name-convention 'note-name-smn
+;;              (let ((result nil))
+;;                (loop for octave from (octave start) to (octave end)
+;;                      do (dolist (letter (list :a :b :c :d :e :f :g))
+;;                           (dolist (accidental (list nil :flat :sharp))
+;;                             (push (nn letter accidental octave) result)
+;;                             (when (> multiple-accidentals-depth 1)
+;;                               (dotimes (i (1- multiple-accidentals-depth))
+;;                                 (push (nn letter accidental octave) result))))))
+;;                result)))))

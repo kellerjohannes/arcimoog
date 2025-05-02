@@ -3,8 +3,10 @@
   (:nicknames :utility)
   (:export #:register-constant
            #:register-cv
+           #:shrink
            #:register-toggle-dial
-           #:register-precision-dial))
+           #:register-precision-dial
+           #:reduce-equal-keyword-list))
 
 (defpackage :arcimoog.conditions
   (:use :cl)
@@ -102,6 +104,18 @@
            #:add-points
            #:dump-list))
 
+(defpackage :arcimoog.pitch-data
+  (:use :cl)
+  (:nicknames :am-pd)
+  (:export #:set-default-note-name-convention
+           #:with-note-name-convention
+           #:transform
+           #:nn
+           #:create-note
+           #:validp
+           #:pitch-equal
+           #:iterator))
+
 (defpackage :arcimoog
   (:use :cl)
   (:nicknames :am)
@@ -110,4 +124,6 @@
                 #:register-constant
                 #:register-cv
                 #:register-toggle-dial
-                #:register-precision-dial))
+                #:register-precision-dial)
+  (:import-from :arcimoog.pitch-data
+                #:nn))

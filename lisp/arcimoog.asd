@@ -14,7 +14,7 @@
                ;;(:file "faderfox")
                ;;(:file "utilities")
                (:file "midi")
-               ;;(:file "pitch-data")
+               (:file "pitch-data")
                ;;(:file "sampler")
                (:file "parameters")
                ;;(:file "configuration")
