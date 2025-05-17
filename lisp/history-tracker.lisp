@@ -2,27 +2,57 @@
 
 (defparameter *trackers* (make-hash-table))
 
-(defun get-tracker (name)
-  (gethash name *trackers*))
+(defclass tracker ()
+  ((raw-data :initform nil :accessor raw-data)
+   (gl-data :initform nil :accessor gl-data)
+   (updatedp :initform nil :accessor updatedp)
+   (gl-time-factor :initform (/ 1 (coerce (incudine:rt-sample-rate) 'single-float))
+                   :accessor gl-time-factor)
+   (gl-value-factor :initform 1 :accessor gl-value-factor)))
+
 
 (defun register-tracker (name)
-  "Creates new tracker. If it already exists, it clears the tracker. This function is probably
-unnecessary, since it is possible to just use ADD-DATA-POINT without registering a tracker
-first. ADD-DATA-POINT will create non-existing trackers."
-  (setf (gethash name *trackers*) nil))
+  "Creates new tracker. If it already exists, it clears the tracker."
+  (setf (gethash name *trackers*) (make-instance 'tracker)))
+
+(defun get-tracker (name)
+  "Returns an instance of the tracker class."
+  (unless (gethash name *trackers*)
+    (register-tracker name))
+  (gethash name *trackers*))
 
 (defun add-data-point (name timecode value)
-  (push (cons timecode value) (gethash name *trackers*)))
+  (let ((tracker (get-tracker name)))
+    (push (cons timecode value) (raw-data tracker))
+    ;; TODO add points to make the curve rectangular.
+    (push (coerce (* value (gl-value-factor tracker)) 'single-float) (gl-data tracker))
+    (push (coerce (* timecode (gl-time-factor tracker)) 'single-float) (gl-data tracker))
+    (setf (updatedp tracker) t)))
 
 (defun loop-over-history (name fun)
-  (dolist (data-point (reverse (gethash name *trackers*)))
+  (dolist (data-point (reverse (raw-data (get-tracker name))))
     (funcall fun (car data-point) (cdr data-point))))
 
 (defun dump-list (name &optional (time-transformer (lambda (x) x)) (vc-transformer (lambda (x) x)))
+  "Returns the raw data list, with possible transformations."
   (mapcan (lambda (data-point)
             (list (funcall time-transformer (car data-point))
                   (funcall vc-transformer (cdr data-point))))
-          (reverse (gethash name *trackers*))))
+          (reverse (raw-data (get-tracker name)))))
+
+(defun dump-gl-list (name)
+  "Returns the data optimised for OpenGL rendering."
+  (append (list (expt 2 31) (second (gl-data (get-tracker name))))
+          (gl-data (get-tracker name))))
+
+(defun length-gl-data (name)
+  (length (gl-data (get-tracker name))))
+
+(defun update-data-required-p (name)
+  (updatedp (get-tracker name)))
+
+(defun data-updated (name)
+  (setf (updatedp (get-tracker name)) nil))
 
 (defun add-points (dump)
   (loop for (time1 cv1 time2 cv2) on dump by #'cddr
@@ -33,5 +63,6 @@ first. ADD-DATA-POINT will create non-existing trackers."
                             (format output-stream "~&~a, ~a" time val))))
 
 (defun get-latest-data-point (name)
-  (let ((data (first (gethash name *trackers*))))
+  "Latest data point of the raw data."
+  (let ((data (first (raw-data (get-tracker name)))))
     (values (car data) (cdr data))))

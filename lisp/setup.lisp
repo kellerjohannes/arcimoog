@@ -17,6 +17,15 @@
   (register-constant :toggle-off-value -1.0)
   (register-constant :toggle-on-value 1.0)
 
+  (register-display-parameter :cv-history-x-offset 0.0)
+  (register-precision-dial 2 0 1 2 3 "CV history X offset." :cv-history-x-offset)
+
+  (register-display-parameter :cv-history-x-scale 1.0 0.0)
+  (register-precision-dial 2 4 5 6 7 "CV history X scale." :cv-history-x-scale)
+
+  (register-display-parameter :cv-history-y-scale 1.0 0.0)
+  (register-precision-dial 2 8 9 10 11 "CV history Y scale." :cv-history-y-scale)
+
   ;; Set up CV parameters.
   (register-cv :vco1 0)
   (register-cv :vcf1 1)

@@ -5,11 +5,20 @@
 (defmacro register-constant (name value)
   `(am-par:register-scalar ,name ,value ,value ,value nil))
 
+(defmacro register-display-parameter (name init-value &optional (minimal-value nil) (maximal-value nil))
+  `(progn
+     (am-par:register-scalar ,name ,init-value ,minimal-value ,maximal-value nil)
+     (am-ui:update-value ,name ,init-value)
+     (am-par:register-hook ,name (lambda (name value)
+                                   "Print the updated value to the REPL."
+                                   (format t "~&~a updated to ~a.~%" name value)
+                                   (am-ui:update-value name value)))))
+
 (defmacro register-cv (name audio-output-channel)
   `(progn
      (am-par:register-scalar ,name -1.0 -1.0 1.0
                              (list (lambda (name value)
-                                     ,(format nil "Send OSC message to audio output channel ~a."
+                                     ,(format nil "Send OSC message to audio output channel ~a. Register data point in history tracker."
                                               audio-output-channel)
                                      (declare (ignore name))
                                      (am-osc:send ,audio-output-channel (coerce value 'float))

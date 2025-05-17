@@ -71,7 +71,7 @@
       (setf vao (clog-webgl:create-vertex-array webgl)
             vbo (clog-webgl:create-webgl-buffer webgl)))))
 
-(defgeneric draw (gl-object)
+(defgeneric draw (gl-object name)
   (:documentation "Draws a GL-OBJECT."))
 
 
@@ -84,43 +84,50 @@
     (clog-webgl:use-program program)
     program))
 
-(defclass rolls (gl-object)
+(defclass roll (gl-object)
   ())
 
-(defmethod draw ((obj rolls))
+(defun set-uniform-f (clog-obj name-string x &optional y z w)
+  (clog-webgl:uniform-float (webgl clog-obj)
+                            (clog-webgl:uniform-location (program clog-obj) name-string)
+                            x y z w))
+
+(defmethod draw ((obj roll) name)
   (clog-webgl:use-program (program obj))
   (clog-webgl:bind-vertex-array (vao obj))
-  (clog-webgl:clear-webgl (webgl obj) :COLOR_BUFFER_BIT)
   (clog-webgl:bind-buffer (vbo obj) :ARRAY_BUFFER)
   (clog-webgl:uniform-float (webgl obj) (clog-webgl:uniform-location (program obj) "color")
                             1.0 1.0 0.0)
   (clog-webgl:uniform-float (webgl obj) (clog-webgl:uniform-location (program obj) "xFactor")
-                            0.000001)
+                            1.0)
   (clog-webgl:uniform-float (webgl obj) (clog-webgl:uniform-location (program obj) "yFactor")
-                            0.7)
+                            1.0)
 
   (macrolet ((draw-tracker (name r g b)
                `(progn
-                  (clog-webgl:uniform-float (webgl obj)
-                                            (clog-webgl:uniform-location (program obj) "color")
-                                            ,r ,g ,b)
-                  (let ((data (am-ht:add-points
-                               (am-ht:dump-list ,name
-                                                (lambda (time)
-                                                  (coerce (- (incudine:now) time) 'single-float))))))
+                  (set-uniform-f obj "color" ,r ,g ,b)
+                  (when (am-ht:update-data-required-p ,name)
+                    ;; (format t "~&buffer updated.")
                     (clog-webgl:buffer-data (vbo obj)
-                                            (append data (list 0.0 (car (last data))))
+                                            (am-ht:dump-gl-list ,name)
                                             "Float32Array"
                                             :STATIC_DRAW)
-                    (clog-webgl:draw-arrays (webgl obj)
-                                            :LINE_STRIP
-                                            0
-                                            (floor (+ 2 (length data)) 2))))))
+                    (am-ht:data-updated ,name))
+                  (clog-webgl:draw-arrays (webgl obj)
+                                          :LINE_STRIP
+                                          0
+                                          (floor (am-ht:length-gl-data ,name) 2))
+                  )))
 
-    (draw-tracker :vco1 1.0 1.0 0.0)
-    (draw-tracker :vcf1 0.0 1.0 1.0)
-    (draw-tracker :res1 1.0 0.0 1.0)
-    (draw-tracker :vca1 0.0 1.0 0.0)))
+    (set-uniform-f obj "xOffset" (am-par:get-scalar :cv-history-x-offset))
+    (set-uniform-f obj "xFactor" (am-par:get-scalar :cv-history-x-scale))
+    (set-uniform-f obj "yFactor" (am-par:get-scalar :cv-history-y-scale))
+
+    ;; (format t "~&hi ~a" name)
+
+    (when (eq name :vco1) (draw-tracker name 1.0 1.0 0.0))
+    (when (eq name :vcf1) (draw-tracker name 0.0 1.0 1.0))
+    ))
 
 (defparameter *rolls-v-shader* "#version 300 es
 in vec2 position;
@@ -129,10 +136,11 @@ out vec3 Color;
 uniform vec3 color;
 uniform float xFactor;
 uniform float yFactor;
+uniform float xOffset;
 
 void main() {
   Color = color;
-  gl_Position = vec4(1.0 - xFactor * position.x, yFactor * position.y, 0.0, 1.0);
+  gl_Position = vec4(xOffset + xFactor * position.x, yFactor * position.y, 0.0, 1.0);
 }")
 
 (defparameter *rolls-f-shader* "#version 300 es
@@ -145,9 +153,9 @@ void main() {
 }")
 
 
-(defun make-rolls (webgl)
+(defun make-roll (webgl)
   (let* ((program (compile-program webgl *rolls-v-shader* *rolls-f-shader*))
-         (r (make-instance 'rolls
+         (r (make-instance 'roll
                            :webgl webgl
                            :program program
                            :xy (clog-webgl:attribute-location program "position"))))
@@ -159,7 +167,10 @@ void main() {
 
 (defun animation-handler (obj time)
   (declare (ignore time))
-  (draw (clog:connection-data-item obj "rolls"))
+  (clog-webgl:clear-webgl (clog:connection-data-item obj "gl-object") :COLOR_BUFFER_BIT)
+  (maphash (lambda (key val)
+             (draw val key))
+           (clog:connection-data-item obj "rolls"))
   (clog:request-animation-frame (clog:connection-data-item obj "window")))
 
 (defun build-cv-roll (clog-parent)
@@ -169,7 +180,10 @@ void main() {
          (gl (clog-webgl:create-webgl canvas :attributes '("preserveDrawingBuffer" t
                                                            "powerPreference" "low-power"
                                                            "antialias" t)))
-         (rolls (make-rolls gl)))
+         (rolls (make-hash-table)))
+    (setf (clog:connection-data-item clog-parent "gl-object") gl)
+    (dolist (tracker-name (list :vco1 :vcf1 :res1 :vca1 :gate1))
+      (setf (gethash tracker-name rolls) (make-roll gl)))
     (setf (clog:connection-data-item clog-parent "rolls") rolls)
     (clog:set-on-animation-frame (clog:connection-data-item clog-parent "window")
                                  #'animation-handler)

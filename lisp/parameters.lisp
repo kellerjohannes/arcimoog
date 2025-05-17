@@ -41,8 +41,14 @@
    (range-max :initarg :range-max :accessor range-max)))
 
 (defmethod valid-value-p ((param parameter-scalar) val)
-  (and (>= val (range-min param))
-       (<= val (range-max param))))
+  (cond ((and (range-min param) (range-max param))
+         (and (>= val (range-min param))
+              (<= val (range-max param))))
+        ((range-min param)
+         (>= val (range-min param)))
+        ((range-max param)
+         (<= val (range-max param)))
+        (t t)))
 
 (defmethod set-value ((param parameter-scalar) val)
   (cond ((valid-value-p param val)

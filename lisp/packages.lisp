@@ -2,6 +2,7 @@
   (:use :cl)
   (:nicknames :utility)
   (:export #:register-constant
+           #:register-display-parameter
            #:register-cv
            #:shrink
            #:register-toggle-dial
@@ -102,7 +103,11 @@
            #:print-all
            #:get-latest-data-point
            #:add-points
-           #:dump-list))
+           #:dump-list
+           #:dump-gl-list
+           #:length-gl-data
+           #:update-data-required-p
+           #:data-updated))
 
 (defpackage :arcimoog.pitch-data
   (:use :cl)
@@ -123,6 +128,7 @@
   (:import-from :arcimoog.utilities
                 #:register-constant
                 #:register-cv
+                #:register-display-parameter
                 #:register-toggle-dial
                 #:register-precision-dial)
   (:import-from :arcimoog.pitch-data
