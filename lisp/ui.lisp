@@ -71,7 +71,7 @@
       (setf vao (clog-webgl:create-vertex-array webgl)
             vbo (clog-webgl:create-webgl-buffer webgl)))))
 
-(defgeneric draw (gl-object name)
+(defgeneric draw (gl-object)
   (:documentation "Draws a GL-OBJECT."))
 
 
@@ -88,7 +88,7 @@
 
 (defclass roll (gl-object)
   ((color :initform (list 1.0 1.0 1.0) :accessor color)
-   (name :accessor name)))
+   (name :initarg :name :accessor name)))
 
 (defun set-uniform-f (clog-obj name-string x &optional y z w)
   (clog-webgl:uniform-float (webgl clog-obj)
@@ -99,38 +99,57 @@
   (clog-webgl:use-program (program obj))
   (clog-webgl:bind-vertex-array (vao obj))
   (clog-webgl:bind-buffer (vbo obj) :ARRAY_BUFFER)
-  (clog-webgl:uniform-float (webgl obj) (clog-webgl:uniform-location (program obj) "color")
-                            1.0 1.0 0.0)
-  (clog-webgl:uniform-float (webgl obj) (clog-webgl:uniform-location (program obj) "xFactor")
-                            1.0)
-  (clog-webgl:uniform-float (webgl obj) (clog-webgl:uniform-location (program obj) "yFactor")
-                            1.0)
 
-  (macrolet ((draw-tracker (name r g b)
-               `(progn
-                  (set-uniform-f obj "color" ,r ,g ,b)
-                  (when (am-ht:update-data-required-p ,name)
-                    ;; (format t "~&buffer updated.")
-                    (clog-webgl:buffer-data (vbo obj)
-                                            (am-ht:dump-gl-list ,name)
-                                            "Float32Array"
-                                            :STATIC_DRAW)
-                    (am-ht:data-updated ,name))
-                  (clog-webgl:draw-arrays (webgl obj)
-                                          :LINE_STRIP
-                                          0
-                                          (floor (am-ht:length-gl-data ,name) 2))
-                  )))
+  ;; (macrolet ((draw-tracker (name r g b)
+  ;;              `(progn
+  ;;                 (set-uniform-f obj "color" ,r ,g ,b)
+  ;;                 (when (am-ht:update-data-required-p ,name)
+  ;;                   ;; (format t "~&buffer updated.")
+  ;;                   (clog-webgl:buffer-data (vbo obj)
+  ;;                                           (am-ht:dump-gl-list ,name)
+  ;;                                           "Float32Array"
+  ;;                                           :STATIC_DRAW)
+  ;;                   (am-ht:data-updated ,name))
+  ;;                 (clog-webgl:draw-arrays (webgl obj)
+  ;;                                         :LINE_STRIP
+  ;;                                         0
+  ;;                                         (floor (am-ht:length-gl-data ,name) 2)))))
 
-    (set-uniform-f obj "xOffset" (am-par:get-scalar :cv-history-x-offset))
-    (set-uniform-f obj "xFactor" (am-par:get-scalar :cv-history-x-scale))
-    (set-uniform-f obj "yFactor" (am-par:get-scalar :cv-history-y-scale))
+  ;;   (set-uniform-f obj "xOffset" (am-par:get-scalar :cv-history-x-offset))
+  ;;   (set-uniform-f obj "xFactor" (am-par:get-scalar :cv-history-x-scale))
+  ;;   (set-uniform-f obj "yFactor" (am-par:get-scalar :cv-history-y-scale))
 
-    ;; (format t "~&hi ~a" name)
+  ;;   ;; (format t "~&hi ~a" (name obj))
 
-    (when (eq name :vco1) (draw-tracker name 1.0 1.0 0.0))
-    (when (eq name :vcf1) (draw-tracker name 0.0 1.0 1.0))
-    ))
+  ;;   (draw-tracker (name obj) 1.0 1.0 0.0))
+
+
+  ;; (set-uniform-f obj "xOffset" (am-par:get-scalar :cv-history-x-offset))
+  ;; (set-uniform-f obj "xFactor" (am-par:get-scalar :cv-history-x-scale))
+  ;; (set-uniform-f obj "yFactor" (am-par:get-scalar :cv-history-y-scale))
+  (set-uniform-f obj "xOffset" 0.0)
+  (set-uniform-f obj "xFactor" 0.1)
+  (set-uniform-f obj "yFactor" 1.0)
+  (set-uniform-f obj "color" (first (color obj)) (second (color obj)) (third (color obj)))
+  (when t ;(am-ht:update-data-required-p (name obj))
+    (clog-webgl:buffer-data (vbo obj)
+                            ;;(am-ht:dump-gl-list (name obj))
+                            (list 0.0 0.0 1.0 1.0)
+                            "Float32Array"
+                            :STATIC_DRAW)
+    (am-ht:data-updated (name obj)))
+  (clog-webgl:draw-arrays (webgl obj)
+                          :LINE_STRIP
+                          0
+                          ;;(floor (am-ht:length-gl-data (name obj)) 2)
+                          2
+                          )
+
+  ;; (format t "~&~a" (clog-webgl:webgl-error (webgl obj)))
+  ;; (format t "~&hi ~a" (name obj))
+  )
+
+
 
 (defparameter *rolls-v-shader* "#version 300 es
 in vec2 position;
@@ -170,12 +189,20 @@ void main() {
     (clog-webgl:vertex-attribute-pointer webgl (xy r) 2 :float nil 0 0)
     r))
 
-(defun animation-handler (obj time)
-  (declare (ignore time))
-  (clog-webgl:clear-webgl (clog:connection-data-item obj "gl-object") :COLOR_BUFFER_BIT)
-  (dolist (roll (clog:connection-data-item obj "rolls"))
-    (draw roll))
-  (clog:request-animation-frame (clog:connection-data-item obj "window")))
+(defparameter *frame-rate* (/ 1000 5))
+
+(defun animation-handler (obj time-string)
+  (let ((time (incudine.util:parse-float time-string)))
+    (when (> (- time (clog:connection-data-item obj "previous-time"))
+             *frame-rate*)
+      (format t "~&~a" time)
+      (clog-webgl:clear-webgl (clog:connection-data-item obj "gl-object") :COLOR_BUFFER_BIT)
+
+      ;; (dolist (roll (clog:connection-data-item obj "rolls"))
+      ;;   (draw roll))
+      (draw (first (clog:connection-data-item obj "rolls")))
+      (setf (clog:connection-data-item obj "previous-time") time))
+    (clog:request-animation-frame (clog:connection-data-item obj "window"))))
 
 (defun build-cv-roll (clog-parent)
   (clog:create-div clog-parent :class "tile-title" :content "CV history")
@@ -189,13 +216,17 @@ void main() {
                       (make-roll gl :res1 (list 0.0 0.0 1.0)))))
     (setf (clog:connection-data-item clog-parent "gl-object") gl)
     (setf (clog:connection-data-item clog-parent "rolls") rolls)
+    (setf (clog:connection-data-item clog-parent "previous-time") 0)
     (clog:set-on-animation-frame (clog:connection-data-item clog-parent "window")
                                  #'animation-handler)
     (clog:set-border canvas :medium :solid :green)
-    (clog-webgl:enable-capability gl :blend)
-    (clog-webgl:blend-function gl :one :ONE_MINUS_SRC_ALPHA)
+    (clog-webgl:enable-capability gl :BLEND)
+    (clog-webgl:disable-capability gl :DEPTH_TEST)
+    (clog-webgl:blend-function gl :ONE :ONE_MINUS_SRC_ALPHA)
     (clog-webgl:clear-color gl 0.0f0 0.0f0 0.0f0 1.0f0)
+    (clog-webgl:clear-depth gl 1)
     (clog-webgl:clear-webgl gl :COLOR_BUFFER_BIT)
+    (clog-webgl:viewport gl 0 0 1200 700)
     (clog:request-animation-frame (clog:connection-data-item clog-parent "window"))
     ))
 
