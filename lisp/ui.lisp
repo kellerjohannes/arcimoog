@@ -84,15 +84,18 @@
     (clog-webgl:use-program program)
     program))
 
+
+
 (defclass roll (gl-object)
-  ())
+  ((color :initform (list 1.0 1.0 1.0) :accessor color)
+   (name :accessor name)))
 
 (defun set-uniform-f (clog-obj name-string x &optional y z w)
   (clog-webgl:uniform-float (webgl clog-obj)
                             (clog-webgl:uniform-location (program clog-obj) name-string)
                             x y z w))
 
-(defmethod draw ((obj roll) name)
+(defmethod draw ((obj roll))
   (clog-webgl:use-program (program obj))
   (clog-webgl:bind-vertex-array (vao obj))
   (clog-webgl:bind-buffer (vbo obj) :ARRAY_BUFFER)
@@ -153,9 +156,11 @@ void main() {
 }")
 
 
-(defun make-roll (webgl)
+(defun make-roll (webgl name color)
   (let* ((program (compile-program webgl *rolls-v-shader* *rolls-f-shader*))
          (r (make-instance 'roll
+                           :name name
+                           :color color
                            :webgl webgl
                            :program program
                            :xy (clog-webgl:attribute-location program "position"))))
@@ -168,9 +173,8 @@ void main() {
 (defun animation-handler (obj time)
   (declare (ignore time))
   (clog-webgl:clear-webgl (clog:connection-data-item obj "gl-object") :COLOR_BUFFER_BIT)
-  (maphash (lambda (key val)
-             (draw val key))
-           (clog:connection-data-item obj "rolls"))
+  (dolist (roll (clog:connection-data-item obj "rolls"))
+    (draw roll))
   (clog:request-animation-frame (clog:connection-data-item obj "window")))
 
 (defun build-cv-roll (clog-parent)
@@ -180,10 +184,10 @@ void main() {
          (gl (clog-webgl:create-webgl canvas :attributes '("preserveDrawingBuffer" t
                                                            "powerPreference" "low-power"
                                                            "antialias" t)))
-         (rolls (make-hash-table)))
+         (rolls (list (make-roll gl :vco1 (list 1.0 0.0 0.0))
+                      (make-roll gl :vcf1 (list 0.0 1.0 0.0))
+                      (make-roll gl :res1 (list 0.0 0.0 1.0)))))
     (setf (clog:connection-data-item clog-parent "gl-object") gl)
-    (dolist (tracker-name (list :vco1 :vcf1 :res1 :vca1 :gate1))
-      (setf (gethash tracker-name rolls) (make-roll gl)))
     (setf (clog:connection-data-item clog-parent "rolls") rolls)
     (clog:set-on-animation-frame (clog:connection-data-item clog-parent "window")
                                  #'animation-handler)
