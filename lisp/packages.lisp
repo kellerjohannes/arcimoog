@@ -85,7 +85,7 @@
            #:send))
 
 (defpackage :arcimoog.ui
-  (:use :cl :clog)
+  (:use :cl :clog :clog-webgl)
   (:nicknames :am-ui)
   (:export #:init
            #:reset
