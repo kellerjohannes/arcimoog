@@ -96,9 +96,6 @@
                             x y z w))
 
 (defmethod draw ((obj roll))
-  (clog-webgl:use-program (program obj))
-  (clog-webgl:bind-vertex-array (vao obj))
-  (clog-webgl:bind-buffer (vbo obj) :ARRAY_BUFFER)
 
   ;; (macrolet ((draw-tracker (name r g b)
   ;;              `(progn
@@ -127,6 +124,15 @@
   ;; (set-uniform-f obj "xOffset" (am-par:get-scalar :cv-history-x-offset))
   ;; (set-uniform-f obj "xFactor" (am-par:get-scalar :cv-history-x-scale))
   ;; (set-uniform-f obj "yFactor" (am-par:get-scalar :cv-history-y-scale))
+
+  (clog-webgl:use-program (program obj))
+
+  (clog-webgl:bind-vertex-array (vao obj))
+  (clog-webgl:bind-buffer (vbo obj) :ARRAY_BUFFER)
+  ;;(clog-webgl:enable-vertex-attribute-array (webgl obj) (xy obj))
+  ;;(clog-webgl:vertex-attribute-pointer (webgl obj) (xy obj) 2 :float nil 0 0)
+
+
   (set-uniform-f obj "xOffset" 0.0)
   (set-uniform-f obj "xFactor" 0.1)
   (set-uniform-f obj "yFactor" 1.0)
@@ -137,7 +143,8 @@
                             (list 0.0 0.0 1.0 1.0)
                             "Float32Array"
                             :STATIC_DRAW)
-    (am-ht:data-updated (name obj)))
+    ;(am-ht:data-updated (name obj))
+    )
   (clog-webgl:draw-arrays (webgl obj)
                           :LINE_STRIP
                           0
@@ -212,8 +219,9 @@ void main() {
                                                            "powerPreference" "low-power"
                                                            "antialias" t)))
          (rolls (list (make-roll gl :vco1 (list 1.0 0.0 0.0))
-                      (make-roll gl :vcf1 (list 0.0 1.0 0.0))
-                      (make-roll gl :res1 (list 0.0 0.0 1.0)))))
+                      ;(make-roll gl :vcf1 (list 0.0 1.0 0.0))
+                      ;(make-roll gl :res1 (list 0.0 0.0 1.0))
+                      )))
     (setf (clog:connection-data-item clog-parent "gl-object") gl)
     (setf (clog:connection-data-item clog-parent "rolls") rolls)
     (setf (clog:connection-data-item clog-parent "previous-time") 0)
