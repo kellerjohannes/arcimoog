@@ -34,9 +34,9 @@
                      (meter-label (gensym)))
                  `(let* ((,row-container (create-div ,parent :class "meter-row"))
                          (,visual-container (create-div ,row-container
-                                                             :class "meter-visual-container"))
+                                                        :class "meter-visual-container"))
                          (,meter-body (create-div ,visual-container
-                                                       :class "meter-visual-filler"))
+                                                  :class "meter-visual-filler"))
                          (,meter-label (create-div ,row-container :class "meter-label")))
                     (register-value-hook
                      ,name (lambda (data) (setf (text ,meter-label)
@@ -91,8 +91,8 @@
 
 (defun set-uniform-f (clog-obj name-string x &optional y z w)
   (uniform-float (webgl clog-obj)
-                            (uniform-location (program clog-obj) name-string)
-                            x y z w))
+                 (uniform-location (program clog-obj) name-string)
+                 x y z w))
 
 (defmethod draw ((obj roll))
   ;;(format t "~&Drawing roll ~a.~%" (name obj))
@@ -194,8 +194,8 @@ void main() {
   (let* ((rolls-container (create-div clog-parent))
          (canvas (create-canvas rolls-container :width 1200 :height 700))
          (gl (create-webgl canvas :attributes '("preserveDrawingBuffer" t
-                                                           "powerPreference" "low-power"
-                                                           "antialias" t)))
+                                                "powerPreference" "low-power"
+                                                "antialias" t)))
          (rolls (list (make-roll gl :vco1 (list 1.0 0.0 0.0))
                       (make-roll gl :vcf1 (list 0.0 1.0 0.0))
                       (make-roll gl :res1 (list 1.0 1.0 0.0))
@@ -219,6 +219,100 @@ void main() {
     ))
 
 
+
+
+(defclass roll ()
+  ((webgl :initarg :webgl :reader webgl)
+   (program :initarg :program :accessor program)
+   (curves :initform nil :initarg :curves :accessor curves)
+   (framebuffer :reader roll-framebuffer)
+   (texture :reader roll-texture)))
+
+(defmethod initialize-instance :after ((instance roll) &rest initargs &key &allow-other-keys)
+  (with-slots (framebuffer texture) instance
+    (let ((webgl (getf initargs :webgl)))
+      (setf framebuffer (create-webgl-frame-buffer webgl))
+      (setf texture (create-webgl-texture webgl)))))
+
+(defclass curve ()
+  ((webgl :initarg :webgl :reader webgl)
+   (vbo :reader vbo)
+   (vao :reader vao)))
+
+(defmethod initialize-instance :after ((instance curve) &rest initargs &key &allow-other-keys)
+  (with-slots (vbo vao) instance
+    (let ((webgl (getf initargs :webgl)))
+      (setf vao (create-vertex-array webgl))
+      (setf vbo (create-webgl-buffer webgl)))))
+
+(defclass quad ()
+  ((webgl :initarg :webgl :reader webgl)
+   (program :initarg :program :accessor program)
+   (vbo :reader vbo)
+   (vao :reader vao)))
+
+(defmethod initialize-instance :after ((instance quad) &rest initargs &key &allow-other-keys)
+  (with-slots (vbo vao) instance
+    (let ((webgl (getf initargs :webgl)))
+      (setf vao (create-vertex-array webgl))
+      (setf vbo (create-webgl-buffer webgl)))))
+
+(defmethod draw ((instance quad) textur)
+  ;; TODO implement
+  )
+
+
+(defparameter *curve-v-shader* "#version 300 es
+in vec2 position;
+out vec3 Color;
+
+uniform vec3 color;
+uniform float xFactor;
+uniform float yFactor;
+uniform float xOffset;
+
+void main() {
+ Color = color;
+ gl_Position = vec4(xOffset + xFactor * position.x, yFactor * position.y, 0.0, 1.0);
+}")
+
+
+(defparameter *curve-f-shader* "#version 300 es
+precision highp float;
+in vec3 Color;
+out vec4 outColor;
+
+void main() {
+  outColor = vec4(Color, 1.0);
+}")
+
+(defun compile-program (webgl vertex-shader fragment-shader)
+  (let ((program
+          (compile-webgl-program
+           webgl
+           (compile-shader-source webgl :VERTEX_SHADER vertex-shader)
+           (compile-shader-source webgl :FRAGMENT_SHADER fragment-shader))))
+    (use-program program)
+    program))
+
+(defun make-roll (webgl curve-names width height)
+  (let* ((program (compile-program webgl *curve-v-shader* *curve-f-shader*))
+         (half-width (* width 0.5f0))
+         (half-height (* height 0.5f0))
+         (curves (mapcar (lambda (curve-name) (make-instance 'curve :webgl webgl))
+                         curve-names))
+         (roll (make-instance 'roll
+                              :webgl webgl
+                              :program program
+                              :curves curves
+                              )))
+    (bind-frame-buffer (roll-framebuffer roll) :DRAW_FRAMEBUFFER)
+    (bind-texture (roll-texture roll) :TEXTURE_2D)
+    (texture-image-2d webgl :TEXTURE_2D 0 :RGBA width height 0 :RGBA :UNSIGNED_BYTE nil)
+    (texture-parameter-integer webgl :TEXTURE_2D :TEXTURE_MIN_FILTER :LINEAR)
+    (texture-parameter-integer webgl :TEXTURE_2D :TEXTURE_MAG_FILTER :LINEAR)
+    (frame-buffer-texture-2d webgl :DRAW_FRAMEBUFFER :COLOR_ATTACHMENT0 :TEXTURE_2D (roll-texture roll) 0)
+    ))
 
 
 
