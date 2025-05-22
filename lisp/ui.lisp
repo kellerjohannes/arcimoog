@@ -224,10 +224,10 @@
 
 
 
-(defun set-uniform-f (clog-obj name-string x &optional y z w)
-  (uniform-float (webgl clog-obj)
-                 (uniform-location (program clog-obj) name-string)
-                 x y z w))
+;; (defun set-uniform-f (webgl program name-string x &optional y z w)
+;;   (uniform-float webgl
+;;                  (uniform-location program name-string)
+;;                  x y z w))
 
 (defclass roll ()
   ((webgl :initarg :webgl :reader webgl)
@@ -247,6 +247,7 @@
    (name :initarg :name :accessor name)
    (vbo :reader vbo)
    (vao :reader vao)
+   (xy :initarg :xy :accessor xy)
    (color :initform (list 1.0 1.0 1.0) :initarg :color :accessor color)))
 
 (defmethod initialize-instance :after ((instance curve) &rest initargs &key &allow-other-keys)
@@ -254,6 +255,21 @@
     (let ((webgl (getf initargs :webgl)))
       (setf vao (create-vertex-array webgl))
       (setf vbo (create-webgl-buffer webgl)))))
+
+(defun make-curve (webgl name color shader-program)
+  (let ((curve (make-instance 'curve
+                              :webgl webgl
+                              :name name
+                              :xy (attribute-location shader-program "position")
+                              :color color)))
+    (bind-vertex-array (vao curve))
+    (bind-buffer (vbo curve) :ARRAY_BUFFER)
+    (enable-vertex-attribute-array (webgl curve) (xy curve))
+    (vertex-attribute-pointer (webgl curve) (xy curve) 2 :FLOAT nil 0 0)
+    (buffer-data (vbo curve) (list 0.0 0.0 1.0 1.0) "Float32Array" :STATIC_DRAW)
+    curve))
+
+;; TODO implement data update method
 
 (defclass quad ()
   ((webgl :initarg :webgl :reader webgl)
@@ -338,7 +354,7 @@ void main() {
   (let* ((program (compile-program webgl *curve-v-shader* *curve-f-shader*))
          ; (half-width (* width 0.5f0))
          ; (half-height (* height 0.5f0))
-         (curves (mapcar (lambda (curve-name) (make-instance 'curve :name curve-name :webgl webgl))
+         (curves (mapcar (lambda (curve-name) (make-curve webgl curve-name (list 1.0 0.0 0.0) program))
                          curve-names))
          (roll (make-instance 'roll
                               :webgl webgl
@@ -357,21 +373,24 @@ void main() {
 
 (defmethod draw ((instance roll))
   (use-program (program instance))
-  (set-uniform-f instance "xOffset" 0.0)
-  (set-uniform-f instance "xFactor" 1.0)
-  (set-uniform-f instance "yFactor" 1.0)
+  (uniform-float (webgl instance) (uniform-location (program instance) "xOffset") 0.0)
+  (uniform-float (webgl instance) (uniform-location (program instance) "xFactor") 1.0)
+  (uniform-float (webgl instance) (uniform-location (program instance) "yFactor") 1.0)
   (bind-frame-buffer (roll-framebuffer instance) :DRAW_FRAMEBUFFER)
+  (clear-color (webgl instance) 0.0 1.0 0.0 1.0)
+  (format t "~&glClear in green done.~%")
   (clear-webgl (webgl instance) :COLOR_BUFFER_BIT)
   (dolist (curve (curves instance))
-    (draw curve)))
+     (draw-curve curve (program instance))))
 
-(defmethod draw ((instance curve))
+(defmethod draw-curve ((instance curve) shader-program)
   (bind-vertex-array (vao instance))
-  (set-uniform-f instance
-                 "color"
+  (uniform-float (webgl instance)
+                 (uniform-location shader-program "color")
                  (first (color instance))
                  (second (color instance))
                  (third (color instance)))
+  ;; TODO change to represent actual data
   (draw-arrays (webgl instance) :LINE_STRIP 0 2))
 
 
@@ -420,9 +439,9 @@ void main()
 (defun animation-handler (clog-obj time-string)
   ;;(declare (ignore time-string))
   (format t "~&Animation frame at time: ~a.~%" time-string)
+  (draw (connection-data-item clog-obj "roll"))
   (draw-quad (connection-data-item clog-obj "quad")
-             nil
-             ; (roll-texture (connection-data-item clog-obj "roll"))
+             (roll-texture (connection-data-item clog-obj "roll"))
              )
   (request-animation-frame (connection-data-item clog-obj "window")))
 
