@@ -109,27 +109,28 @@
 
   (clog-webgl:bind-vertex-array (vao obj))
   (clog-webgl:bind-buffer (vbo obj) :ARRAY_BUFFER)
-  ;;(clog-webgl:enable-vertex-attribute-array (webgl obj) (xy obj))
-  ;;(clog-webgl:vertex-attribute-pointer (webgl obj) (xy obj) 2 :float nil 0 0)
+  (clog-webgl:enable-vertex-attribute-array (webgl obj) (xy obj))
+  (clog-webgl:vertex-attribute-pointer (webgl obj) (xy obj) 2 :float nil 0 0)
 
 
   (set-uniform-f obj "xOffset" 0.0)
   (set-uniform-f obj "xFactor" 1.0)
   (set-uniform-f obj "yFactor" 1.0)
   (set-uniform-f obj "color" (first (color obj)) (second (color obj)) (third (color obj)))
+  (sleep 1/2)
   (when t ;(am-ht:update-data-required-p (name obj))
     (buffer-data (vbo obj)
-                            ;;(am-ht:dump-gl-list (name obj))
-                            (list 0.0 0.0 1.0 1.0)
-                            "Float32Array"
-                            :STATIC_DRAW)
+                 ;;(am-ht:dump-gl-list (name obj))
+                 (list 0.0 0.0 1.0 1.0)
+                 "Float32Array"
+                 :STATIC_DRAW)
     (am-ht:data-updated (name obj)))
   (draw-arrays (webgl obj)
-                          :LINE_STRIP
-                          0
-                          ;;(floor (am-ht:length-gl-data (name obj)) 2)
-                          2
-                          )
+               :LINE_STRIP
+               0
+               ;;(floor (am-ht:length-gl-data (name obj)) 2)
+               2
+               )
 
   ;; (format t "~&~a" (webgl-error (webgl obj)))
   )
@@ -173,21 +174,20 @@ void main() {
     (bind-buffer (vbo r) :ARRAY_BUFFER)
     (enable-vertex-attribute-array webgl (xy r))
     (vertex-attribute-pointer webgl (xy r) 2 :float nil 0 0)
-    (buffer-data (vbo r)
-                            (list 0.0 0.0 1.0 1.0)
-                            "Float32Array"
-                            :STATIC_DRAW)
+    (buffer-data (vbo r) (list 0.0 0.0 1.0 1.0) "Float32Array" :STATIC_DRAW)
     r))
 
 (defparameter *frame-rate* (/ 1000 2))
 
-(defun draw-rolls (clog-obj rolls)
-  ;; (format t "~&Drawing.~%")
+(defun draw-rolls (clog-obj)
   (clear-webgl (connection-data-item clog-obj "gl-object") :COLOR_BUFFER_BIT)
-  (dolist (roll rolls)
+  (dolist (roll (connection-data-item clog-obj "rolls"))
     (draw roll)))
 
-(defparameter *rolls* nil)
+(defun animation-handler (clog-obj time-string)
+  (declare (ignore time-string))
+  (draw-rolls clog-obj)
+  (request-animation-frame (connection-data-item clog-obj "window")))
 
 (defun build-cv-roll (clog-parent)
   (create-div clog-parent :class "tile-title" :content "CV history")
@@ -197,8 +197,8 @@ void main() {
                                                            "powerPreference" "low-power"
                                                            "antialias" t)))
          (rolls (list (make-roll gl :vco1 (list 1.0 0.0 0.0))
-      ;;                (make-roll gl :vcf1 (list 0.0 1.0 0.0))
-      ;;                (make-roll gl :res1 (list 1.0 1.0 0.0))
+                      (make-roll gl :vcf1 (list 0.0 1.0 0.0))
+                      (make-roll gl :res1 (list 1.0 1.0 0.0))
                       )))
     (setf (connection-data-item clog-parent "gl-object") gl)
     (setf (connection-data-item clog-parent "rolls") rolls)
@@ -210,10 +210,13 @@ void main() {
     (clear-color gl 0.0f0 0.0f0 0.0f0 1.0f0)
     (clear-depth gl 1)
     (viewport gl 0 0 1200 700)
-    (bt:make-thread (lambda ()
-                      (loop
-                        (draw-rolls clog-parent rolls)
-                        (sleep 1/5))))))
+    (set-on-animation-frame (connection-data-item clog-parent "window") #'animation-handler)
+    (request-animation-frame (connection-data-item clog-parent "window"))
+    ;; (bt:make-thread (lambda ()
+    ;;                   (loop
+    ;;                     (draw-rolls clog-parent rolls)
+    ;;                     (sleep 1/5))))
+    ))
 
 
 
@@ -243,14 +246,9 @@ void main() {
               :port 8080
               :static-root (merge-pathnames "clog/static-files/"
                                             (asdf/system:system-source-directory :arcimoog)))
-  (open-browser)
-  ;; (start-data-animation)
-  )
+  (open-browser))
 
 (defun reset ()
-  ;; (stop-data-animation)
   (setf *parameter-hooks* (make-hash-table))
   (shutdown)
-  (init)
-  ;; (start-data-animation)
-  )
+  (init))
