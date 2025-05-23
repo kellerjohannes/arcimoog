@@ -62,7 +62,9 @@
    (program :initarg :program :accessor program)
    (curves :initform nil :initarg :curves :accessor curves)
    (framebuffer :reader roll-framebuffer)
-   (texture :reader roll-texture)))
+   (texture :reader roll-texture)
+   (y-offset :initarg :y-offset :initform 0.0 :accessor y-offset)
+   (y-scale :initarg :y-scale :initform 1.0 :accessor y-scale)))
 
 (defmethod initialize-instance :after ((instance roll) &rest initargs &key &allow-other-keys)
   (with-slots (framebuffer texture) instance
@@ -76,6 +78,7 @@
    (vbo :reader vbo)
    (vao :reader vao)
    (xy :initarg :xy :accessor xy)
+   (data-length :initform 0 :accessor data-length)
    (color :initform (list 1.0 1.0 1.0) :initarg :color :accessor color)))
 
 (defmethod initialize-instance :after ((instance curve) &rest initargs &key &allow-other-keys)
@@ -94,13 +97,19 @@
     (bind-buffer (vbo curve) :ARRAY_BUFFER)
     (enable-vertex-attribute-array (webgl curve) (xy curve))
     (vertex-attribute-pointer (webgl curve) (xy curve) 2 :FLOAT nil 0 0)
-    (buffer-data (vbo curve)
-                 (loop repeat 4 collect (- (random 2.0) 1.0))
-                 "Float32Array"
-                 :STATIC_DRAW)
+    ;; (setf (data-length curve) 4)
+    ;; (buffer-data (vbo curve)
+    ;;              ;; TODO remove this dummy data
+    ;;              (loop repeat 4 collect (- (random 2.0) 1.0))
+    ;;              "Float32Array"
+    ;;              :STATIC_DRAW)
+    (upload-data curve (am-ht:dump-gl-list (name curve)))
     curve))
 
-;; TODO implement data update method
+(defmethod upload-data ((instance curve) data-list)
+  (setf (data-length instance) (length data-list))
+  (bind-buffer (vbo instance) :ARRAY_BUFFER)
+  (buffer-data (vbo instance) data-list "Float32Array" :STATIC_DRAW))
 
 (defclass quad ()
   ((webgl :initarg :webgl :reader webgl)
@@ -137,8 +146,14 @@
                    :xy (attribute-location program "aPos")
                    :tex-coords (attribute-location program "aTexCoords"))))
 
-(defmethod draw-quad ((instance quad) texture)
+(defmethod draw-quad ((instance quad) texture y-scale y-offset)
   (use-program (program instance))
+  (uniform-float (webgl instance)
+                 (uniform-location (program instance) "yScale")
+                 y-scale)
+  (uniform-float (webgl instance)
+                 (uniform-location (program instance) "yOffset")
+                 y-offset)
   (bind-canvas-frame-buffer (webgl instance) :DRAW_FRAMEBUFFER)
   (bind-vertex-array (vao instance))
   (when texture
@@ -179,13 +194,15 @@ void main() {
     (use-program program)
     program))
 
-(defun make-roll (webgl curves width height)
+(defun make-roll (webgl curves width height y-scale y-offset)
   (let* ((program (compile-program webgl *curve-v-shader* *curve-f-shader*))
          (curves (mapcar (lambda (curve) (make-curve webgl (first curve) (second curve) program))
                          curves))
          (roll (make-instance 'roll
                               :webgl webgl
                               :program program
+                              :y-scale y-scale
+                              :y-offset y-offset
                               :curves curves)))
     (bind-frame-buffer (roll-framebuffer roll) :DRAW_FRAMEBUFFER)
     (bind-texture (roll-texture roll) :TEXTURE_2D)
@@ -199,9 +216,9 @@ void main() {
 
 (defmethod draw ((instance roll))
   (use-program (program instance))
-  (uniform-float (webgl instance) (uniform-location (program instance) "xOffset") *offset*)
-  (uniform-float (webgl instance) (uniform-location (program instance) "xFactor") 1.0)
-  (uniform-float (webgl instance) (uniform-location (program instance) "yFactor") 1.0)
+  (uniform-float (webgl instance) (uniform-location (program instance) "xOffset") 0.0)
+  (uniform-float (webgl instance) (uniform-location (program instance) "xFactor") 0.001)
+  (uniform-float (webgl instance) (uniform-location (program instance) "yFactor") 0.9)
   (bind-frame-buffer (roll-framebuffer instance) :DRAW_FRAMEBUFFER)
   (clear-color (webgl instance) 0.12 0.12 0.1 1.0)
   (clear-webgl (webgl instance) :COLOR_BUFFER_BIT)
@@ -215,8 +232,10 @@ void main() {
                  (first (color instance))
                  (second (color instance))
                  (third (color instance)))
-  ;; TODO change to represent actual data
-  (draw-arrays (webgl instance) :LINE_STRIP 0 2))
+  (when (am-ht:update-data-required-p (name instance))
+    (upload-data instance (am-ht:dump-gl-list (name instance)))
+    (am-ht:data-updated (name instance)))
+  (draw-arrays (webgl instance) :LINE_STRIP 0 (floor (data-length instance) 2)))
 
 
 
@@ -240,9 +259,12 @@ layout (location = 1) in vec2 aTexCoords;
 
 out vec2 TexCoords;
 
+uniform float yOffset;
+uniform float yScale;
+
 void main()
 {
-    gl_Position = vec4(aPos.x, aPos.y, 0.0, 1.0);
+    gl_Position = vec4(aPos.x, (yScale * aPos.y) - yOffset, 0.0, 1.0);
     TexCoords = aTexCoords;
 }")
 
@@ -262,41 +284,59 @@ void main()
 
 
 (defun animation-handler (clog-obj time-string)
-  (declare (ignore time-string))
-  ;;(format t "~&Animation frame at time: ~a.~%" time-string)
-  (draw (connection-data-item clog-obj "roll"))
-  (draw-quad (connection-data-item clog-obj "quad")
-             (roll-texture (connection-data-item clog-obj "roll"))
-             )
+  ;;(declare (ignore time-string))
+  (format t "~&Animation frame at time: ~a.~%" time-string)
+  (dolist (roll (connection-data-item clog-obj "rolls"))
+    (draw roll)
+    (draw-quad (connection-data-item clog-obj "quad")
+               ;;nil
+               (roll-texture roll)
+               (y-scale roll)
+               (y-offset roll)
+               ))
   (request-animation-frame (connection-data-item clog-obj "window")))
 
+(defparameter *roll-height* 300)
+(defparameter *roll-width* 1200)
 
 (defun build-cv-roll (clog-parent)
   (create-div clog-parent :class "tile-title" :content "CV history")
   (let* ((rolls-container (create-div clog-parent))
-         (canvas (create-canvas rolls-container :width 1200 :height 700))
+         (canvas (create-canvas rolls-container :width *roll-width* :height (* 2 *roll-height*)))
          (gl (create-webgl canvas :attributes '("preserveDrawingBuffer" t
                                                 "powerPreference" "low-power"
                                                 "antialias" t)))
          (quad (make-quad gl))
 
-         (roll (make-roll gl
-                          '((:vco1 (0.0 1.0 0.0))
-                            (:vcf1 (1.0 1.0 0.0))
-                            (:res1 (0.8 0.5 0.0))
-                            (:vca (0.2 0.2 1.0))
-                            (:gate1 (1.0 0.0 0.0)))
-                          1200 700)))
+         (rolls (list
+                 (make-roll gl
+                            '((:vco2 (0.0 1.0 0.0))
+                              (:vcf2 (1.0 1.0 0.0))
+                              (:res2 (0.8 0.5 0.0))
+                              (:vca2 (0.2 0.2 1.0))
+                              (:gate2 (1.0 0.0 0.0)))
+                            *roll-width* *roll-height*
+                            0.38 0.6)
+                 (make-roll gl
+                            '((:vco1 (0.0 1.0 0.0))
+                              (:vcf1 (1.0 1.0 0.0))
+                              (:res1 (0.8 0.5 0.0))
+                              (:vca1 (0.2 0.2 1.0))
+                              (:gate1 (1.0 0.0 0.0)))
+                            *roll-width* *roll-height*
+                            0.38 -0.2)
+                 )))
     (setf (connection-data-item clog-parent "gl-object") gl)
     (setf (connection-data-item clog-parent "quad") quad)
-    (setf (connection-data-item clog-parent "roll") roll)
+    (setf (connection-data-item clog-parent "rolls") rolls)
     (setf (connection-data-item clog-parent "previous-time") 0)
     (set-border canvas :medium :solid :green)
     (enable-capability gl :BLEND)
     (blend-function gl :ONE :ONE_MINUS_SRC_ALPHA)
     (clear-color gl 0.0f0 0.0f0 1.0f0 1.0f0)
     (clear-webgl gl :COLOR_BUFFER_BIT)
-    (viewport gl 0 0 1200 700)
+    ;; Probably unnecessary
+    (viewport gl 0 0 *roll-width* (* 2 *roll-height*))
     (set-on-animation-frame (connection-data-item clog-parent "window") #'animation-handler)
     (request-animation-frame (connection-data-item clog-parent "window"))))
 
