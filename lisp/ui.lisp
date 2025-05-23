@@ -53,7 +53,10 @@
     (let ((tile-container (create-div parent :class "tile-title" :content "CV levels")))
       (generate-rows (vco vcf res vca gate) 1)
       (generate-rows (vco vcf res vca gate) 2)
-      (generate-rows (vco vcf res vca gate) 3))))
+      (generate-rows (vco vcf res vca gate) 3)
+      (generate-rows (vco vcf res vca gate) 4)
+      (generate-rows (vco vcf res vca gate) 5)
+      )))
 
 
 
@@ -63,6 +66,9 @@
    (curves :initform nil :initarg :curves :accessor curves)
    (framebuffer :reader roll-framebuffer)
    (texture :reader roll-texture)
+   (width :initarg :width :accessor width)
+   (curve-height :initarg :curve-height :accessor curve-height)
+   (roll-height :initarg :roll-height :accessor roll-height)
    (y-offset :initarg :y-offset :initform 0.0 :accessor y-offset)
    (y-scale :initarg :y-scale :initform 1.0 :accessor y-scale)))
 
@@ -97,12 +103,6 @@
     (bind-buffer (vbo curve) :ARRAY_BUFFER)
     (enable-vertex-attribute-array (webgl curve) (xy curve))
     (vertex-attribute-pointer (webgl curve) (xy curve) 2 :FLOAT nil 0 0)
-    ;; (setf (data-length curve) 4)
-    ;; (buffer-data (vbo curve)
-    ;;              ;; TODO remove this dummy data
-    ;;              (loop repeat 4 collect (- (random 2.0) 1.0))
-    ;;              "Float32Array"
-    ;;              :STATIC_DRAW)
     (upload-data curve (am-ht:dump-gl-list (name curve)))
     curve))
 
@@ -169,10 +169,11 @@ uniform vec3 color;
 uniform float xFactor;
 uniform float yFactor;
 uniform float xOffset;
+uniform float yOffset;
 
 void main() {
  Color = color;
- gl_Position = vec4(xOffset + xFactor * position.x, yFactor * position.y, 0.0, 1.0);
+ gl_Position = vec4(xOffset + xFactor * position.x, yOffset + (yFactor * position.y), 0.0, 1.0);
 }")
 
 
@@ -194,7 +195,7 @@ void main() {
     (use-program program)
     program))
 
-(defun make-roll (webgl curves width height y-scale y-offset)
+(defun make-roll (webgl curves width roll-height curve-height y-scale y-offset)
   (let* ((program (compile-program webgl *curve-v-shader* *curve-f-shader*))
          (curves (mapcar (lambda (curve) (make-curve webgl (first curve) (second curve) program))
                          curves))
@@ -203,39 +204,43 @@ void main() {
                               :program program
                               :y-scale y-scale
                               :y-offset y-offset
+                              :width width
+                              :roll-height roll-height
+                              :curve-height curve-height
                               :curves curves)))
     (bind-frame-buffer (roll-framebuffer roll) :DRAW_FRAMEBUFFER)
+    (viewport webgl 0 0 width curve-height)
     (bind-texture (roll-texture roll) :TEXTURE_2D)
-    (texture-image-2d webgl :TEXTURE_2D 0 :RGBA width height 0 :RGBA :UNSIGNED_BYTE nil)
+    (texture-image-2d webgl :TEXTURE_2D 0 :RGBA width curve-height 0 :RGBA :UNSIGNED_BYTE nil)
     (texture-parameter-integer webgl :TEXTURE_2D :TEXTURE_MIN_FILTER :LINEAR)
     (texture-parameter-integer webgl :TEXTURE_2D :TEXTURE_MAG_FILTER :LINEAR)
     (frame-buffer-texture-2d webgl :DRAW_FRAMEBUFFER :COLOR_ATTACHMENT0 :TEXTURE_2D
                              (roll-texture roll) 0)
-    ; (format t "~&WebGL error: ~a.~%" (webgl-error webgl))
+    ;; (format t "~&WebGL error: ~a.~%" (webgl-error webgl))
     roll))
 
 (defmethod draw ((instance roll))
   (use-program (program instance))
   (uniform-float (webgl instance) (uniform-location (program instance) "xOffset") 0.0)
-  (uniform-float (webgl instance) (uniform-location (program instance) "xFactor") 0.001)
-  (uniform-float (webgl instance) (uniform-location (program instance) "yFactor") 0.9)
+  (uniform-float (webgl instance) (uniform-location (program instance) "xFactor") 0.0001)
+  (uniform-float (webgl instance) (uniform-location (program instance) "yOffset") -0.8)
+  (uniform-float (webgl instance) (uniform-location (program instance) "yFactor") 0.18)
   (bind-frame-buffer (roll-framebuffer instance) :DRAW_FRAMEBUFFER)
+  (viewport (webgl instance) 0 0 (width instance) (roll-height instance))
   (clear-color (webgl instance) 0.10 0.16 0.1 1.0)
   (clear-webgl (webgl instance) :COLOR_BUFFER_BIT)
   (dolist (curve (curves instance))
     (draw-curve curve (program instance))))
 
 (defmethod draw-curve ((instance curve) shader-program)
-  (bind-vertex-array (vao instance))
-  (uniform-float (webgl instance)
-                 (uniform-location shader-program "color")
-                 (first (color instance))
-                 (second (color instance))
-                 (third (color instance)))
-  (when (am-ht:update-data-required-p (name instance))
-    (upload-data instance (am-ht:dump-gl-list (name instance)))
-    (am-ht:data-updated (name instance)))
-  (draw-arrays (webgl instance) :LINE_STRIP 0 (floor (data-length instance) 2)))
+  (with-accessors ((color color) (name name) (webgl webgl)) instance
+    (bind-vertex-array (vao instance))
+    (uniform-float webgl (uniform-location shader-program "color")
+                   (first color) (second color) (third color))
+    (when (am-ht:update-data-required-p name)
+      (upload-data instance (am-ht:dump-gl-list name))
+      (am-ht:data-updated name))
+    (draw-arrays webgl :LINE_STRIP 0 (floor (data-length instance) 2))))
 
 
 
@@ -284,8 +289,8 @@ void main()
 
 
 (defun animation-handler (clog-obj time-string)
-  ;;(declare (ignore time-string))
-  (format t "~&Animation frame at time: ~a.~%" time-string)
+  (declare (ignore time-string))
+  ;;(format t "~&Animation frame at time: ~a.~%" time-string)
   (dolist (roll (connection-data-item clog-obj "rolls"))
     (draw roll)
     (draw-quad (connection-data-item clog-obj "quad")
@@ -296,7 +301,7 @@ void main()
                ))
   (request-animation-frame (connection-data-item clog-obj "window")))
 
-(defparameter *roll-height* 300)
+(defparameter *curve-height* 150)
 (defparameter *roll-width* 1200)
 
 (defparameter *vco-color* (list 0.0 1.0 0.0))
@@ -315,22 +320,20 @@ void main()
                              (,(alexandria:make-keyword (format nil "RES~a" ,id)) ,*res-color*)
                              (,(alexandria:make-keyword (format nil "VCA~a" ,id)) ,*vca-color*)
                              (,(alexandria:make-keyword (format nil "GATE~a" ,id)) ,*gate-color*))
-                           *roll-width* *roll-height*
+                           *roll-width* (* 5 *curve-height*) *curve-height*
                            ,y-scale ,y-offset)))
     (let* ((rolls-container (create-div clog-parent))
-           (canvas (create-canvas rolls-container :width *roll-width* :height (* 2 *roll-height*)))
+           (canvas (create-canvas rolls-container :width *roll-width* :height (* 5 *curve-height*)))
            (gl (create-webgl canvas :attributes '("preserveDrawingBuffer" t
                                                   "powerPreference" "low-power"
                                                   "antialias" t)))
            (quad (make-quad gl))
 
-           (rolls (list
-                   (generate-roll 1 0.18 0.8)
-                   (generate-roll 2 0.18 0.4)
-                   (generate-roll 3 0.18 0.0)
-                   (generate-roll 4 0.18 -0.4)
-                   (generate-roll 5 0.18 -0.8)
-                   )))
+           (rolls (list (generate-roll 1 0.18 0.8)
+                        (generate-roll 2 0.18 0.4)
+                        (generate-roll 3 0.18 0.0)
+                        (generate-roll 4 0.18 -0.4)
+                        (generate-roll 5 0.18 -0.8))))
       (setf (connection-data-item clog-parent "quad") quad)
       (setf (connection-data-item clog-parent "rolls") rolls)
       (setf (connection-data-item clog-parent "previous-time") 0)
@@ -340,7 +343,7 @@ void main()
       (clear-color gl 1.0f0 1.0f0 1.0f0 1.0f0)
       (clear-webgl gl :COLOR_BUFFER_BIT)
       ;; Probably unnecessary
-      (viewport gl 0 0 *roll-width* (* 2 *roll-height*))
+      ;; (viewport gl 0 0 *roll-width* (* 2 *roll-height*))
       (set-on-animation-frame (connection-data-item clog-parent "window") #'animation-handler)
       (request-animation-frame (connection-data-item clog-parent "window")))))
 
