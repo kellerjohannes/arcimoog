@@ -17,12 +17,11 @@
   (register-constant :toggle-off-value -1.0)
   (register-constant :toggle-on-value 1.0)
 
+  ;; Global values that control the UI
   (register-display-parameter :cv-history-x-offset 0.0)
   (register-precision-dial 2 0 1 2 3 "CV history X offset." :cv-history-x-offset)
-
   (register-display-parameter :cv-history-x-scale 1.0 0.0)
   (register-precision-dial 2 4 5 6 7 "CV history X scale." :cv-history-x-scale)
-
   (register-display-parameter :cv-history-y-scale 1.0 0.0)
   (register-precision-dial 2 8 9 10 11 "CV history Y scale." :cv-history-y-scale)
 
@@ -45,6 +44,18 @@
   (register-cv :vca3 13)
   (register-cv :gate3 14)
 
+  (register-cv :vco4 15)
+  (register-cv :vcf4 16)
+  (register-cv :res4 17)
+  (register-cv :vca4 18)
+  (register-cv :gate4 19)
+
+  (register-cv :vco5 20)
+  (register-cv :vcf5 21)
+  (register-cv :res5 22)
+  (register-cv :vca5 23)
+  (register-cv :gate5 24)
+
   ;; Set up Faderfox input for direct CV manipulation.
   (register-precision-dial 1 0 1 2 3 "VCO1 quad precision." :vco1)
   (register-precision-dial 1 4 5 6 7 "VCF1 quad precision." :vcf1)
@@ -63,6 +74,18 @@
   (register-precision-dial 1 40 41 42 43 "Res3 quad precision." :res3)
   (register-precision-dial 1 44 45 nil nil "VCA3 dual precision." :vca3)
   (register-toggle-dial 1 46 "Gate3 toggle dial." :gate3)
+
+  (register-precision-dial 1 48 49 50 51 "VCO3 quad precision." :vco4)
+  (register-precision-dial 1 52 53 54 55 "VCF3 quad precision." :vcf4)
+  (register-precision-dial 1 56 57 58 59 "Res3 quad precision." :res4)
+  (register-precision-dial 1 60 61 nil nil "VCA3 dual precision." :vca4)
+  (register-toggle-dial 1 62 "Gate3 toggle dial." :gate4)
+
+  (register-precision-dial 1 64 65 66 67 "VCO3 quad precision." :vco5)
+  (register-precision-dial 1 68 69 70 71 "VCF3 quad precision." :vcf5)
+  (register-precision-dial 1 72 73 74 75 "Res3 quad precision." :res5)
+  (register-precision-dial 1 76 77 nil nil "VCA3 dual precision." :vca5)
+  (register-toggle-dial 1 78 "Gate3 toggle dial." :gate5)
 
   ;; Startup webserver UI (CLOG)
   (am-ui:init))

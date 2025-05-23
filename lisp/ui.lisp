@@ -220,7 +220,7 @@ void main() {
   (uniform-float (webgl instance) (uniform-location (program instance) "xFactor") 0.001)
   (uniform-float (webgl instance) (uniform-location (program instance) "yFactor") 0.9)
   (bind-frame-buffer (roll-framebuffer instance) :DRAW_FRAMEBUFFER)
-  (clear-color (webgl instance) 0.12 0.12 0.1 1.0)
+  (clear-color (webgl instance) 0.10 0.16 0.1 1.0)
   (clear-webgl (webgl instance) :COLOR_BUFFER_BIT)
   (dolist (curve (curves instance))
     (draw-curve curve (program instance))))
@@ -264,7 +264,7 @@ uniform float yScale;
 
 void main()
 {
-    gl_Position = vec4(aPos.x, (yScale * aPos.y) - yOffset, 0.0, 1.0);
+    gl_Position = vec4(aPos.x, (yScale * aPos.y) + yOffset, 0.0, 1.0);
     TexCoords = aTexCoords;
 }")
 
@@ -299,46 +299,50 @@ void main()
 (defparameter *roll-height* 300)
 (defparameter *roll-width* 1200)
 
+(defparameter *vco-color* (list 0.0 1.0 0.0))
+(defparameter *vcf-color* (list 1.0 1.0 0.0))
+(defparameter *res-color* (list 0.8 0.5 0.0))
+(defparameter *vca-color* (list 0.2 0.2 1.0))
+(defparameter *gate-color* (list 1.0 0.0 0.0))
+
+
 (defun build-cv-roll (clog-parent)
   (create-div clog-parent :class "tile-title" :content "CV history")
-  (let* ((rolls-container (create-div clog-parent))
-         (canvas (create-canvas rolls-container :width *roll-width* :height (* 2 *roll-height*)))
-         (gl (create-webgl canvas :attributes '("preserveDrawingBuffer" t
-                                                "powerPreference" "low-power"
-                                                "antialias" t)))
-         (quad (make-quad gl))
+  (macrolet ((generate-roll (id y-scale y-offset)
+               `(make-roll gl
+                           `((,(alexandria:make-keyword (format nil "VCO~a" ,id)) ,*vco-color*)
+                             (,(alexandria:make-keyword (format nil "VCF~a" ,id)) ,*vcf-color*)
+                             (,(alexandria:make-keyword (format nil "RES~a" ,id)) ,*res-color*)
+                             (,(alexandria:make-keyword (format nil "VCA~a" ,id)) ,*vca-color*)
+                             (,(alexandria:make-keyword (format nil "GATE~a" ,id)) ,*gate-color*))
+                           *roll-width* *roll-height*
+                           ,y-scale ,y-offset)))
+    (let* ((rolls-container (create-div clog-parent))
+           (canvas (create-canvas rolls-container :width *roll-width* :height (* 2 *roll-height*)))
+           (gl (create-webgl canvas :attributes '("preserveDrawingBuffer" t
+                                                  "powerPreference" "low-power"
+                                                  "antialias" t)))
+           (quad (make-quad gl))
 
-         (rolls (list
-                 (make-roll gl
-                            '((:vco2 (0.0 1.0 0.0))
-                              (:vcf2 (1.0 1.0 0.0))
-                              (:res2 (0.8 0.5 0.0))
-                              (:vca2 (0.2 0.2 1.0))
-                              (:gate2 (1.0 0.0 0.0)))
-                            *roll-width* *roll-height*
-                            0.38 0.6)
-                 (make-roll gl
-                            '((:vco1 (0.0 1.0 0.0))
-                              (:vcf1 (1.0 1.0 0.0))
-                              (:res1 (0.8 0.5 0.0))
-                              (:vca1 (0.2 0.2 1.0))
-                              (:gate1 (1.0 0.0 0.0)))
-                            *roll-width* *roll-height*
-                            0.38 -0.2)
-                 )))
-    (setf (connection-data-item clog-parent "gl-object") gl)
-    (setf (connection-data-item clog-parent "quad") quad)
-    (setf (connection-data-item clog-parent "rolls") rolls)
-    (setf (connection-data-item clog-parent "previous-time") 0)
-    (set-border canvas :medium :solid :green)
-    (enable-capability gl :BLEND)
-    (blend-function gl :ONE :ONE_MINUS_SRC_ALPHA)
-    (clear-color gl 0.0f0 0.0f0 1.0f0 1.0f0)
-    (clear-webgl gl :COLOR_BUFFER_BIT)
-    ;; Probably unnecessary
-    (viewport gl 0 0 *roll-width* (* 2 *roll-height*))
-    (set-on-animation-frame (connection-data-item clog-parent "window") #'animation-handler)
-    (request-animation-frame (connection-data-item clog-parent "window"))))
+           (rolls (list
+                   (generate-roll 1 0.18 0.8)
+                   (generate-roll 2 0.18 0.4)
+                   (generate-roll 3 0.18 0.0)
+                   (generate-roll 4 0.18 -0.4)
+                   (generate-roll 5 0.18 -0.8)
+                   )))
+      (setf (connection-data-item clog-parent "quad") quad)
+      (setf (connection-data-item clog-parent "rolls") rolls)
+      (setf (connection-data-item clog-parent "previous-time") 0)
+      ;; (set-border canvas :medium :solid :brown)
+      (enable-capability gl :BLEND)
+      (blend-function gl :ONE :ONE_MINUS_SRC_ALPHA)
+      (clear-color gl 1.0f0 1.0f0 1.0f0 1.0f0)
+      (clear-webgl gl :COLOR_BUFFER_BIT)
+      ;; Probably unnecessary
+      (viewport gl 0 0 *roll-width* (* 2 *roll-height*))
+      (set-on-animation-frame (connection-data-item clog-parent "window") #'animation-handler)
+      (request-animation-frame (connection-data-item clog-parent "window")))))
 
 
 
