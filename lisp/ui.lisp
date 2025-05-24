@@ -219,12 +219,26 @@ void main() {
     ;; (format t "~&WebGL error: ~a.~%" (webgl-error webgl))
     roll))
 
+(defun calculate-autoroll-x-offset (shader-factor)
+  (- (* (incudine:now) (/ 1.0 (incudine:rt-sample-rate)) shader-factor)))
+
+(defparameter *cv-autoroll-p* t)
+
+(defun update-cv-x-offset ()
+  (am-par:set-scalar :cv-history-x-offset (calculate-autoroll-x-offset 0.01)))
+
+(defun toggle-cv-autoroll ()
+  (cond (*cv-autoroll-p*
+         (setf *cv-autoroll-p* nil)
+         (update-cv-x-offset))
+        (t (setf *cv-autoroll-p* t))))
+
 (defmethod draw ((instance roll))
   (use-program (program instance))
   (uniform-float (webgl instance) (uniform-location (program instance) "xOffset")
-                 ;;(am-par:get-scalar :cv-history-x-offset)
-                 (- (* (incudine:now) (/ 1.0 (incudine:rt-sample-rate)) 0.01))
-                 )
+                 (if *cv-autoroll-p*
+                     (calculate-autoroll-x-offset 0.01)
+                     (am-par:get-scalar :cv-history-x-offset)))
   (uniform-float (webgl instance) (uniform-location (program instance) "xFactor")
                  (am-par:get-scalar :cv-history-x-scale))
   (uniform-float (webgl instance) (uniform-location (program instance) "yOffset") -0.8)

@@ -89,9 +89,8 @@
   (:nicknames :am-ui)
   (:export #:init
            #:reset
-           ;; TODO remove this function
-           #:register-cvs-tile
            #:update-value
+           #:toggle-cv-autoroll
            ))
 
 (defpackage :arcimoog.history-tracker
