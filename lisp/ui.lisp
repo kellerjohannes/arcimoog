@@ -173,7 +173,7 @@ uniform float yOffset;
 
 void main() {
  Color = color;
- gl_Position = vec4(xOffset + xFactor * position.x, yOffset + (yFactor * position.y), 0.0, 1.0);
+ gl_Position = vec4(1.0 + xFactor * (position.x + (100.0 * xOffset)), yOffset + (yFactor * position.y), 0.0, 1.0);
 }")
 
 
@@ -221,8 +221,12 @@ void main() {
 
 (defmethod draw ((instance roll))
   (use-program (program instance))
-  (uniform-float (webgl instance) (uniform-location (program instance) "xOffset") 0.0)
-  (uniform-float (webgl instance) (uniform-location (program instance) "xFactor") 0.0001)
+  (uniform-float (webgl instance) (uniform-location (program instance) "xOffset")
+                 ;;(am-par:get-scalar :cv-history-x-offset)
+                 (- (* (incudine:now) (/ 1.0 (incudine:rt-sample-rate)) 0.01))
+                 )
+  (uniform-float (webgl instance) (uniform-location (program instance) "xFactor")
+                 (am-par:get-scalar :cv-history-x-scale))
   (uniform-float (webgl instance) (uniform-location (program instance) "yOffset") -0.8)
   (uniform-float (webgl instance) (uniform-location (program instance) "yFactor") 0.18)
   (bind-frame-buffer (roll-framebuffer instance) :DRAW_FRAMEBUFFER)

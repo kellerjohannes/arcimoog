@@ -24,7 +24,10 @@
 (defun add-data-point (name timecode value)
   (let ((tracker (get-tracker name)))
     (push (cons timecode value) (raw-data tracker))
-    ;; TODO add points to make the curve rectangular.
+    ;; Push a pair of coordinates to finish the horizontal line up until this moment.
+    (push (second (gl-data tracker)) (gl-data tracker))
+    (push (coerce (* timecode (gl-time-factor tracker)) 'single-float) (gl-data tracker))
+    ;; Push a pair of coordinates representing the current value.
     (push (coerce (* value (gl-value-factor tracker)) 'single-float) (gl-data tracker))
     (push (coerce (* timecode (gl-time-factor tracker)) 'single-float) (gl-data tracker))
     (setf (updatedp tracker) t)))
