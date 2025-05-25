@@ -95,7 +95,13 @@
 
 (defpackage :arcimoog.mothers
   (:use :cl)
-  (:nicknames :am-mo))
+  (:nicknames :am-mo)
+  (:export #:register-mother
+           #:modify-local-origin
+           #:modify-local-stretch
+           #:modify-sound
+           #:modify-cv-1/1
+           #:select-mother))
 
 (defpackage :arcimoog.history-tracker
   (:use :cl)
