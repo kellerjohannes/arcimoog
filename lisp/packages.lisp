@@ -93,6 +93,10 @@
            #:toggle-cv-autoroll
            ))
 
+(defpackage :arcimoog.mothers
+  (:use :cl)
+  (:nicknames :am-mo))
+
 (defpackage :arcimoog.history-tracker
   (:use :cl)
   (:nicknames :am-ht)
