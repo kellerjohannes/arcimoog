@@ -94,6 +94,8 @@
 
   (am-mo:select-mother :soprano)
 
+  (am-mo:read-mother-tunings)
+
 
 
 

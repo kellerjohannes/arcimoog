@@ -101,7 +101,8 @@
            #:modify-local-stretch
            #:modify-sound
            #:modify-cv-1/1
-           #:select-mother))
+           #:select-mother
+           #:read-mother-tunings))
 
 (defpackage :arcimoog.history-tracker
   (:use :cl)

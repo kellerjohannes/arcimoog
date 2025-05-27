@@ -22,7 +22,8 @@
 (defmethod update-cvs ((instance mother))
   "To be called whenever any of the slots of INSTANCE have been changed. This method updates CV relevant parameters. It does not change any slots of INSTANCE."
   (am-par:set-scalar (vco-name instance) (ratio-to-cv-absolute instance (pitch instance)))
-  ;;TODO update scalars for vcf, res, vca
+  ;; TODO update scalars for vcf, res, vca. This is the secret sauce for the sound design aspects
+  ;; beyond pitch definitions.
   )
 
 (defmethod set-natura ((instance mother) new-natura)
@@ -71,6 +72,7 @@
 
 
 (defparameter *mothers* (make-hash-table))
+(defparameter *mother-tuning-path* "mother-tuning.lisp")
 
 (defun register-mother (name vco vcf res vca gate)
   (setf (gethash name *mothers*) (make-instance 'mother
@@ -91,7 +93,6 @@
 
 
 
-
 (defun set-cv-1/1 (new-cv-1/1)
   (setf *cv-1/1* new-cv-1/1)
   (update-all-mothers))
@@ -104,3 +105,42 @@
 (defun select-mother (name)
   (when (get-mother name)
     (setf *selected-mother* name)))
+
+
+
+
+
+(defun create-tuning-data-expression ()
+  (loop for mother-name being the hash-keys of *mothers*
+          using (hash-value mother-instance)
+        collect `(,mother-name (:offset ,(cv-offset mother-instance)
+                                :factor ,(cv-factor mother-instance)))))
+
+(defun write-mother-tunings ()
+  (with-open-file (file-stream *mother-tuning-path*
+                               :direction :output
+                               :if-exists :supersede
+                               :if-does-not-exist :create)
+    (write (create-tuning-data-expression) :stream file-stream)))
+
+(defun parse-tuning-data-expression (data)
+  (dolist (mother-data data)
+    (let ((mother-name (first mother-data))
+          (cv-offset (getf (second mother-data) :offset))
+          (cv-factor (getf (second mother-data) :factor)))
+      (set-cv-offset (get-mother mother-name) cv-offset)
+      (set-cv-factor (get-mother mother-name) cv-factor))))
+
+(defun read-mother-tunings ()
+  (with-open-file (file-stream *mother-tuning-path*)
+    (parse-tuning-data-expression (read file-stream))))
+
+(defun tune-offset-selected (offset-delta)
+  (let ((mother (get-mother *selected-mother*)))
+    (set-cv-offset mother (+ (cv-offset mother) offset-delta))
+    (write-mother-tunings)))
+
+(defun tune-factor-selected (factor-delta)
+  (let ((mother (get-mother *selected-mother*)))
+    (set-cv-factor mother (+ (cv-factor mother) factor-delta))
+    (write-mother-tunings)))
