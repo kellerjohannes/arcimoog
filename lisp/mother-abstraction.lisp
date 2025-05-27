@@ -3,7 +3,7 @@
 (defparameter *cv-1/1* -0.8)
 
 (defclass mother ()
-  ((pitch-ratio :initform 1/1 :accessor ratio)
+  ((pitch-ratio :initform 1/1 :accessor pitch)
    (natura :initform 4 :accessor natura)
    (cv-offset :initform 0 :accessor cv-offset)
    (cv-factor :initform 0.2 :accessor cv-factor)
@@ -21,7 +21,7 @@
 
 (defmethod update-cvs ((instance mother))
   "To be called whenever any of the slots of INSTANCE have been changed. This method updates CV relevant parameters. It does not change any slots of INSTANCE."
-  (am-par:set-scalar (vco-name instance) (ratio-to-cv-absolute instance (ratio instance)))
+  (am-par:set-scalar (vco-name instance) (ratio-to-cv-absolute instance (pitch instance)))
   ;;TODO update scalars for vcf, res, vca
   )
 
@@ -42,11 +42,11 @@
   (update-cvs instance))
 
 (defmethod set-pitch ((instance mother) new-ratio)
-  (setf (ratio instance) new-ratio)
+  (setf (pitch instance) new-ratio)
   (update-cvs instance))
 
 (defmethod modify-pitch ((instance mother) interval-ratio)
-  (set-pitch instance (* (ratio instance) interval-ratio)))
+  (set-pitch instance (* (pitch instance) interval-ratio)))
 
 (defmethod modify ((instance mother) interval-ratio natura-delta)
   (modify-pitch instance interval-ratio)
@@ -78,7 +78,7 @@
                                                 :vcf-name vcf
                                                 :res-name res
                                                 :vca-name vca
-                                                :gat-name gate)))
+                                                :gate-name gate)))
 
 (defun get-mother (name)
   (gethash name *mothers*))

@@ -1,5 +1,14 @@
 (in-package :arcimoog.ui)
 
+;;; The UI is generated with CLOG elements entirely. Styling is defined in a separate CSS file. All
+;;; UI data is strictly kept within the open connection (CONNECTION-DATA-ITEMs). All other data is
+;;; taken from the ARCIMOOG system. Therefore, multiple UIs can be opened simultaneously with
+;;; exactly the same view. If a browser crashes, the UI IP address can just be reopened without
+;;; causing any reset.
+
+
+;;; Parameter bar visualisation
+
 (defparameter *parameter-hooks* (make-hash-table))
 (defparameter *parameter-values* (make-hash-table))
 (defparameter *animated-data* nil)
@@ -59,24 +68,52 @@
       )))
 
 
+;;; Parameter rolls (CV and Pitch rolls), webGL-based.
 
-(defclass roll ()
-  ((webgl :initarg :webgl :reader webgl)
-   (program :initarg :program :accessor program)
-   (curves :initform nil :initarg :curves :accessor curves)
-   (framebuffer :reader roll-framebuffer)
-   (texture :reader roll-texture)
-   (width :initarg :width :accessor width)
-   (curve-height :initarg :curve-height :accessor curve-height)
-   (roll-height :initarg :roll-height :accessor roll-height)
-   (y-offset :initarg :y-offset :initform 0.0 :accessor y-offset)
-   (y-scale :initarg :y-scale :initform 1.0 :accessor y-scale)))
+;; Multiple CURVES are drawn into a ROLL. Each CURVE has its own VAO/VBO. Therefore, a curve can
+;; have an individual color and its can be updated individually.
 
-(defmethod initialize-instance :after ((instance roll) &rest initargs &key &allow-other-keys)
-  (with-slots (framebuffer texture) instance
-    (let ((webgl (getf initargs :webgl)))
-      (setf framebuffer (create-webgl-frame-buffer webgl))
-      (setf texture (create-webgl-texture webgl)))))
+;; A ROLL provides the shader program for all curves and draws the curves into a framebuffer /
+;; texture.
+
+;; To draw ROLLs, a QUAD is used and bound to the corresponding texture of a ROLL.
+
+
+(defun compile-program (webgl vertex-shader fragment-shader)
+  (let ((program
+          (compile-webgl-program
+           webgl
+           (compile-shader-source webgl :VERTEX_SHADER vertex-shader)
+           (compile-shader-source webgl :FRAGMENT_SHADER fragment-shader))))
+    (use-program program)
+    program))
+
+
+(defparameter *curve-v-shader* "#version 300 es
+in vec2 position;
+out vec3 Color;
+
+uniform vec3 color;
+uniform float xFactor;
+uniform float yFactor;
+uniform float xOffset;
+uniform float yOffset;
+
+void main() {
+ Color = color;
+ gl_Position = vec4(1.0 + xFactor * (position.x + (100.0 * xOffset)), yOffset + (yFactor * position.y), 0.0, 1.0);
+}")
+
+
+(defparameter *curve-f-shader* "#version 300 es
+precision highp float;
+in vec3 Color;
+out vec4 outColor;
+
+void main() {
+  outColor = vec4(Color, 1.0);
+}")
+
 
 (defclass curve ()
   ((webgl :initarg :webgl :reader webgl)
@@ -111,89 +148,27 @@
   (bind-buffer (vbo instance) :ARRAY_BUFFER)
   (buffer-data (vbo instance) data-list "Float32Array" :STATIC_DRAW))
 
-(defclass quad ()
+
+
+
+
+(defclass roll ()
   ((webgl :initarg :webgl :reader webgl)
    (program :initarg :program :accessor program)
-   (xy :initarg :xy :accessor xy)
-   (vbo :reader vbo)
-   (vao :reader vao)
-   (ebo :reader ebo)
-   (tex-coords :initarg :tex-coordinates :accessor tex-coords)))
+   (curves :initform nil :initarg :curves :accessor curves)
+   (framebuffer :reader roll-framebuffer)
+   (texture :reader roll-texture)
+   (width :initarg :width :accessor width)
+   (curve-height :initarg :curve-height :accessor curve-height)
+   (roll-height :initarg :roll-height :accessor roll-height)
+   (y-offset :initarg :y-offset :initform 0.0 :accessor y-offset)
+   (y-scale :initarg :y-scale :initform 1.0 :accessor y-scale)))
 
-(defmethod initialize-instance :after ((instance quad) &rest initargs &key &allow-other-keys)
-  (with-slots (vbo vao ebo) instance
-    (let ((webgl (getf initargs :webgl))
-          (xy (getf initargs :xy))
-          (tex-coords (getf initargs :tex-coords)))
-      (setf vao (create-vertex-array webgl))
-      (setf vbo (create-webgl-buffer webgl))
-      (setf ebo (create-webgl-buffer webgl))
-      (bind-vertex-array vao)
-      (bind-buffer vbo :ARRAY_BUFFER)
-      (bind-buffer ebo :ELEMENT_ARRAY_BUFFER)
-      (buffer-data vbo (coerce *quad* 'list) "Float32Array" :STATIC_DRAW)
-      (buffer-data ebo (coerce *quad-elems* 'list) "Uint16Array" :STATIC_DRAW)
-      (vertex-attribute-pointer webgl xy 2 :FLOAT nil 16 0)
-      (vertex-attribute-pointer webgl tex-coords 2 :FLOAT nil 16 8)
-      (enable-vertex-attribute-array webgl xy)
-      (enable-vertex-attribute-array webgl tex-coords))))
-
-(defun make-quad (webgl)
-  (let ((program (compile-program webgl *quad-v-shader* *quad-f-shader*)))
-    (make-instance 'quad
-                   :webgl webgl
-                   :program program
-                   :xy (attribute-location program "aPos")
-                   :tex-coords (attribute-location program "aTexCoords"))))
-
-(defmethod draw-quad ((instance quad) texture y-scale y-offset)
-  (use-program (program instance))
-  (uniform-float (webgl instance)
-                 (uniform-location (program instance) "yScale")
-                 y-scale)
-  (uniform-float (webgl instance)
-                 (uniform-location (program instance) "yOffset")
-                 y-offset)
-  (bind-canvas-frame-buffer (webgl instance) :DRAW_FRAMEBUFFER)
-  (bind-vertex-array (vao instance))
-  (when texture
-    (bind-texture texture :TEXTURE_2D))
-  (draw-elements (webgl instance) :TRIANGLES 6 :UNSIGNED_SHORT 0))
-
-
-(defparameter *curve-v-shader* "#version 300 es
-in vec2 position;
-out vec3 Color;
-
-uniform vec3 color;
-uniform float xFactor;
-uniform float yFactor;
-uniform float xOffset;
-uniform float yOffset;
-
-void main() {
- Color = color;
- gl_Position = vec4(1.0 + xFactor * (position.x + (100.0 * xOffset)), yOffset + (yFactor * position.y), 0.0, 1.0);
-}")
-
-
-(defparameter *curve-f-shader* "#version 300 es
-precision highp float;
-in vec3 Color;
-out vec4 outColor;
-
-void main() {
-  outColor = vec4(Color, 1.0);
-}")
-
-(defun compile-program (webgl vertex-shader fragment-shader)
-  (let ((program
-          (compile-webgl-program
-           webgl
-           (compile-shader-source webgl :VERTEX_SHADER vertex-shader)
-           (compile-shader-source webgl :FRAGMENT_SHADER fragment-shader))))
-    (use-program program)
-    program))
+(defmethod initialize-instance :after ((instance roll) &rest initargs &key &allow-other-keys)
+  (with-slots (framebuffer texture) instance
+    (let ((webgl (getf initargs :webgl)))
+      (setf framebuffer (create-webgl-frame-buffer webgl))
+      (setf texture (create-webgl-texture webgl)))))
 
 (defun make-roll (webgl curves width roll-height curve-height y-scale y-offset)
   (let* ((program (compile-program webgl *curve-v-shader* *curve-f-shader*))
@@ -263,6 +238,7 @@ void main() {
 
 
 
+
 (defparameter *quad*
   (make-array 16 :element-type 'single-float
                  :initial-contents '(-1.0  1.0 0.0 1.0
@@ -304,6 +280,65 @@ void main()
 {
     FragColor = texture(screenTexture, TexCoords);
 }")
+
+
+
+(defclass quad ()
+  ((webgl :initarg :webgl :reader webgl)
+   (program :initarg :program :accessor program)
+   (xy :initarg :xy :accessor xy)
+   (vbo :reader vbo)
+   (vao :reader vao)
+   (ebo :reader ebo)
+   (tex-coords :initarg :tex-coordinates :accessor tex-coords)))
+
+(defmethod initialize-instance :after ((instance quad) &rest initargs &key &allow-other-keys)
+  (with-slots (vbo vao ebo) instance
+    (let ((webgl (getf initargs :webgl))
+          (xy (getf initargs :xy))
+          (tex-coords (getf initargs :tex-coords)))
+      (setf vao (create-vertex-array webgl))
+      (setf vbo (create-webgl-buffer webgl))
+      (setf ebo (create-webgl-buffer webgl))
+      (bind-vertex-array vao)
+      (bind-buffer vbo :ARRAY_BUFFER)
+      (bind-buffer ebo :ELEMENT_ARRAY_BUFFER)
+      (buffer-data vbo (coerce *quad* 'list) "Float32Array" :STATIC_DRAW)
+      (buffer-data ebo (coerce *quad-elems* 'list) "Uint16Array" :STATIC_DRAW)
+      (vertex-attribute-pointer webgl xy 2 :FLOAT nil 16 0)
+      (vertex-attribute-pointer webgl tex-coords 2 :FLOAT nil 16 8)
+      (enable-vertex-attribute-array webgl xy)
+      (enable-vertex-attribute-array webgl tex-coords))))
+
+(defun make-quad (webgl)
+  (let ((program (compile-program webgl *quad-v-shader* *quad-f-shader*)))
+    (make-instance 'quad
+                   :webgl webgl
+                   :program program
+                   :xy (attribute-location program "aPos")
+                   :tex-coords (attribute-location program "aTexCoords"))))
+
+(defmethod draw-quad ((instance quad) texture y-scale y-offset)
+  (use-program (program instance))
+  (uniform-float (webgl instance)
+                 (uniform-location (program instance) "yScale")
+                 y-scale)
+  (uniform-float (webgl instance)
+                 (uniform-location (program instance) "yOffset")
+                 y-offset)
+  (bind-canvas-frame-buffer (webgl instance) :DRAW_FRAMEBUFFER)
+  (bind-vertex-array (vao instance))
+  (when texture
+    (bind-texture texture :TEXTURE_2D))
+  (draw-elements (webgl instance) :TRIANGLES 6 :UNSIGNED_SHORT 0))
+
+
+
+
+
+
+
+
 
 
 (defun animation-handler (clog-obj time-string)
@@ -368,6 +403,8 @@ void main()
 
 
 
+
+;;; Entry point for UI construction.
 
 (defun build-ui (parent)
   (create-div parent :class "main-title" :content "Arcimoog")
