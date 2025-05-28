@@ -24,9 +24,10 @@
 (defun add-data-point (name timecode value)
   (let ((tracker (get-tracker name)))
     (push (cons timecode value) (raw-data tracker))
-    ;; Push a pair of coordinates to finish the horizontal line up until this moment.
-    (push (second (gl-data tracker)) (gl-data tracker))
-    (push (coerce (* timecode (gl-time-factor tracker)) 'single-float) (gl-data tracker))
+    (when (gl-data tracker)
+      ;; Push a pair of coordinates to finish the horizontal line up until this moment.
+      (push (second (gl-data tracker)) (gl-data tracker))
+      (push (coerce (* timecode (gl-time-factor tracker)) 'single-float) (gl-data tracker)))
     ;; Push a pair of coordinates representing the current value.
     (push (coerce (* value (gl-value-factor tracker)) 'single-float) (gl-data tracker))
     (push (coerce (* timecode (gl-time-factor tracker)) 'single-float) (gl-data tracker))
@@ -57,15 +58,6 @@
 (defun data-updated (name)
   (setf (updatedp (get-tracker name)) nil))
 
-(defun add-points (dump)
-  (loop for (time1 cv1 time2 cv2) on dump by #'cddr
-        nconc (list time1 cv1 time2 cv1)))
-
 (defun print-all (name &optional (output-stream t))
   (loop-over-history name (lambda (time val)
                             (format output-stream "~&~a, ~a" time val))))
-
-(defun get-latest-data-point (name)
-  "Latest data point of the raw data."
-  (let ((data (first (raw-data (get-tracker name)))))
-    (values (car data) (cdr data))))

@@ -64,8 +64,7 @@
       (generate-rows (vco vcf res vca gate) 2)
       (generate-rows (vco vcf res vca gate) 3)
       (generate-rows (vco vcf res vca gate) 4)
-      (generate-rows (vco vcf res vca gate) 5)
-      )))
+      (generate-rows (vco vcf res vca gate) 5))))
 
 
 ;;; Parameter rolls (CV and Pitch rolls), webGL-based.
@@ -148,6 +147,15 @@ void main() {
   (bind-buffer (vbo instance) :ARRAY_BUFFER)
   (buffer-data (vbo instance) data-list "Float32Array" :STATIC_DRAW))
 
+(defmethod draw-curve ((instance curve) shader-program)
+  (with-accessors ((color color) (name name) (webgl webgl)) instance
+    (bind-vertex-array (vao instance))
+    (uniform-float webgl (uniform-location shader-program "color")
+                   (first color) (second color) (third color))
+    (when (am-ht:update-data-required-p name)
+      (upload-data instance (am-ht:dump-gl-list name))
+      (am-ht:data-updated name))
+    (draw-arrays webgl :LINE_STRIP 0 (floor (data-length instance) 2))))
 
 
 
@@ -195,7 +203,7 @@ void main() {
     roll))
 
 (defun calculate-autoroll-x-offset (shader-factor)
-  (- (* (incudine:now) (/ 1.0 (incudine:rt-sample-rate)) shader-factor)))
+  (coerce (- (* (incudine:now) (/ 1.0 (incudine:rt-sample-rate)) shader-factor)) 'single-float))
 
 (defparameter *cv-autoroll-p* t)
 
@@ -225,15 +233,6 @@ void main() {
   (dolist (curve (curves instance))
     (draw-curve curve (program instance))))
 
-(defmethod draw-curve ((instance curve) shader-program)
-  (with-accessors ((color color) (name name) (webgl webgl)) instance
-    (bind-vertex-array (vao instance))
-    (uniform-float webgl (uniform-location shader-program "color")
-                   (first color) (second color) (third color))
-    (when (am-ht:update-data-required-p name)
-      (upload-data instance (am-ht:dump-gl-list name))
-      (am-ht:data-updated name))
-    (draw-arrays webgl :LINE_STRIP 0 (floor (data-length instance) 2))))
 
 
 
@@ -343,7 +342,7 @@ void main()
 
 (defun animation-handler (clog-obj time-string)
   (declare (ignore time-string))
-  ;;(format t "~&Animation frame at time: ~a.~%" time-string)
+  ;; (format t "~&Animation frame at time: ~a.~%" time-string)
   (dolist (roll (connection-data-item clog-obj "rolls"))
     (draw roll)
     (draw-quad (connection-data-item clog-obj "quad")
