@@ -40,6 +40,29 @@
                                        (am-par:set-scalar ,target-parameter
                                                           (am-par:get-scalar :toggle-on-value)))))))
 
+(defmacro register-precision-dial-callback (controller
+                                            channel-a
+                                            channel-b
+                                            channel-c
+                                            channel-d
+                                            doc
+                                            callback-fun)
+  ;; TODO add doc-string.
+  ""
+  `(progn
+     ,@(mapcan (lambda (channel precision)
+                 (when channel
+                   `((am-midi:register-callback ,controller ,channel
+                      (lambda (value)
+                        ,(format nil "~a Precision level: ~a." doc precision)
+                        (funcall ,callback-fun
+                                 (* (am-par:get-scalar
+                                     ,(alexandria:make-keyword
+                                       (format nil "PRECISION-FACTOR-~a" precision)))
+                                    (- value 64))))))))
+               (list channel-a channel-b channel-c channel-d)
+               (list 'low 'medium 'high 'extreme))))
+
 (defmacro register-precision-dial (controller
                                    channel-a
                                    channel-b
@@ -51,17 +74,14 @@
   `(progn
      ,@(mapcan (lambda (channel precision)
                  (when channel
-                   `((am-midi:register-callback
-                      ,controller ,channel
-                      (lambda (value)
-                        ,(format nil "~a Precision level: ~a."
-                                 doc
-                                 precision)
-                        (am-par:inc-scalar ,target-parameter
-                                           (* (am-par:get-scalar
-                                               ,(alexandria:make-keyword
-                                                 (format nil "PRECISION-FACTOR-~a" precision)))
-                                              (- value 64))))))))
+                   `((am-midi:register-callback ,controller ,channel
+                                                (lambda (value)
+                                                  ,(format nil "~a Precision level: ~a." doc precision)
+                                                  (am-par:inc-scalar ,target-parameter
+                                                                     (* (am-par:get-scalar
+                                                                         ,(alexandria:make-keyword
+                                                                           (format nil "PRECISION-FACTOR-~a" precision)))
+                                                                        (- value 64))))))))
                (list channel-a channel-b channel-c channel-d)
                (list 'low 'medium 'high 'extreme))))
 

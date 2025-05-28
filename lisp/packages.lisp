@@ -7,6 +7,7 @@
            #:shrink
            #:register-toggle-dial
            #:register-precision-dial
+           #:register-precision-dial-callback
            #:reduce-equal-keyword-list))
 
 (defpackage :arcimoog.conditions
@@ -97,8 +98,12 @@
   (:use :cl)
   (:nicknames :am-mo)
   (:export #:register-mother
+           ;; TODO to be deleted
            #:modify-local-origin
+           ;; TODO to be deleted
            #:modify-local-stretch
+           #:tune-offset-selected
+           #:tune-factor-selected
            #:modify-sound
            #:modify-cv-1/1
            #:select-mother
@@ -140,6 +145,7 @@
                 #:register-cv
                 #:register-display-parameter
                 #:register-toggle-dial
-                #:register-precision-dial)
+                #:register-precision-dial
+                #:register-precision-dial-callback)
   (:import-from :arcimoog.pitch-data
                 #:nn))

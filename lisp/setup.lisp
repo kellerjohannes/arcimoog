@@ -73,11 +73,11 @@
   (register-precision-dial 1 44 45 nil nil "VCA3 dual precision." :vca3)
   (register-toggle-dial 1 46 "Gate3 toggle dial." :gate3)
 
-  (register-precision-dial 1 48 49 50 51 "VCO3 quad precision." :vco4)
-  (register-precision-dial 1 52 53 54 55 "VCF3 quad precision." :vcf4)
-  (register-precision-dial 1 56 57 58 59 "Res3 quad precision." :res4)
-  (register-precision-dial 1 60 61 nil nil "VCA3 dual precision." :vca4)
-  (register-toggle-dial 1 62 "Gate3 toggle dial." :gate4)
+  (register-precision-dial 1 48 49 50 51 "VCO4 quad precision." :vco4)
+  (register-precision-dial 1 52 53 54 55 "VCF4 quad precision." :vcf4)
+  (register-precision-dial 1 56 57 58 59 "Res4 quad precision." :res4)
+  (register-precision-dial 1 60 61 nil nil "VCA4 dual precision." :vca4)
+  (register-toggle-dial 1 62 "Gate4 toggle dial." :gate4)
 
   (register-precision-dial 1 64 65 66 67 "VCO3 quad precision." :vco5)
   (register-precision-dial 1 68 69 70 71 "VCF3 quad precision." :vcf5)
@@ -96,8 +96,23 @@
 
   (am-mo:read-mother-tunings)
 
+  (register-precision-dial-callback 3 0 1 2 3
+                                    "Tuning Mother offset, quad precision."
+                                    #'am-mo:tune-offset-selected)
+
+  (register-precision-dial-callback 3 4 5 6 7
+                                    "Tuning Mother F-factor, quad precision."
+                                    #'am-mo:tune-factor-selected)
 
 
 
   ;; Startup webserver UI (CLOG)
   (am-ui:init))
+
+
+;;; Define domain specific language for live sessions
+
+(defun tune (mother-name)
+  "Name can be :SOPRANO, :ALTO, :TENORE, :BASSO, :QUINTO"
+  (am-mo:select-mother mother-name)
+  (format t "~&Mother ~a is ready to be tuned through Faderfox" mother-name))
