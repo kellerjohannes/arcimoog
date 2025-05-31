@@ -112,7 +112,52 @@
 
 ;;; Define domain specific language for live sessions
 
+(defparameter *mother-dict* '((:s . :soprano)
+                              (:a . :alto)
+                              (:t . :tenore)
+                              (:b . :basso)
+                              (:q . :quinto)))
+
+(defun lookup-mother-shorthand (shorthand-name)
+  (cdr (assoc shorthand-name *mother-dict*)))
+
+(defun s (mother-shorthand)
+  (am-mo:select-mother (lookup-mother-shorthand mother-shorthand)))
+
 (defun tune (mother-name)
   "Name can be :SOPRANO, :ALTO, :TENORE, :BASSO, :QUINTO"
   (am-mo:select-mother mother-name)
   (format t "~&Mother ~a is ready to be tuned through Faderfox" mother-name))
+
+(defun set-origin (mother-name origin)
+  (am-mo:set-local-origin mother-name origin))
+
+(defun set-stretch (mother-name stretch-factor)
+  (am-mo:set-local-stretch mother-name stretch-factor))
+
+(defun morel (mother-name interval &optional (natura-delta 0))
+  (am-mo:modify-sound mother-name interval natura-delta))
+
+(defun smorel (interval &optional (natura-delta 0))
+  (am-mo:modify-selected interval natura-delta))
+
+(defun moabs (mother-name pitch &optional (natura 0))
+  "Don't touch NATURA when last argument is NIL."
+  (am-mo:set-mother-pitch mother-name pitch)
+  (when natura (am-mo:set-mother-natura mother-name natura)))
+
+(defun smoabs (pitch &optional (natura 0))
+  (am-mo:set-pitch-selected pitch)
+  (when natura (am-mo:set-natura-selected natura)))
+
+(defun son ()
+  (am-mo:selected-on))
+
+(defun soff ()
+  (am-mo:selected-off))
+
+(defun alloff ()
+  (am-mo:set-all-gates nil))
+
+(defun allon ()
+  (am-mo:set-all-gates t))

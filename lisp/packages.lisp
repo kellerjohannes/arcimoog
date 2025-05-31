@@ -98,13 +98,23 @@
   (:use :cl)
   (:nicknames :am-mo)
   (:export #:register-mother
-           ;; TODO to be deleted
+           #:set-local-origin
            #:modify-local-origin
-           ;; TODO to be deleted
+           #:set-local-stretch
            #:modify-local-stretch
            #:tune-offset-selected
            #:tune-factor-selected
+           #:modify-selected
+           #:set-pitch-selected
+           #:set-natura-selected
+           #:set-all-gates
+           #:mother-on
+           #:selected-on
+           #:mother-off
+           #:selected-off
            #:modify-sound
+           #:set-mother-pitch
+           #:set-mother-natura
            #:modify-cv-1/1
            #:select-mother
            #:read-mother-tunings))
