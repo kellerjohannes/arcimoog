@@ -98,11 +98,11 @@
 
   (register-precision-dial-callback 3 0 1 2 3
                                     "Tuning Mother offset, quad precision."
-                                    #'am-mo:tune-offset-selected)
+                                    #'am-mo:modify-selected-cv-offset)
 
   (register-precision-dial-callback 3 4 5 6 7
                                     "Tuning Mother F-factor, quad precision."
-                                    #'am-mo:tune-factor-selected)
+                                    #'am-mo:modify-selected-cv-factor)
 
 
 
@@ -110,7 +110,12 @@
   (am-ui:init))
 
 
+
+
+
 ;;; Define domain specific language for live sessions
+
+;; Helper functions, not intended for live use
 
 (defparameter *mother-dict* '((:s . :soprano)
                               (:a . :alto)
@@ -118,46 +123,73 @@
                               (:b . :basso)
                               (:q . :quinto)))
 
-(defun lookup-mother-shorthand (shorthand-name)
-  (cdr (assoc shorthand-name *mother-dict*)))
+(defun lookup-mother-name (shorthand-or-full-name)
+  ;; TODO Handle undefined input.
+  (or (cdr (assoc shorthand-or-full-name *mother-dict*))
+      (when (am-mo:is-valid-mother-name shorthand-or-full-name) shorthand-or-full-name)))
 
-(defun s (mother-shorthand)
-  (am-mo:select-mother (lookup-mother-shorthand mother-shorthand)))
 
-(defun tune (mother-name)
-  "Name can be :SOPRANO, :ALTO, :TENORE, :BASSO, :QUINTO"
-  (am-mo:select-mother mother-name)
-  (format t "~&Mother ~a is ready to be tuned through Faderfox" mother-name))
 
-(defun set-origin (mother-name origin)
-  (am-mo:set-local-origin mother-name origin))
+;; DSL commands
 
-(defun set-stretch (mother-name stretch-factor)
-  (am-mo:set-local-stretch mother-name stretch-factor))
+(defun s (mother-name)
+  "Select a Mother for later manipulation. MOTHER-NAME can be its full name defined when AM-MO:REGISTER-MOTHER was called, or a shorthand alias defined in *MOTHER-DICT*."
+  (am-mo:select-mother (lookup-mother-name mother-name)))
+
+(defun offset (mother-name cv-offset)
+  "Set a MOTHERs CV offset. The maximal range of CV offset is -1 to 1."
+  (am-mo:set-mother-cv-offset (lookup-mother-name mother-name) cv-offset))
+
+(defun soffset (cv-offset)
+  "Set the selected MOTHERs CV offset. The maximal range of CV offset is -1 to 1."
+  (am-mo:set-selected-cv-offset cv-offset))
+
+(defun factor (mother-name cv-factor)
+  "Set a MOTHERs CV stretching factor."
+  (am-mo:set-mother-cv-factor (lookup-mother-name mother-name) cv-factor))
+
+(defun sfactor (cv-factor)
+  "Set the selected MOTHERs CV stretching factor."
+  (am-mo:set-selected-cv-factor cv-factor))
 
 (defun morel (mother-name interval &optional (natura-delta 0))
-  (am-mo:modify-sound mother-name interval natura-delta))
+  "Change pitch and timbre of a MOTHER. The INTERVAL is used to modify the current pitch of the MOTHER. NATURE-DELTA is used to modify the current NATURE of the MOTHER. MOTHER-NAME can be its full name or a shorthand alias."
+  (am-mo:modify-mother-pitch-and-natura (lookup-mother-name mother-name) interval natura-delta))
 
 (defun smorel (interval &optional (natura-delta 0))
-  (am-mo:modify-selected interval natura-delta))
+  "Behaves like the function MOREL, but affects the currently selected MOTHER."
+  (am-mo:modify-selected-pitch-and-natura interval natura-delta))
 
 (defun moabs (mother-name pitch &optional (natura 0))
-  "Don't touch NATURA when last argument is NIL."
-  (am-mo:set-mother-pitch mother-name pitch)
-  (when natura (am-mo:set-mother-natura mother-name natura)))
+  "Define pitch and timbre of a MOTHER. The pitch will be set to the ratio provided in PITCH, overwriting the current pitch of the MOTHER. NATURA will be used to overwrite the current NATURA of the MOTHER. If the argument NATURA is not provided, it will be set to 0. If it is set to NIL, the current NATURA of the MOTHER won't be affected."
+  (am-mo:set-mother-pitch (lookup-mother-name mother-name) pitch)
+  (when natura (am-mo:set-mother-natura (lookup-mother-name mother-name) natura)))
 
 (defun smoabs (pitch &optional (natura 0))
-  (am-mo:set-pitch-selected pitch)
-  (when natura (am-mo:set-natura-selected natura)))
+  "Behaves like the function `MOABS', but affects the currently selected MOTHER."
+  (am-mo:set-selected-pitch pitch)
+  (when natura (am-mo:set-selected-natura natura)))
+
+(defun on (mother-name)
+  "Sets the GATE CV of a MOTHER to 1."
+  (am-mo:mother-on (lookup-mother-name mother-name)))
+
+(defun off (mother-name)
+  "Sets the GATE CV of a MOTHER to 0."
+  (am-mo:mother-off (lookup-mother-name mother-name)))
 
 (defun son ()
+  "Sets the GATE CV of the selected MOTHER to 1."
   (am-mo:selected-on))
 
 (defun soff ()
+  "Sets the GATE CV of the selected MOTHER to 0."
   (am-mo:selected-off))
 
-(defun alloff ()
-  (am-mo:set-all-gates nil))
-
 (defun allon ()
+  "Sets the GATE CV of all MOTHERs to 1"
   (am-mo:set-all-gates t))
+
+(defun alloff ()
+  "Sets the GATE CV of all MOTHERs to 0"
+  (am-mo:set-all-gates nil))

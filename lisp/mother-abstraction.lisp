@@ -32,20 +32,20 @@
   (am-par:set-scalar (vca-name instance) 0.7)
   (am-par:set-scalar (gate-name instance) (if (soundingp instance) 1.0 -1.0)))
 
-(defmethod set-natura ((instance mother) new-natura)
-  ;; TODO check for valid natura values
-  (setf (natura instance) new-natura)
-  (update-cvs instance))
-
-(defmethod modify-natura ((instance mother) natura-delta)
-  (set-natura instance (+ (natura instance) natura-delta)))
-
 (defmethod set-cv-offset ((instance mother) new-offset)
   (setf (cv-offset instance) new-offset)
   (update-cvs instance))
 
+(defmethod modify-cv-offset ((instance mother) offset-delta)
+  (incf (cv-offset instance) offset-delta)
+  (update-cvs instance))
+
 (defmethod set-cv-factor ((instance mother) new-factor)
   (setf (cv-factor instance) new-factor)
+  (update-cvs instance))
+
+(defmethod modify-cv-factor ((instance mother) factor-delta)
+  (incf (cv-factor instance) factor-delta)
   (update-cvs instance))
 
 (defmethod set-gate ((instance mother) gate-state)
@@ -59,38 +59,32 @@
 (defmethod modify-pitch ((instance mother) interval-ratio)
   (set-pitch instance (* (pitch instance) interval-ratio)))
 
-(defmethod modify ((instance mother) interval-ratio natura-delta)
+(defmethod set-natura ((instance mother) new-natura)
+  ;; TODO check for valid natura values
+  (setf (natura instance) new-natura)
+  (update-cvs instance))
+
+(defmethod modify-natura ((instance mother) natura-delta)
+  (set-natura instance (+ (natura instance) natura-delta)))
+
+(defmethod set-pitch-and-natura ((instance mother) ratio natura)
+  (set-pitch instance ratio)
+  (set-natura instance natura))
+
+(defmethod modify-pitch-and-natura ((instance mother) interval-ratio natura-delta)
   (modify-pitch instance interval-ratio)
   (modify-natura instance natura-delta))
 
 
 
-;; Public functions
-
-(defun set-mother-pitch (name ratio)
-  (let ((mother (get-mother name)))
-    (when mother (set-pitch mother ratio))))
-
-(defun set-mother-natura (name natura)
-  (let ((mother (get-mother name)))
-    (when mother (set-natura mother natura))))
-
-(defun mother-on (name)
-  (let ((mother (get-mother name)))
-    (when mother (set-gate mother t))))
-
-(defun mother-off (name)
-  (let ((mother (get-mother name)))
-    (when mother (set-gate mother nil))))
-
-(defun modify-sound (name interval natura)
-  (modify (get-mother name) interval natura))
 
 
 
-
+;;; Handling the Mother database. Each instance of `MOTHER' represents a hardware or software
+;;; synthesizer.
 
 (defparameter *mothers* (make-hash-table))
+
 (defparameter *mother-tuning-path*
   (merge-pathnames "mother-tuning.lisp" (asdf/system:system-source-directory :arcimoog)))
 
@@ -103,6 +97,7 @@
                                                 :gate-name gate)))
 
 (defun get-mother (name)
+  ;; TODO Handle invalid names.
   (gethash name *mothers*))
 
 (defun apply-to-all-mothers (fun)
@@ -111,28 +106,10 @@
 (defun update-all-mothers ()
   (apply-to-all-mothers (lambda (name instance) (declare (ignore name)) (update-cvs instance))))
 
-(defun set-all-gates (gate-state)
-  (apply-to-all-mothers (lambda (name instance)
-                          (declare (ignore name))
-                          (set-gate instance gate-state))))
-
-
-(defun set-cv-1/1 (new-cv-1/1)
-  (setf *cv-1/1* new-cv-1/1)
-  (update-all-mothers))
-
-(defun modify-cv-1/1 (cv-delta)
-  (set-cv-1/1 (+ *cv-1/1* cv-delta)))
-
 (defparameter *selected-mother* nil)
 
-(defun select-mother (name)
-  (when (get-mother name)
-    (setf *selected-mother* name)))
 
-
-
-
+;;; Manage and securing tuning of mothers
 
 (defun create-tuning-data-expression ()
   (loop for mother-name being the hash-keys of *mothers*
@@ -162,50 +139,69 @@
   (format t "~&Tuning of all Mothers read from file."))
 
 
-(defun set-local-origin (name pitch)
-  (let ((mother (get-mother name)))
-    (when mother
-      (set-cv-offset mother pitch)
-      (write-mother-tunings))))
-
-(defun set-local-stretch (name pitch-stretch)
-  (let ((mother (get-mother name)))
-    (when mother (set-cv-factor mother pitch-stretch)
-          (write-mother-tunings))))
-
-(defun modify-local-origin (name pitch-delta)
-  (let ((mother (get-mother name)))
-    (when mother (set-cv-offset mother (+ (cv-offset mother) pitch-delta))
-          (write-mother-tunings))))
-
-(defun modify-local-stretch (name pitch-stretch)
-  (let ((mother (get-mother name)))
-    (when mother (set-cv-factor mother pitch-stretch)
-          (write-mother-tunings))))
 
 
+;;; Public functions
 
-(defun tune-offset-selected (offset-delta)
-  (let ((mother (get-mother *selected-mother*)))
-    (set-cv-offset mother (+ (cv-offset mother) offset-delta))
-    (write-mother-tunings)))
+(defun select-mother (name)
+  (setf *selected-mother* name))
 
-(defun tune-factor-selected (factor-delta)
-  (let ((mother (get-mother *selected-mother*)))
-    (set-cv-factor mother (+ (cv-factor mother) factor-delta))
-    (write-mother-tunings)))
+(defun is-valid-mother-name (name)
+  (gethash name *mothers*))
 
-(defun modify-selected (interval &optional (natura-delta 0))
-  (let ((mother (get-mother *selected-mother*)))
-    (modify mother interval natura-delta)))
 
-(defun set-pitch-selected (pitch)
-  (let ((mother (get-mother *selected-mother*)))
-    (set-pitch mother pitch)))
+;; PITCH
 
-(defun set-natura-selected (natura)
-  (let ((mother (get-mother *selected-mother*)))
-    (set-natura mother natura)))
+(defun set-mother-pitch (name ratio)
+  (set-pitch (get-mother name) ratio))
+
+(defun modify-mother-pitch (name interval)
+  (modify-pitch (get-mother name) interval))
+
+(defun set-selected-pitch (ratio)
+  (set-pitch (get-mother *selected-mother*) ratio))
+
+(defun modify-selected-pitch (interval)
+  (modify-pitch (get-mother *selected-mother*) interval))
+
+
+;; NATURA
+
+(defun set-mother-natura (name natura)
+  (set-natura (get-mother name) natura))
+
+(defun modify-mother-natura (name natura-delta)
+  (modify-natura (get-mother name) natura-delta))
+
+(defun set-selected-natura (natura)
+  (set-natura (get-mother *selected-mother*) natura))
+
+(defun modify-selected-natura (natura-delta)
+  (set-natura (get-mother *selected-mother*) natura-delta))
+
+
+;; PITCH and NATURA
+
+(defun set-mother-pitch-and-natura (name ratio natura)
+  (set-pitch-and-natura (get-mother name) ratio natura))
+
+(defun modify-mother-pitch-and-natura (name interval natura-delta)
+  (modify-pitch-and-natura (get-mother name) interval natura-delta))
+
+(defun set-selected-pitch-and-natura (ratio natura)
+  (set-mother-pitch-and-natura (get-mother *selected-mother*) ratio natura))
+
+(defun modify-selected-pitch-and-natura (interval natura-delta)
+  (modify-pitch-and-natura (get-mother *selected-mother*) interval natura-delta))
+
+
+;; GATE
+
+(defun mother-on (name)
+  (set-gate (get-mother name) t))
+
+(defun mother-off (name)
+  (set-gate (get-mother name) nil))
 
 (defun selected-on ()
   (let ((mother (get-mother *selected-mother*)))
@@ -214,3 +210,53 @@
 (defun selected-off ()
   (let ((mother (get-mother *selected-mother*)))
     (set-gate mother nil)))
+
+(defun set-all-gates (gate-state)
+  (apply-to-all-mothers (lambda (name instance)
+                          (declare (ignore name))
+                          (set-gate instance gate-state))))
+
+
+;; Tuning (CV-OFFSET and CV-FACTOR)
+
+(defun set-mother-cv-offset (name cv-offset)
+  (set-cv-offset (get-mother name) cv-offset)
+  (write-mother-tunings))
+
+(defun modify-mother-cv-offset (name cv-offset-delta)
+  (modify-cv-offset (get-mother name) cv-offset-delta)
+  (write-mother-tunings))
+
+(defun set-selected-cv-offset (cv-offset)
+  (set-cv-offset (get-mother *selected-mother*) cv-offset)
+  (write-mother-tunings))
+
+(defun modify-selected-cv-offset (cv-offset-delta)
+  (modify-cv-offset (get-mother *selected-mother*) cv-offset-delta)
+  (write-mother-tunings))
+
+(defun set-mother-cv-factor (name cv-factor)
+  (set-cv-factor (get-mother name) cv-factor)
+  (write-mother-tunings))
+
+(defun modify-mother-cv-factor (name cv-factor-delta)
+  (modify-cv-factor (get-mother name) cv-factor-delta)
+  (write-mother-tunings))
+
+(defun set-selected-cv-factor (cv-factor)
+  (set-cv-factor (get-mother *selected-mother*) cv-factor)
+  (write-mother-tunings))
+
+(defun modify-selected-cv-factor (cv-factor-delta)
+  (modify-cv-factor (get-mother *selected-mother*) cv-factor-delta)
+  (write-mother-tunings))
+
+
+;; Global reference pitch (CV value for pitch 1/1)
+
+(defun set-cv-1/1 (new-cv-1/1)
+  (setf *cv-1/1* new-cv-1/1)
+  (update-all-mothers))
+
+(defun modify-cv-1/1 (cv-delta)
+  (set-cv-1/1 (+ *cv-1/1* cv-delta)))
