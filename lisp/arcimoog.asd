@@ -21,6 +21,7 @@
                (:file "osc-communication")
                (:file "history-tracker")
                (:file "mother-abstraction")
+               (:file "raw-pitch")
                (:file "ui")
                (:file "setup")
                (:file "main")

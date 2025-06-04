@@ -129,6 +129,10 @@
            #:modify-cv-1/1
            #:read-mother-tunings))
 
+(defpackage :raw-pitch
+  (:use :cl)
+  (:nicknames :am-rp))
+
 (defpackage :arcimoog.history-tracker
   (:use :cl)
   (:nicknames :am-ht)
