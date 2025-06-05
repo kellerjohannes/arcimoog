@@ -260,3 +260,27 @@
 
 (defun modify-cv-1/1 (cv-delta)
   (set-cv-1/1 (+ *cv-1/1* cv-delta)))
+
+
+
+
+;;; Mother state handling
+
+(defparameter *snapshots* (make-hash-table))
+
+(defun take-snapshot (snapshot-name)
+  (let ((new-snapshot))
+    (apply-to-all-mothers (lambda (mother-name mother-instance)
+                            (push (list mother-name
+                                        (pitch mother-instance)
+                                        (natura mother-instance))
+                                  new-snapshot)))
+    (setf (gethash snapshot-name *snapshots*) new-snapshot)))
+
+
+(defun read-snapshot (snapshot-name)
+  (let ((snapshot (gethash snapshot-name *snapshots*)))
+    (when snapshot
+      (dolist (mother-state snapshot)
+        (set-mother-pitch (first mother-state) (second mother-state))
+        (set-mother-natura (first mother-state) (third mother-state))))))

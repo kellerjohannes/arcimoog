@@ -193,3 +193,11 @@
 (defun alloff ()
   "Sets the GATE CV of all MOTHERs to 0"
   (am-mo:set-all-gates nil))
+
+
+
+
+(defun simple-swipe (time value target-value)
+  (cond ((>= value target-value) (moabs :s target-value))
+        (t (moabs :s value)
+           (incudine:at (+ time 4410) #'simple-swipe (+ time 4410) (* value 81/80) target-value))))

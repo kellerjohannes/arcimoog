@@ -1,4 +1,4 @@
-#N canvas 1278 0 1278 1387 12;
+#N canvas 1278 0 1131 761 12;
 #X obj 24 49 oscparse;
 #X obj 24 15 netreceive -u -b 5800;
 #X obj 24 108 route arcimoog;
