@@ -29,8 +29,11 @@
   ;; These are dummy values to test synths.
   (am-par:set-scalar (vcf-name instance) (+ 0.1 (* (natura instance) 0.1)))
   (am-par:set-scalar (res-name instance) -0.8)
-  (am-par:set-scalar (vca-name instance) 0.7)
-  (am-par:set-scalar (gate-name instance) (if (soundingp instance) 1.0 -1.0)))
+  (am-par:set-scalar (vca-name instance) (if (soundingp instance) 0.7 -1.0))
+  (am-par:set-scalar (gate-name instance) (if (soundingp instance) 1.0 -1.0))
+  ;; Because high VCA values might cause bleeding when gate closed, VCA needs to be set to zero as
+  ;; well.
+  )
 
 (defmethod set-cv-offset ((instance mother) new-offset)
   (setf (cv-offset instance) new-offset)

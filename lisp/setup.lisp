@@ -6,7 +6,8 @@
 
   ;; Start up all the modules for a live session.
   (am-midi:init)
-  (am-osc:init 5800 "127.0.0.1")
+  ;; (am-osc:init 5800 "127.0.0.1")
+  (am-osc:init)
 
   ;; Define global constants used by callback functions.
   (register-constant :precision-factor-low 0.01)
@@ -197,7 +198,23 @@
 
 
 
-(defun simple-swipe (time value target-value)
-  (cond ((>= value target-value) (moabs :s target-value))
-        (t (moabs :s value)
-           (incudine:at (+ time 4410) #'simple-swipe (+ time 4410) (* value 81/80) target-value))))
+(defun simple-swipe (time value target-value name)
+  (cond ((>= value target-value) (moabs name target-value))
+        (t (moabs name value)
+           (incudine:at (+ time 1410)
+                        #'simple-swipe
+                        (+ time 1410)
+                        (* value (expt 2 1/1200))
+                        target-value
+                        name))))
+
+;; (progn
+;;   (allon)
+;;   (moabs :s 1/128)
+;;   (moabs :a (* 3/2 1/128))
+;;   (moabs :t (* 2/1 1/128)))
+
+;; (progn
+;;   (simple-swipe (incudine:now) 1/128 1/2 :s)
+;;   (simple-swipe (incudine:now) (* 3/2 1/128) (* 3/2 1/2) :a)
+;;   (simple-swipe (incudine:now) (* 2/1 1/128) (* 2/1 1/2) :t))
