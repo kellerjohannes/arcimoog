@@ -105,6 +105,10 @@
                                     "Tuning Mother F-factor, quad precision."
                                     #'am-mo:modify-selected-cv-factor)
 
+  ;; Global pitch control
+  (register-precision-dial-callback 3 16 17 18 19
+                                    "Setting global VCO offset (origin pitch)."
+                                    #'am-mo:modify-cv-1/1)
 
 
   ;; Startup webserver UI (CLOG)
@@ -198,23 +202,170 @@
 
 
 
-(defun simple-swipe (time value target-value name)
-  (cond ((>= value target-value) (moabs name target-value))
-        (t (moabs name value)
-           (incudine:at (+ time 1410)
-                        #'simple-swipe
-                        (+ time 1410)
-                        (* value (expt 2 1/1200))
+(defun origin-simple-swipe (time value direction target-value &optional
+                                                         (time-interval 1410)
+                                                         (cv-delta 0.001))
+  (cond ((and (> direction 0) (>= value target-value)) (am-mo:set-cv-1/1 target-value))
+        ((and (< direction 0) (<= value target-value)) (am-mo:set-cv-1/1 target-value))
+        (t (am-mo:set-cv-1/1 value)
+           (incudine:at (+ time time-interval)
+                        #'origin-simple-swipe
+                        (+ time time-interval)
+                        (+ value cv-delta)
+                        direction
                         target-value
-                        name))))
+                        time-interval
+                        cv-delta))))
 
-;; (progn
-;;   (allon)
-;;   (moabs :s 1/128)
-;;   (moabs :a (* 3/2 1/128))
-;;   (moabs :t (* 2/1 1/128)))
+(defun calculate-cv-delta (target-value origin-value time-delta time-step)
+  (coerce (/ (- target-value origin-value)
+             (/ (* time-delta (incudine:rt-sample-rate)) time-step))
+          'single-float))
 
-;; (progn
-;;   (simple-swipe (incudine:now) 1/128 1/2 :s)
-;;   (simple-swipe (incudine:now) (* 3/2 1/128) (* 3/2 1/2) :a)
-;;   (simple-swipe (incudine:now) (* 2/1 1/128) (* 2/1 1/2) :t))
+(defun origin-swipe (target-value time-delta)
+  (origin-simple-swipe (incudine:now)
+                (am-mo:get-cv-1/1)
+                (if (> target-value (am-mo:get-cv-1/1)) 1 -1)
+                target-value
+                2000
+                (calculate-cv-delta target-value (am-mo:get-cv-1/1) time-delta 2000)))
+
+
+
+
+
+(defun simple-swipe (time value direction target-value name &optional
+                                                              (time-interval 1410)
+                                                              (interval-delta (expt 2 1/1200)))
+  (cond ((and (> direction 0) (>= value target-value)) (moabs name target-value))
+        ((and (< direction 0) (<= value target-value)) (moabs name target-value))
+        (t (moabs name value)
+           (incudine:at (+ time time-interval)
+                        #'simple-swipe
+                        (+ time time-interval)
+                        (* value interval-delta)
+                        direction
+                        target-value
+                        name
+                        time-interval
+                        interval-delta))))
+
+(defun calculate-interval-delta (target-value origin-value time-delta time-step)
+  (coerce (expt (/ target-value origin-value)
+                (/ 1 (/ (* time-delta (incudine:rt-sample-rate)) time-step)))
+          'single-float))
+
+(defun time-swipe (mother-name origin-value target-value time-delta)
+  (simple-swipe (incudine:now)
+                origin-value
+                (if (> target-value origin-value) 1 -1)
+                target-value
+                mother-name
+                2000
+                (calculate-interval-delta target-value origin-value time-delta 2000)))
+
+
+
+(progn
+  (on :s)
+  (on :a)
+  (on :t)
+  (moabs :s 1/128)
+  (moabs :a (* 3/2 1/128))
+  (moabs :t (* 2/1 1/128)))
+
+(progn
+  (simple-swipe (incudine:now) 1/128 1 1/2 :s)
+  (simple-swipe (incudine:now) (* 3/2 1 1/128) (* 3/2 1/2) :a)
+  (simple-swipe (incudine:now) (* 2/1 1 1/128) (* 2/1 1/2) :t))
+
+
+(defun flux-1-o ()
+  (alloff)
+  (on :s)
+  (on :a)
+  (moabs :s 5/4)
+  (moabs :a 1/1))
+
+(defun flux-1-a (&optional (time-delta 5))
+  (time-swipe :s 5/4 (* 128/125 6/5) time-delta)
+  (time-swipe :a 1/1 128/125 time-delta))
+
+(defun flux-1-b (&optional (time-delta 5))
+  (time-swipe :s (* 128/125 6/5) 5/4 time-delta)
+  (time-swipe :a 128/125 1/1 time-delta))
+
+
+
+(defun flux-2-o ()
+  (alloff)
+  (on :s)
+  (on :a)
+  (on :t)
+  (moabs :s 3/2)
+  (moabs :a 5/4)
+  (moabs :t 1/1))
+
+(defun flux-2-a (&optional (time-delta 5))
+  (time-swipe :s 3/2 (* 3/2 128/125) time-delta)
+  (time-swipe :a 5/4 (* 128/125 6/5) time-delta)
+  (time-swipe :t 1/1 128/125 time-delta))
+
+(defun flux-2-b (&optional (time-delta 5))
+  (time-swipe :s (* 3/2 128/125) 3/2 time-delta)
+  (time-swipe :a (* 128/125 6/5) 5/4 time-delta)
+  (time-swipe :t 128/125 1/1 time-delta))
+
+
+(defun flux-3-o ()
+  (alloff)
+  (on :s)
+  (on :a)
+  (on :t)
+  (on :b)
+  (moabs :s 3/2)
+  (moabs :a 5/4)
+  (moabs :t 1/1)
+  (moabs :b 7/4))
+
+(defun flux-3-a (&optional (time-delta 5))
+  (time-swipe :s 3/2 (* 3/2 128/125) time-delta)
+  (time-swipe :a 5/4 (* 128/125 6/5) time-delta)
+  (time-swipe :t 1/1 128/125 time-delta)
+  (time-swipe :b 7/4 (* 7/4 128/125) time-delta))
+
+(defun flux-3-b (&optional (time-delta 5))
+  (time-swipe :s (* 3/2 128/125) 3/2 time-delta)
+  (time-swipe :a (* 128/125 6/5) 5/4 time-delta)
+  (time-swipe :t 128/125 1/1 time-delta)
+  (time-swipe :b (* 7/4 128/125) 7/4 time-delta))
+
+
+
+
+(defmacro make-flux (name p-1-s p-1-a p-1-t p-1-b p-2-s p-2-a p-2-t p-2-b)
+  `(progn
+     (defun ,(intern (format nil "~a-O" (symbol-name name))) ()
+       (alloff)
+       (on :s)
+       (on :a)
+       (on :t)
+       (on :b)
+       (moabs :s ,p-1-s)
+       (moabs :a ,p-1-a)
+       (moabs :t ,p-1-t)
+       (moabs :b ,p-1-b))
+     (defun ,(intern (format nil "~a-A" (symbol-name name))) (&optional (time-delta 5))
+       (time-swipe :s ,p-1-s ,p-2-s time-delta)
+       (time-swipe :a ,p-1-a ,p-2-a time-delta)
+       (time-swipe :t ,p-1-t ,p-2-t time-delta)
+       (time-swipe :b ,p-1-b ,p-2-b time-delta))
+     (defun ,(intern (format nil "~a-B" (symbol-name name))) (&optional (time-delta 5))
+       (time-swipe :s ,p-2-s ,p-1-s time-delta)
+       (time-swipe :a ,p-2-a ,p-1-a time-delta)
+       (time-swipe :t ,p-2-t ,p-1-t time-delta)
+       (time-swipe :b ,p-2-b ,p-1-b time-delta))))
+
+(make-flux flux-4 3/2 5/4 1/1 7/4 (* 3/2 128/125) (* 6/5 128/125) 128/125 (* 2/1 128/125))
+
+(make-flux flux-5 7/4 3/2 5/4 1/1 3/2 (* 3/2 5/4) (* 3/2 7/4) (* 3/2 3/2))

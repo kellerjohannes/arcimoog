@@ -261,6 +261,9 @@
   (setf *cv-1/1* new-cv-1/1)
   (update-all-mothers))
 
+(defun get-cv-1/1 ()
+  *cv-1/1*)
+
 (defun modify-cv-1/1 (cv-delta)
   (set-cv-1/1 (+ *cv-1/1* cv-delta)))
 
