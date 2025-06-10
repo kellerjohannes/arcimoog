@@ -369,3 +369,68 @@
 (make-flux flux-4 3/2 5/4 1/1 7/4 (* 3/2 128/125) (* 6/5 128/125) 128/125 (* 2/1 128/125))
 
 (make-flux flux-5 7/4 3/2 5/4 1/1 3/2 (* 3/2 5/4) (* 3/2 7/4) (* 3/2 3/2))
+
+(make-flux flux-6 1/1 3/1 7/2 5/1 (* 128/125 1/1) (* 128/125 3/1) (* 128/125 4/1) (* 128/125 24/5))
+
+(make-flux flux-7 1/2 1/2 1/2 1/2 2 3 4 5)
+
+(make-flux oct-1 1/1 1/1 1/1 1/1
+           (* 1/1 2)
+           (* 1/1 2)
+           (* 1/1 1)
+           (* 1/1 8)
+           )
+
+(make-flux oct-2 1/1 81/80 128/125 80/81
+           (* 128/125 2)
+           (* 81/80 2)
+           (* 1/1 1)
+           (* 80/81 8)
+           )
+
+;; (progn
+;;   (allon)
+;;   (moabs :b 1/1)
+;;   (moabs :t 2/1)
+;;   (moabs :a 3/1)
+;;   (moabs :s 5/1))
+
+
+(defun takeoff-o ()
+  (allon)
+  (moabs :s 5/4)
+  (moabs :a 9/8)
+  (moabs :t 3/4)
+  (moabs :b 1/2)
+  (am-mo:set-cv-1/1 -2))
+
+(defun takeoff-go ()
+  (origin-swipe -0.82 313))
+
+
+(defun uni ()
+  (moabs :s 1)
+  (moabs :a 1)
+  (moabs :t 1)
+  (moabs :b 1))
+
+(defun s1 ()
+  (moabs :s 2/1)
+  (moabs :a (* 2/1 128/125))
+  (moabs :t (* 2/1 81/80))
+  (moabs :b (* 2/1 80/81)))
+
+;; 1 octave
+(make-flux c1 1/1 1/1 1/1 1/1 2 2 2 2)
+
+;; septimal
+(make-flux c2 1/1 1/1 1/1 1/1 2 3 5/2 7/2)
+
+;; 2 octaves
+(make-flux c3 1 1 1 1 4 4 4 4)
+
+;; swarm
+(make-flux c4 1 1 1 1 4 81/20 128/32 25/6)
+
+;; wide
+(make-flux c5 1 1 1 1 1 6 8 10)
