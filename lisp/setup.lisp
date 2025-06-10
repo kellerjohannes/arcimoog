@@ -266,18 +266,18 @@
 
 
 
-(progn
-  (on :s)
-  (on :a)
-  (on :t)
-  (moabs :s 1/128)
-  (moabs :a (* 3/2 1/128))
-  (moabs :t (* 2/1 1/128)))
+;; (progn
+;;   (on :s)
+;;   (on :a)
+;;   (on :t)
+;;   (moabs :s 1/128)
+;;   (moabs :a (* 3/2 1/128))
+;;   (moabs :t (* 2/1 1/128)))
 
-(progn
-  (simple-swipe (incudine:now) 1/128 1 1/2 :s)
-  (simple-swipe (incudine:now) (* 3/2 1 1/128) (* 3/2 1/2) :a)
-  (simple-swipe (incudine:now) (* 2/1 1 1/128) (* 2/1 1/2) :t))
+;; (progn
+;;   (simple-swipe (incudine:now) 1/128 1 1/2 :s)
+;;   (simple-swipe (incudine:now) (* 3/2 1 1/128) (* 3/2 1/2) :a)
+;;   (simple-swipe (incudine:now) (* 2/1 1 1/128) (* 2/1 1/2) :t))
 
 
 (defun flux-1-o ()

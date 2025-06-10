@@ -48,8 +48,8 @@
            #:register-hook
            ))
 
-;; (defpackage :arcimoog.symbolic-intervals
-;;   (:use :cl))
+(defpackage :arcimoog.symbolic-intervals
+  (:use :cl))
 
 ;; (defpackage :arcimoog.score-model
 ;;   (:use :cl)

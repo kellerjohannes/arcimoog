@@ -1,4 +1,4 @@
-(in-package :symbolic-intervals)
+(in-package :arcimoog.symbolic-intervals)
 
 (defparameter *ordine-naturale*
   '((tono . ((apotome . limma)))
@@ -257,3 +257,20 @@ name (symbol defined in INTERVAL-TREE), the second one is NIL (only for UNISONO)
 (defun interval-path (interval-list interval-tree identity-interval)
   ;; (format t "~&DEBUG: NEW CHAIN.")
   (reduce (lambda (a b) (chain-intervals a b interval-tree identity-interval)) interval-list))
+
+(defun condense (interval-list-shorthand &optional (interval-tree *interval-combinations*)
+                                           (identity-interval 'ottava))
+  (interval-path (mapcar (lambda (interval-shorthand)
+                           (if (listp interval-shorthand)
+                               (make-interval
+                                (first interval-shorthand)
+                                (if (second interval-shorthand)
+                                    (second interval-shorthand)
+                                    'ascendente)
+                                (if (third interval-shorthand)
+                                    (third interval-shorthand)
+                                    0))
+                               (make-interval interval-shorthand 'ascendente 0)))
+                         interval-list-shorthand)
+                 interval-tree
+                 identity-interval))

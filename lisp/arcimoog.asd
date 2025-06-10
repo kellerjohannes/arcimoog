@@ -9,7 +9,7 @@
                (:file "utilities")
                (:file "conditions")
                (:file "global-definitions")
-               ;;(:file "symbolic-intervals")
+               (:file "symbolic-intervals")
                ;;(:file "score-model")
                ;;(:file "faderfox")
                ;;(:file "utilities")
