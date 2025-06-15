@@ -1,5 +1,13 @@
 (in-package :arcimoog.utilities)
 
+;;; General things
+
+(defmacro if-exists (expression else-form)
+  `(if ,expression
+       ,expression
+       ,else-form))
+
+
 ;;; Macros as shorthands for registering parameters and MIDI callbacks.
 
 (defmacro register-constant (name value)

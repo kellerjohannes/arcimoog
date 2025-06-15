@@ -1,7 +1,8 @@
 (defpackage :arcimoog.utilities
   (:use :cl)
   (:nicknames :utility)
-  (:export #:register-constant
+  (:export #:if-exists
+           #:register-constant
            #:register-display-parameter
            #:register-cv
            #:shrink
@@ -49,7 +50,9 @@
            ))
 
 (defpackage :arcimoog.symbolic-intervals
-  (:use :cl))
+  (:use :cl)
+  (:import-from :arcimoog.utilities
+                #:if-exists))
 
 ;; (defpackage :arcimoog.score-model
 ;;   (:use :cl)

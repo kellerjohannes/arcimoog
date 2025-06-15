@@ -1,6 +1,9 @@
 (in-package :arcimoog.symbolic-intervals)
 
-(defparameter *ordine-naturale*
+
+;;; Definitions of interval trees
+
+(defparameter *guido*
   '((tono . ((apotome . limma)))
     (semiditono . ((limma . tono)))
     (ditono . ((apotome . semiditono)
@@ -38,7 +41,7 @@
                  (diatessaron . diapente)
                  (tritono . semidiapente)))))
 
-(defparameter *interval-combinations*
+(defparameter *musica-mista*
   '((ottava . ((quinta . quarta)
                (quinta-imperfetta . tritono)
                (sesta-minore . terza-maggiore)
@@ -66,18 +69,126 @@
                 (quarta . semitono-minore)))
     (quarta . ((terza-maggiore . semitono-maggiore)
                (terza-minore . tono)))
-    (terza-piu-di-maggiore . ((terza-minore . semitono-maggiore)
-                              (tono-maggiore . tono)))
     (terza-maggiore . ((tono . tono)
                        (terza-minore . semitono-minore)))
     (terza-minore . ((tono . semitono-maggiore)))
-    (tono-maggiore . ((semitono-maggiore . semitono-maggiore)
-                      (tono . diesis)))
     (tono . ((semitono-maggiore . semitono-minore)))
-    (tono-minore . ((semitono-minore . semitono-minore)
-                    (semitono-maggiore . diesis)))
     (semitono-maggiore . ((semitono-minore . diesis)))
     (semitono-minore . ((diesis . diesis)))))
+
+(defparameter *vicentino*
+  ;; TODO Create subtrees *vicentino-cromatico* and *vicentino-diatonico* by deleting stuff from
+  ;; this tree, which needs to be renamed to *vicentino-enarmonico*.
+  '((ottava . ((quinta . quarta)
+               (quinta-imperfetta . tritono)
+               (sesta-minore . terza-maggiore)
+               (sesta-maggiore . terza-minore)
+               (settima-minore . tono)
+               (settima-maggiore . semitono-maggiore)))
+    (settima-maggiore . ((quinta . terza-maggiore)
+                         (quarta . tritono)
+                         (sesta-maggiore . tono)
+                         (settima-minore . semitono-minore)))
+    (settima-minore . ((quinta . terza-minore)
+                       (quarta . quarta)
+                       (terza-maggiore . quinta-imperfetta)))
+    (sesta-maggiore . ((quarta . terza-maggiore)
+                       (tritono . terza-minore)
+                       (quinta . tono)))
+    (sesta-minore . ((quarta . terza-minore)
+                     (quinta . semitono-maggiore)))
+    (quinta . ((quinta-imperfetta-propinqua . diesis-minore)
+               (quinta-imperfetta . semitono-minore)
+               (tritono . semitono-maggiore)
+               (quarta-propinqua . tono-minore)
+               (quarta . tono)
+               (quarta-minima . tono-maggiore)
+               (terza-più-di-maggiore . terza-minima)
+               (terza-maggiore . terza-minore)
+               (terza-più-di-minore . terza-più-di-minore)))
+    (quinta-imperfetta-propinqua . ((quinta-imperfetta . diesis-minore)
+                                    (tritono . semitono-minore)
+                                    (quarta-propinqua . semitono-maggiore)
+                                    (quarta . tono-minore)
+                                    (quarta-minima . tono)
+                                    (terza-più-di-maggiore . tono-maggiore)
+                                    (terza-maggiore . terza-minima)
+                                    (terza-più-di-minore . terza-minore)))
+    (quinta-imperfetta . ((tritono . diesis-minore)
+                          (quarta-propinqua . semitono-minore)
+                          (quarta . semitono-maggiore)
+                          (quarta-minima . tono-minore)
+                          (terza-più-di-maggiore . tono)
+                          (terza-maggiore . tono-maggiore)
+                          (terza-più-di-minore . terza-minima)
+                          (terza-minore . terza-minore)))
+    (tritono . ((quarta-propinqua . diesis-minore)
+                (quarta . semitono-minore)
+                (quarta-minima . semitono-maggiore)
+                (terza-più-di-maggiore . tono-minore)
+                (terza-maggiore . tono)
+                (terza-più-di-minore . tono-maggiore)
+                (terza-minore . terza-minima)))
+    (quarta-propinqua . ((quarta . diesis-minore)
+                         (quarta-minima . semitono-minore)
+                         (terza-più-di-maggiore . semitono-maggiore)
+                         (terza-maggiore . tono-minore)
+                         (terza-più-di-minore . tono)
+                         (terza-minore . tono-maggiore)
+                         (terza-minima . terza-minima)))
+    (quarta . ((quarta-minima . diesis-minore)
+               (terza-più-di-maggiore . semitono-minore)
+               (terza-maggiore . semitono-maggiore)
+               (terza-più-di-minore . tono-minore)
+               (terza-minore . tono)
+               (terza-minima . tono-maggiore)))
+    (quarta-minima . ((terza-più-di-maggiore . diesis-minore)
+                      (terza-maggiore . semitono-minore)
+                      (terza-più-di-minore . semitono-maggiore)
+                      (terza-minore . tono-minore)
+                      (terza-minima . tono)
+                      (tono-maggiore . tono-maggiore)))
+    (terza-più-di-maggiore . ((terza-maggiore . diesis-minore)
+                              (terza-più-di-minore . semitono-minore)
+                              (terza-minore . semitono-maggiore)
+                              (terza-minima . tono-minore)
+                              (tono-maggiore . tono)))
+    (terza-maggiore . ((terza-più-di-minore . diesis-minore)
+                       (terza-minore . semitono-minore)
+                       (terza-minima . semitono-maggiore)
+                       (tono-maggiore . tono-minore)
+                       (tono . tono)))
+    (terza-più-di-minore . ((terza-minore . diesis-minore)
+                            (terza-minima . semitono-minore)
+                            (tono-maggiore . semitono-maggiore)
+                            (tono . tono-minore)))
+    (terza-minore . ((terza-minima . diesis-minore)
+                     (tono-maggiore . semitono-minore)
+                     (tono . semitono-maggiore)
+                     (tono-minore . tono-minore)))
+    (terza-minima . ((tono-maggiore . diesis-minore)
+                     (tono . semitono-minore)
+                     (tono-minore . semitono-maggiore)))
+    (tono-maggiore . ((tono . diesis-minore)
+                      (tono-minore . semitono-minore)
+                      (semitono-maggiore . semitono-maggiore)))
+    (tono . ((tono-minore . diesis-minore)
+             (semitono-maggiore . semitono-minore)))
+    (tono-minore . ((semitono-maggiore . diesis-minore)
+                    (semitono-minore . semitono-minore)))
+    (semitono-maggiore . ((diesis-maggiore . diesis-minore)))
+    (semitono-minore . ((diesis-minore . diesis-minore)))
+    ;;(diesis-minore . ((comma . comma)))
+    )
+  "All melodic intervals according to Vicentino's \"Libro primo della prattica musicale\". There is a
+conceptual distinction between the \"diesis enarmonico maggiore\" and the \"semitono minore\". No
+\"propinquissimo\"-intervals are included. The \"comma\" is defined as half the size of the \"diesis
+minore\", but not included in the interval tree. For the \"terza manca di minore\", the alternative
+name \"terza minima\" is used. \"quarta minima\" is defined, although never mentioned by Vicentino.")
+
+
+
+;;; Navigating a tree
 
 (defun find-interval-divisions (interval interval-tree)
   (cdr (assoc interval interval-tree)))
@@ -177,16 +288,12 @@
 (defun make-interval (name direction multiplier)
   (list name direction multiplier))
 
-;; probably never used
-(defun get-larger-multiplier (interval-a interval-b)
-  (if (> (multiplier interval-a) (multiplier interval-b))
-      (multiplier interval-a)
-      (multiplier interval-b)))
-
-
 (defun combine-interval-names-mod (name-a name-b interval-tree identity-interval-name)
   (let ((tmp (subdivide-interval-names identity-interval-name name-a interval-tree)))
     (subdivide-interval-names name-b tmp interval-tree)))
+
+
+;; Main function for interval operations
 
 (defun chain-intervals (a b interval-tree identity-interval-name)
   "A and B are in the form of '(quinta ascendente 0), where the first element is an interval
@@ -255,22 +362,101 @@ name (symbol defined in INTERVAL-TREE), the second one is NIL (only for UNISONO)
 
 
 (defun interval-path (interval-list interval-tree identity-interval)
-  ;; (format t "~&DEBUG: NEW CHAIN.")
   (reduce (lambda (a b) (chain-intervals a b interval-tree identity-interval)) interval-list))
 
-(defun condense (interval-list-shorthand &optional (interval-tree *interval-combinations*)
-                                           (identity-interval 'ottava))
+;; Probably obsolete, replaced by the public function CONDENSE-MELODY.
+(defun condense (interval-list-shorthand interval-tree identity-interval)
   (interval-path (mapcar (lambda (interval-shorthand)
                            (if (listp interval-shorthand)
                                (make-interval
                                 (first interval-shorthand)
-                                (if (second interval-shorthand)
-                                    (second interval-shorthand)
-                                    'ascendente)
-                                (if (third interval-shorthand)
-                                    (third interval-shorthand)
-                                    0))
+                                (if-exists (second interval-shorthand) 'ascendente)
+                                (if-exists (third interval-shorthand) 0))
                                (make-interval interval-shorthand 'ascendente 0)))
                          interval-list-shorthand)
                  interval-tree
                  identity-interval))
+
+
+
+;;; Handling note values (durations)
+
+(defparameter *note-values* (make-hash-table))
+
+(defun add-note-value (value-name number-or-relation)
+  (setf (gethash value-name *note-values*) number-or-relation))
+
+(defun init-note-values ()
+  (add-note-value 'longa 1)
+  (add-note-value 'brevis '(longa 1/2))
+  (add-note-value 'semibrevis '(brevis 1/2))
+  (add-note-value 'minima '(semibrevis 1/2))
+  (add-note-value 'semiminima '(minima 1/2))
+  (add-note-value 'fusa '(semiminima 1/2)))
+
+(init-note-values)
+
+(defun get-note-value (value-name &optional (collector 1))
+  (let ((result (gethash value-name *note-values*)))
+    (if (numberp result)
+        collector
+        (get-note-value (first result) (* (second result) collector)))))
+
+
+
+
+;;; Utilities for public access
+
+(defparameter *interval-trees* (list (cons :guido (cons 'diapason *guido*))
+                                     (cons :musica-mista (cons 'ottava *musica-mista*))
+                                     (cons :vicentino (cons 'ottava *vicentino*))))
+
+(defun get-interval-tree (tree-name)
+  (cddr (assoc tree-name *interval-trees*)))
+
+(defun get-identity-interval (tree-name)
+  (second (assoc tree-name *interval-trees*)))
+
+(defun parse-interval (interval-data)
+  (make-interval (first interval-data)
+                 (if (second interval-data)
+                     (case (second interval-data)
+                       (:➚ 'ascendente)
+                       (:➘ 'discendente))
+                     'ascendente)
+                 (if-exists (third interval-data) 0)))
+
+(defun parse-singing (singing-data)
+  ;; For now this does nothing.
+  singing-data)
+
+(defun parse-tacet (tacet-data)
+  ;; For now this does nothing.
+  tacet-data
+  )
+
+
+;;; Public functions
+
+(defun parse-melody-data (melody-data)
+  (mapcar (lambda (melody-item)
+            (case (first melody-item)
+              (:i (parse-interval (rest melody-item)))
+              (:s (parse-singing (rest melody-item)))
+              (:t (parse-tacet (rest melody-item)))))
+          melody-data))
+
+(defun filter-pitch-data (melody-data)
+  (remove-if (lambda (item)
+               (member (first item) '(:s :t)))
+             melody-data))
+
+(defun condense-melody (tree-name melody-data)
+  (interval-path (parse-melody-data (filter-pitch-data melody-data))
+                 (get-interval-tree tree-name)
+                 (get-identity-interval tree-name)))
+
+
+
+
+(defparameter *test-melody* '((:i quinta :➚) (:s semibrevis) (:i tono :➘) (:t brevis)))
