@@ -317,6 +317,7 @@ name (symbol defined in INTERVAL-TREE), the second one is NIL (only for UNISONO)
           (return (values (generate-interval-result)
                           gate-cursor)))))))
 
+
 (defun probe-score (tree-name score-data timecode)
   (let ((interval-to-origin (mapcar (lambda (voice)
                                       (list (first voice)
@@ -343,6 +344,43 @@ name (symbol defined in INTERVAL-TREE), the second one is NIL (only for UNISONO)
                                                   (get-identity-interval tree-name)))))
                                        interval-to-origin)))
                 result))))))
+
+(defun init-voice-data (score-data)
+  (let ((voice-data nil))
+    (dolist (voice score-data voice-data)
+      (setf (getf voice-data (first voice))
+            `(:absolute nil ,@(loop for reference-voice in score-data
+                                    unless (eq (first voice) (first reference-voice))
+                                      append (list (first reference-voice) nil)))))))
+
+;; (defun find-next-duration (voice-data)
+;;   (format t "~&voice-data: ~a" voice-data)
+;;   (unless (null voice-data)
+;;     (if (member (first voice-data) '(:s :t))
+;;         (second voice-data)
+;;         (find-next-duration (rest voice-data)))))
+
+;; (defun identify-next-event (score-data)
+;;   (let ((candidate (cons (first (first score-data))
+;;                          (find-next-duration (rest (first score-data))))))
+;;     (dolist (voice (rest score-data) candidate)
+;;       (when (< (find-next-duration (rest voice))
+;;                (cdr candidate))
+;;         (setf candidate (cons (first voice) (find-next-duration (rest voice))))))))
+
+;; (defun parse-score (score-data)
+;;   (mapcar (lambda (voice)
+;;             (list (first voice) (parse-melody-data (rest voice))))
+;;           score-data))
+
+;; (defun read-score (tree-name score-data)
+;;   (let ((score (parse-score score-data)))
+;;     (do ((voice-data (init-voice-data score))
+;;          (time-cursor 0)
+;;          (end-flag nil))
+;;         (end-flag)
+;;       ())))
+
 
 
 (defparameter *bassus* '((:s :brevis)
