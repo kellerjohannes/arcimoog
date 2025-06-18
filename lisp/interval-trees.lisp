@@ -16,10 +16,22 @@
 
 (defun lookup-terminus (keyword-name)
   ;; TODO handle non-existend entries.
-  (gethash keyword-name *terminology*))
+  (if (keywordp keyword-name)
+      (gethash keyword-name *terminology*)
+      keyword-name))
 
 
 (defun populate-terminology ()
+  (add-terminus :maxima 'maxima)
+  (add-terminus :longa 'longa)
+  (add-terminus :brevis 'brevis)
+  (add-terminus :semibrevis 'semibrevis)
+  (add-terminus :minima 'minima)
+  (add-terminus :semiminima 'semiminima)
+  (add-terminus :fusa 'fusa)
+  (add-terminus :croma 'fusa)
+  (add-terminus :semifusa 'semifusa)
+  (add-terminus :semicroma 'semifusa)
   (add-terminus :comma 'comma)
   (add-terminus :diesis 'diesis)
   (add-terminus :diesis-minore 'diesis-minore)
