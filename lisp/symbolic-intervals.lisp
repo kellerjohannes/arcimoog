@@ -349,37 +349,57 @@ name (symbol defined in INTERVAL-TREE), the second one is NIL (only for UNISONO)
   (let ((voice-data nil))
     (dolist (voice score-data voice-data)
       (setf (getf voice-data (first voice))
-            `(:absolute nil ,@(loop for reference-voice in score-data
-                                    unless (eq (first voice) (first reference-voice))
-                                      append (list (first reference-voice) nil)))))))
+            `(:absolute nil
+              :soundingp nil
+              :pitch 1/1
+              ,@(loop for reference-voice in score-data
+                      unless (eq (first voice) (first reference-voice))
+                        append (list (first reference-voice) nil)))))))
 
-;; (defun find-next-duration (voice-data)
-;;   (format t "~&voice-data: ~a" voice-data)
-;;   (unless (null voice-data)
-;;     (if (member (first voice-data) '(:s :t))
-;;         (second voice-data)
-;;         (find-next-duration (rest voice-data)))))
+(defun find-next-duration (voice-data)
+  (unless (null voice-data)
+    (format t "~&~a" voice-data)
+    (if (member (first (first voice-data)) '(:s :t))
+        (second (first voice-data))
+        (find-next-duration (rest voice-data)))))
 
-;; (defun identify-next-event (score-data)
-;;   (let ((candidate (cons (first (first score-data))
-;;                          (find-next-duration (rest (first score-data))))))
-;;     (dolist (voice (rest score-data) candidate)
-;;       (when (< (find-next-duration (rest voice))
-;;                (cdr candidate))
-;;         (setf candidate (cons (first voice) (find-next-duration (rest voice))))))))
+;; TODO Delete, when done with debugging.
+(defparameter *pscore* (parse-score *score*))
 
-;; (defun parse-score (score-data)
-;;   (mapcar (lambda (voice)
-;;             (list (first voice) (parse-melody-data (rest voice))))
-;;           score-data))
 
-;; (defun read-score (tree-name score-data)
-;;   (let ((score (parse-score score-data)))
-;;     (do ((voice-data (init-voice-data score))
-;;          (time-cursor 0)
-;;          (end-flag nil))
-;;         (end-flag)
-;;       ())))
+(defun identify-closest-event (parsed-score)
+  (let ((candidate (cons (first (first parsed-score))
+                         (find-next-duration (second (first parsed-score))))))
+    (dolist (voice (rest parsed-score) candidate)
+      (when (< (find-next-duration (second voice))
+               (cdr candidate))
+        (setf candidate (cons (first voice) (find-next-duration (second voice))))))))
+
+(defun parse-score (score-data)
+  (mapcar (lambda (voice)
+            (list (first voice) (parse-melody-data (rest voice))))
+          score-data))
+
+;; TODO messy at this point. Maybe completely rethink.
+
+;; (defun process-score-keyframe (parsed-score voice-cursor keyframe)
+;;   (dolist (voice parsed-score (values parsed-score voice-cursor))
+;;     (dolist (voice-item (second voice))
+;;       (case (first voice-item)
+;;         (:t (setf (getf :(getf voice-cursor (first voice)))))))))
+
+(defun read-score (tree-name score-data)
+  (do* ((parsed-score (parse-score score-data))
+        (voice-cursor (init-voice-data parsed-score))
+        (time-cursor 0)
+        (end-flag nil))
+       (end-flag nil)
+    (let ((next-keyframe (identify-closest-event parsed-score)))
+      (multiple-value-bind (new-parsed-score new-voice-cursor)
+          (process-score-keyframe parsed-score voice-cursor next-keyframe)
+        (setf parsed-score new-parsed-score)
+        (setf voice-cursor new-voice-cursor)
+        (setf time-cursor next-keyframe)))))
 
 
 
