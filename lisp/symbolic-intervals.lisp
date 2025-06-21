@@ -395,10 +395,8 @@ name (symbol defined in INTERVAL-TREE), the second one is NIL (only for UNISONO)
         (end-flag nil))
        (end-flag nil)
     (let ((next-keyframe (identify-closest-event parsed-score)))
-      (multiple-value-bind (new-parsed-score new-voice-cursor)
+      (multiple-value-bind (parsed-score voice-cursor)
           (process-score-keyframe parsed-score voice-cursor next-keyframe)
-        (setf parsed-score new-parsed-score)
-        (setf voice-cursor new-voice-cursor)
         (setf time-cursor next-keyframe)))))
 
 
