@@ -243,6 +243,9 @@ name (symbol defined in INTERVAL-TREE), the second one is NIL (only for UNISONO)
 (defun get-identity-interval (tree-name)
   (second (assoc tree-name *interval-trees*)))
 
+
+;;; Handling score data
+
 (defun parse-interval (interval-data)
   (make-interval (lookup-terminus (first interval-data))
                  (if (second interval-data)
@@ -264,20 +267,39 @@ name (symbol defined in INTERVAL-TREE), the second one is NIL (only for UNISONO)
                         (eq (second tacet-data) :dot)))
 
 
-;;; Public functions
 
 (defun parse-melody-data (melody-data)
-  (mapcar (lambda (melody-item)
-            (case (first melody-item)
-              (:i (list :type :interval
-                        :interval-object (parse-interval (rest melody-item))))
-              (:s (list :type :sound
-                        :note-value (rest melody-item)
-                        :duration (parse-singing (rest melody-item))))
-              (:t (list :type :tacet
-                        :note-value (rest melody-item)
-                        :duration (parse-tacet (rest melody-item))))))
-          melody-data))
+  (let ((time-cursor 0))
+    (mapcar (lambda (melody-item)
+              (case (first melody-item)
+                (:i (list :type :interval
+                          :interval-object (parse-interval (rest melody-item))))
+                (:s (list :type :sound
+                          :note-value (rest melody-item)
+                          :duration (parse-singing (rest melody-item))
+                          :start-time time-cursor
+                          :end-time (incf time-cursor (parse-singing (rest melody-item)))))
+                (:t (list :type :tacet
+                          :note-value (rest melody-item)
+                          :duration (parse-tacet (rest melody-item))
+                          :start-time time-cursor
+                          :end-time (incf time-cursor (parse-tacet (rest melody-item)))))))
+            melody-data)))
+
+(defun parse-score (score-data)
+  (mapcar (lambda (voice)
+            (list :voice-name (first voice)
+                  :voice-data (parse-melody-data (rest voice))))
+          score-data))
+
+;; (defun get-voice-by-name (parsed-score voice-name)
+;;   (dolist (voice parsed-score)
+;;     (when (eq (getf voice :voice-name) voice-name)
+;;       (return (cons voice-name (getf voice :voice-data))))))
+
+
+
+;;; Public functions
 
 ;; TODO probably obsolete
 (defun filter-pitch-data (raw-melody-data)
@@ -383,22 +405,6 @@ name (symbol defined in INTERVAL-TREE), the second one is NIL (only for UNISONO)
 ;;                (cdr candidate))
 ;;         (setf candidate (cons (first voice) (find-next-duration (second voice))))))))
 
-(defun parse-score (score-data)
-  (mapcar (lambda (voice)
-            (list :voice-name (first voice)
-                  :voice-data (parse-melody-data (rest voice))))
-          score-data))
-
-;; (defun convert-note-values-to-timecodes (parsed-score &optional (time-offset 0))
-;;   (mapcar (lambda (voice)
-;;             (let ((time-cursor time-offset))
-;;               (list (first voice)
-;;                     (mapcar (lambda (voice-item)
-;;                               (cond ((member (first voice-item) '(:t :s))
-;;                                      (append (list (first voice-item)
-;;                                                    (cons ...))))))
-;;                             (second voice)))))
-;;           parsed-score))
 
 ;; TODO messy at this point. Maybe completely rethink.
 
