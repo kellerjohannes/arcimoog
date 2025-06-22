@@ -244,26 +244,24 @@ name (symbol defined in INTERVAL-TREE), the second one is NIL (only for UNISONO)
   (second (assoc tree-name *interval-trees*)))
 
 (defun parse-interval (interval-data)
-  (list :i (make-interval (lookup-terminus (first interval-data))
-                          (if (second interval-data)
-                              (case (second interval-data)
-                                (:➚ 'ascendente)
-                                (:➘ 'discendente))
-                              'ascendente)
-                          (if-exists (third interval-data) 0))))
+  (make-interval (lookup-terminus (first interval-data))
+                 (if (second interval-data)
+                     (case (second interval-data)
+                       (:➚ 'ascendente)
+                       (:➘ 'discendente))
+                     'ascendente)
+                 (if-exists (third interval-data) 0)))
 
 (defun interpret-note-value (note-value &optional dotp)
   (* (get-note-value note-value) (if dotp 3/2 1)))
 
 (defun parse-singing (singing-data)
-  ;; Transform note value into numeric form.
-  (list :s (interpret-note-value (lookup-terminus (first singing-data))
-                                 (eq (second singing-data) :dot))))
+  (interpret-note-value (lookup-terminus (first singing-data))
+                        (eq (second singing-data) :dot)))
 
 (defun parse-tacet (tacet-data)
-  ;; Transform note value into numeric form.
-  (list :t (interpret-note-value (lookup-terminus (first tacet-data))
-                                 (eq (second tacet-data) :dot))))
+  (interpret-note-value (lookup-terminus (first tacet-data))
+                        (eq (second tacet-data) :dot)))
 
 
 ;;; Public functions
@@ -271,30 +269,40 @@ name (symbol defined in INTERVAL-TREE), the second one is NIL (only for UNISONO)
 (defun parse-melody-data (melody-data)
   (mapcar (lambda (melody-item)
             (case (first melody-item)
-              (:i (parse-interval (rest melody-item)))
-              (:s (parse-singing (rest melody-item)))
-              (:t (parse-tacet (rest melody-item)))))
+              (:i (list :type :interval
+                        :interval-object (parse-interval (rest melody-item))))
+              (:s (list :type :sound
+                        :note-value (rest melody-item)
+                        :duration (parse-singing (rest melody-item))))
+              (:t (list :type :tacet
+                        :note-value (rest melody-item)
+                        :duration (parse-tacet (rest melody-item))))))
           melody-data))
 
-(defun filter-pitch-data (melody-data)
+;; TODO probably obsolete
+(defun filter-pitch-data (raw-melody-data)
   (remove-if (lambda (item)
                (member (first item) '(:s :t)))
-             melody-data))
+             raw-melody-data))
 
-(defun filter-duration-data (melody-data)
+;; TODO probably obsolete
+(defun filter-duration-data (raw-melody-data)
   (remove-if-not (lambda (item)
                    (member (first item) '(:s :t)))
-                 melody-data))
+                 raw-melody-data))
 
-(defun condense-melody (tree-name melody-data)
-  (interval-path (mapcar #'second (parse-melody-data (filter-pitch-data melody-data)))
+;; TODO probably obsolete
+(defun condense-melody (tree-name raw-melody-data)
+  (interval-path (mapcar #'second (parse-melody-data (filter-pitch-data raw-melody-data)))
                  (get-interval-tree tree-name)
                  (get-identity-interval tree-name)))
 
-(defun sum-note-values (melody-data)
-  (reduce #'+ (mapcar #'second (parse-melody-data (filter-duration-data melody-data)))))
+;; TODO probably obsolete
+(defun sum-note-values (raw-melody-data)
+  (reduce #'+ (mapcar #'second (parse-melody-data (filter-duration-data raw-melody-data)))))
 
-(defun ff-voice (tree-name melody-data timecode)
+;; TODO probably obsolete
+(defun ff-voice (tree-name raw-melody-data timecode)
   (let ((time-cursor 0)
         (interval-path nil)
         (gate-cursor nil))
@@ -302,7 +310,7 @@ name (symbol defined in INTERVAL-TREE), the second one is NIL (only for UNISONO)
              (condense interval-path
                        (get-interval-tree tree-name)
                        (get-identity-interval tree-name))))
-      (dolist (melody-item (parse-melody-data melody-data) (values (generate-interval-result)
+      (dolist (melody-item (parse-melody-data raw-melody-data) (values (generate-interval-result)
                                                                    gate-cursor))
         (case (first melody-item)
           (:i
@@ -318,6 +326,7 @@ name (symbol defined in INTERVAL-TREE), the second one is NIL (only for UNISONO)
                           gate-cursor)))))))
 
 
+;; TODO probably obsolete
 (defun probe-score (tree-name score-data timecode)
   (let ((interval-to-origin (mapcar (lambda (voice)
                                       (list (first voice)
@@ -345,40 +354,51 @@ name (symbol defined in INTERVAL-TREE), the second one is NIL (only for UNISONO)
                                        interval-to-origin)))
                 result))))))
 
-(defun init-voice-data (score-data)
-  (let ((voice-data nil))
-    (dolist (voice score-data voice-data)
-      (setf (getf voice-data (first voice))
-            `(:absolute nil
+(defun init-voice-data (parsed-score)
+  (let ((head nil))
+    (dolist (voice parsed-score head)
+      (setf (getf head (getf voice :voice-name))
+            `(:interval-to-origin nil
               :soundingp nil
               :pitch 1/1
-              ,@(loop for reference-voice in score-data
+              ,@(loop for reference-voice in parsed-score
                       unless (eq (first voice) (first reference-voice))
-                        append (list (first reference-voice) nil)))))))
+                        append (list :interval-to-voice (first reference-voice)
+                                     :interval nil)))))))
 
-(defun find-next-duration (voice-data)
-  (unless (null voice-data)
-    (format t "~&~a" voice-data)
-    (if (member (first (first voice-data)) '(:s :t))
-        (second (first voice-data))
-        (find-next-duration (rest voice-data)))))
-
-;; TODO Delete, when done with debugging.
-(defparameter *pscore* (parse-score *score*))
+;; (defun find-next-duration (voice-data)
+;;   (unless (null voice-data)
+;;     (format t "~&~a" voice-data)
+;;     (if (member (first (first voice-data)) '(:s :t))
+;;         (second (first voice-data))
+;;         (find-next-duration (rest voice-data)))))
 
 
-(defun identify-closest-event (parsed-score)
-  (let ((candidate (cons (first (first parsed-score))
-                         (find-next-duration (second (first parsed-score))))))
-    (dolist (voice (rest parsed-score) candidate)
-      (when (< (find-next-duration (second voice))
-               (cdr candidate))
-        (setf candidate (cons (first voice) (find-next-duration (second voice))))))))
+
+;; (defun identify-closest-event (parsed-score)
+;;   (let ((candidate (cons (first (first parsed-score))
+;;                          (find-next-duration (second (first parsed-score))))))
+;;     (dolist (voice (rest parsed-score) candidate)
+;;       (when (< (find-next-duration (second voice))
+;;                (cdr candidate))
+;;         (setf candidate (cons (first voice) (find-next-duration (second voice))))))))
 
 (defun parse-score (score-data)
   (mapcar (lambda (voice)
-            (list (first voice) (parse-melody-data (rest voice))))
+            (list :voice-name (first voice)
+                  :voice-data (parse-melody-data (rest voice))))
           score-data))
+
+;; (defun convert-note-values-to-timecodes (parsed-score &optional (time-offset 0))
+;;   (mapcar (lambda (voice)
+;;             (let ((time-cursor time-offset))
+;;               (list (first voice)
+;;                     (mapcar (lambda (voice-item)
+;;                               (cond ((member (first voice-item) '(:t :s))
+;;                                      (append (list (first voice-item)
+;;                                                    (cons ...))))))
+;;                             (second voice)))))
+;;           parsed-score))
 
 ;; TODO messy at this point. Maybe completely rethink.
 
@@ -394,10 +414,10 @@ name (symbol defined in INTERVAL-TREE), the second one is NIL (only for UNISONO)
         (time-cursor 0)
         (end-flag nil))
        (end-flag nil)
-    (let ((next-keyframe (identify-closest-event parsed-score)))
-      (multiple-value-bind (parsed-score voice-cursor)
-          (process-score-keyframe parsed-score voice-cursor next-keyframe)
-        (setf time-cursor next-keyframe)))))
+       (let ((next-keyframe (identify-closest-event parsed-score)))
+         (multiple-value-bind (parsed-score voice-cursor)
+                              (process-score-keyframe parsed-score voice-cursor next-keyframe)
+                              (setf time-cursor next-keyframe)))))
 
 
 
@@ -461,3 +481,6 @@ name (symbol defined in INTERVAL-TREE), the second one is NIL (only for UNISONO)
                             (cons :altus *altus*)
                             (cons :tenor *tenor*)
                             (cons :bassus *bassus*)))
+
+;; TODO Delete, when done with debugging.
+(defparameter *pscore* (parse-score *score*))
