@@ -103,9 +103,10 @@
 
 (defun mirror (interval)
   (list (first interval)
-        (if (eq (second interval) 'ascendente)
-            'discendente
-            'ascendente)
+        (case (second interval)
+          (ascendente 'discendente)
+          (discendente 'ascendente)
+          (nil nil))
         (third interval)))
 
 (defun combine-interval-names-mod (name-a name-b interval-tree identity-interval-name)
@@ -273,6 +274,7 @@ name (symbol defined in INTERVAL-TREE), the second one is NIL (only for UNISONO)
     (mapcar (lambda (melody-item)
               (case (first melody-item)
                 (:i (list :type :interval
+                          :time time-cursor
                           :interval-object (parse-interval (rest melody-item))))
                 (:s (list :type :sound
                           :note-value (rest melody-item)
@@ -294,7 +296,7 @@ name (symbol defined in INTERVAL-TREE), the second one is NIL (only for UNISONO)
 (defun init-head (parsed-score)
   (mapcar (lambda (voice)
             (cons (car voice)
-                  `(:interval-to-origin ,(make-interval 'unisono 'ascendente 0)
+                  `(:interval-to-origin ,(make-interval 'unisono nil 0)
                     :soundingp nil
                     :pitch 1/1
                     :relative-intervals
@@ -335,22 +337,71 @@ name (symbol defined in INTERVAL-TREE), the second one is NIL (only for UNISONO)
         (when (and closest-local-end-time (< closest-local-end-time (cdr candidate)))
           (setf candidate (cons (first voice) closest-local-end-time)))))))
 
+(defun update-relative-intervals (tree-name parsed-score head)
+  (let ((all-voice-names (mapcar #'car parsed-score)))
+    (dolist (voice parsed-score)
+      (dolist (reference-voice-name (remove (car voice) all-voice-names))
+        (setf (get-head-relative-interval head (car voice) reference-voice-name)
+              (when (and (get-head-voice-property head (car voice) :soundingp)
+                         (get-head-voice-property head reference-voice-name :soundingp))
+                (chain-intervals (get-head-voice-property head (car voice) :interval-to-origin)
+                                 (mirror (get-head-voice-property head reference-voice-name
+                                                                  :interval-to-origin))
+                                 (get-interval-tree tree-name)
+                                 (get-identity-interval tree-name)))))))
+  head)
 
-;;; Public functions
+(defparameter *ji* '((tono . 9/8)
+                     (semitono-maggiore . 16/15)
+                     (quinta . 3/2)
+                     (quarta . 4/3)
+                     (terza-maggiore . 5/4)
+                     (terza-minore . 6/5)
+                     (sesta-minore . 8/5)
+                     (sesta-maggiore . 5/3)
+                     (settima-minore . 16/9)
+                     (ottava . 2)))
+
+(defun lookup-interval-size (interval-name)
+  (cdr (assoc interval-name *ji*)))
+
+(defun calculate-interval-size (interval-object)
+  (if (eq (first interval-object) 'unisono)
+      1/1
+      (* (lookup-interval-size (first interval-object))
+         (expt 2 (third interval-object)))))
+
+(defun update-pitch (head)
+  (dolist (voice-name (mapcar #'first head) head)
+    (setf (get-head-voice-property head voice-name :pitch)
+          (calculate-interval-size (get-head-voice-property head voice-name :interval-to-origin)))))
+
+(defun print-keyframe-info (head keyframe)
+  (format t "~&keyframe ~a:" keyframe)
+  (dolist (voice head)
+    (cond ((getf (rest voice) :soundingp)
+           (format t "~%  ~a to origin ~a, ~a, at pitch ~a, relative:"
+                   (first voice)
+                   (getf (rest voice) :interval-to-origin)
+                   (getf (rest voice) :soundingp)
+                   (getf (rest voice) :pitch))
+           (dolist (relation (getf (rest voice) :relative-intervals))
+             (when (cdr relation)
+               (format t "~%    to ~a ~a" (car relation) (cdr relation)))))
+          (t (format t "~% ~a tacet" (first voice))))))
 
 (defun process-score-keyframe (tree-name parsed-score head keyframe)
-  (labels ((loop-over-voice (voice-name voice-data &optional (internal-time 0))
+  (labels ((loop-over-voice (voice-name voice-data)
              (let ((melody-item (first voice-data)))
-               ;; (format t "~&VOICE-DATA: ~a" melody-item)
                (cond ((and (has-duration-p melody-item)
                            (<= (getf melody-item :start-time)
                                keyframe))
                       (case (getf melody-item :type)
                         (:tacet (setf (get-head-voice-property head voice-name :soundingp) nil))
                         (:sound (setf (get-head-voice-property head voice-name :soundingp) t)))
-                      (loop-over-voice voice-name (rest voice-data) (getf melody-item :end-time)))
+                      (loop-over-voice voice-name (rest voice-data)))
                      ((and (eq (getf melody-item :type) :interval)
-                           (<= internal-time keyframe))
+                           (<= (getf melody-item :time) keyframe))
                       (setf (get-head-voice-property head voice-name :interval-to-origin)
                             (chain-intervals (get-head-voice-property head
                                                                       voice-name
@@ -358,14 +409,17 @@ name (symbol defined in INTERVAL-TREE), the second one is NIL (only for UNISONO)
                                              (getf melody-item :interval-object)
                                              (get-interval-tree tree-name)
                                              (get-identity-interval tree-name)))
-                      (loop-over-voice voice-name (rest voice-data) internal-time))
+                      (loop-over-voice voice-name (rest voice-data)))
                      (t voice-data)))))
-    (values (mapcar (lambda (voice)
-                      (cons (first voice)
-                            (loop-over-voice (car voice) (cdr voice))))
-                    parsed-score)
-            ;; update head for relative intervals
-            head)))
+    (let ((updated-score (mapcar (lambda (voice)
+                                   (cons (first voice)
+                                         (loop-over-voice (car voice) (cdr voice))))
+                                 parsed-score)))
+      (values updated-score (update-relative-intervals tree-name updated-score head)))))
+
+
+
+;;; Public functions
 
 (defun read-score (tree-name score-data)
   (do* ((parsed-score (parse-score score-data))
@@ -378,11 +432,13 @@ name (symbol defined in INTERVAL-TREE), the second one is NIL (only for UNISONO)
           (multiple-value-bind (new-parsed-score new-head)
               (process-score-keyframe tree-name parsed-score head next-keyframe)
             (setf parsed-score new-parsed-score)
-            (setf head new-head)
+            (setf head (update-pitch new-head))
             (setf time-cursor next-keyframe)
-            (format t "~&NEW ITERATION, KEYFRAME: ~a" time-cursor)
-            (format t "~&NEW SCORE: ~a" parsed-score)
-            (format t "~&NEW HEAD: ~a" head))
+            (print-keyframe-info head time-cursor)
+            ;; (format t "~&NEW ITERATION, KEYFRAME: ~a" time-cursor)
+            ;; (format t "~&NEW SCORE: ~a" parsed-score)
+            ;; (format t "~&NEW HEAD: ~a" head)
+            )
           (setf end-flag t)))))
 
 
