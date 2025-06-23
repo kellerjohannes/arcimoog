@@ -288,68 +288,96 @@ name (symbol defined in INTERVAL-TREE), the second one is NIL (only for UNISONO)
 
 (defun parse-score (score-data)
   (mapcar (lambda (voice)
-            (list :voice-name (first voice)
-                  :voice-data (parse-melody-data (rest voice))))
+            (cons (first voice) (parse-melody-data (rest voice))))
           score-data))
 
-;; (defun get-voice-by-name (parsed-score voice-name)
-;;   (dolist (voice parsed-score)
-;;     (when (eq (getf voice :voice-name) voice-name)
-;;       (return (cons voice-name (getf voice :voice-data))))))
+(defun init-head (parsed-score)
+  (mapcar (lambda (voice)
+            (cons (car voice)
+                  `(:interval-to-origin nil
+                    :soundingp nil
+                    :pitch 1/1
+                    :relative-intervals
+                    ,(loop for reference-voice in parsed-score
+                            unless (eq (car voice) (car reference-voice))
+                              collect (cons (car reference-voice) nil)))))
+          parsed-score))
 
+(defmacro get-head-voice (head voice-name)
+  `(cdr (assoc ,voice-name ,head)))
+
+(defmacro get-head-voice-property (head voice-name property)
+  `(getf (get-head-voice ,head ,voice-name) ,property))
+
+(defmacro get-head-relative-interval (head origin-voice-name reference-voice-name)
+  `(cdr (assoc ,reference-voice-name
+               (get-head-voice-property ,head ,origin-voice-name :relative-intervals))))
+
+
+(defun has-duration-p (voice-data-item)
+  (member (getf voice-data-item :type) '(:sound :tacet)))
+
+(defun find-closest-end-time (voice-data)
+  (unless (null voice-data)
+    (if (has-duration-p (first voice-data))
+        (getf (first voice-data) :start-time)
+        (find-next-duration (rest voice-data)))))
+
+(defun identify-closest-event (parsed-score)
+  (let ((candidate (cons (car (first parsed-score))
+                         (find-closest-end-time (cdr (first parsed-score))))))
+    (dolist (voice (rest parsed-score) candidate)
+      (let ((closest-local-end-time (find-closest-end-time (cdr voice))))
+        (when (< closest-local-end-time (cdr candidate))
+          (setf candidate (cons (first voice) closest-local-end-time)))))))
 
 
 ;;; Public functions
 
+(defun process-score-keyframe (tree-name parsed-score head keyframe)
+  (labels ((loop-over-voice (voice-name voice-data &optional (internal-time 0))
+             (let ((melody-item (first voice-data)))
+               (format t "~&VOICE-DATA: ~a" melody-item)
+               (cond ((and (has-duration-p melody-item)
+                           (<= (getf melody-item :start-time)
+                               keyframe))
+                      (case (getf melody-item :type)
+                        (:tacet (setf (get-head-voice-property head voice-name :soundingp) nil))
+                        (:sound (setf (get-head-voice-property head voice-name :soundingp) t)))
+                      (loop-over-voice voice-name (rest voice-data) (getf melody-item :end-time)))
+                     ((and (eq (getf melody-item :type) :interval)
+                           (<= internal-time keyframe))
+                      (setf (get-head-voice-property head voice-name :interval-to-origin)
+                            (chain-intervals (get-head-voice-property head
+                                                                      voice-name
+                                                                      :interval-to-origin)
+                                             (getf melody-item :interval-object)
+                                             (get-interval-tree tree-name)
+                                             (get-identity-interval tree-name)))
+                      (loop-over-voice voice-name (rest voice-data) internal-time))))))
 
-(defun init-voice-data (parsed-score)
-  (let ((head nil))
-    (dolist (voice parsed-score head)
-      (setf (getf head (getf voice :voice-name))
-            `(:interval-to-origin nil
-              :soundingp nil
-              :pitch 1/1
-              ,@(loop for reference-voice in parsed-score
-                      unless (eq (first voice) (first reference-voice))
-                        append (list :interval-to-voice (first reference-voice)
-                                     :interval nil)))))))
-
-;; (defun find-next-duration (voice-data)
-;;   (unless (null voice-data)
-;;     (format t "~&~a" voice-data)
-;;     (if (member (first (first voice-data)) '(:s :t))
-;;         (second (first voice-data))
-;;         (find-next-duration (rest voice-data)))))
-
-
-
-;; (defun identify-closest-event (parsed-score)
-;;   (let ((candidate (cons (first (first parsed-score))
-;;                          (find-next-duration (second (first parsed-score))))))
-;;     (dolist (voice (rest parsed-score) candidate)
-;;       (when (< (find-next-duration (second voice))
-;;                (cdr candidate))
-;;         (setf candidate (cons (first voice) (find-next-duration (second voice))))))))
-
-
-;; TODO messy at this point. Maybe completely rethink.
-
-;; (defun process-score-keyframe (parsed-score voice-cursor keyframe)
-;;   (dolist (voice parsed-score (values parsed-score voice-cursor))
-;;     (dolist (voice-item (second voice))
-;;       (case (first voice-item)
-;;         (:t (setf (getf :(getf voice-cursor (first voice)))))))))
+    (values (mapcar (lambda (voice)
+                      (cons (first voice)
+                            (loop-over-voice (car voice) (cdr voice))))
+                    parsed-score)
+            ;; update head for relative intervals
+            head)))
 
 (defun read-score (tree-name score-data)
   (do* ((parsed-score (parse-score score-data))
-        (voice-cursor (init-voice-data parsed-score))
+        (head (init-head parsed-score))
         (time-cursor 0)
         (end-flag nil))
        (end-flag nil)
-       (let ((next-keyframe (identify-closest-event parsed-score)))
-         (multiple-value-bind (parsed-score voice-cursor)
-                              (process-score-keyframe parsed-score voice-cursor next-keyframe)
-                              (setf time-cursor next-keyframe)))))
+    (let ((next-keyframe (cdr (identify-closest-event parsed-score))))
+      (if next-keyframe
+          (multiple-value-bind (new-parsed-score new-head)
+              (process-score-keyframe tree-name parsed-score head next-keyframe)
+          (setf parsed-score new-parsed-score)
+          (setf head new-head)
+          (setf time-cursor next-keyframe)
+          (format t "~&NEW HEAD: ~a" head)))
+      (setf end-flag t))))
 
 
 
