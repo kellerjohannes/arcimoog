@@ -368,8 +368,10 @@ name (symbol defined in INTERVAL-TREE), the second one is NIL (only for UNISONO)
 (defun calculate-interval-size (interval-object)
   (if (eq (first interval-object) 'unisono)
       1/1
-      (* (lookup-interval-size (first interval-object))
-         (expt 2 (third interval-object)))))
+      (funcall (if (eq (second interval-object) 'ascendente) #'* #'/)
+               1/1
+               (* (lookup-interval-size (first interval-object))
+                  (expt 2 (third interval-object))))))
 
 (defun update-pitch (head)
   (dolist (voice-name (mapcar #'first head) head)
