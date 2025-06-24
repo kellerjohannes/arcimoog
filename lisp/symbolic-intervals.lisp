@@ -404,6 +404,8 @@ name (symbol defined in INTERVAL-TREE), the second one is NIL (only for UNISONO)
                       (loop-over-voice voice-name (rest voice-data)))
                      ((and (eq (getf melody-item :type) :interval)
                            (<= (getf melody-item :time) keyframe))
+                      ;; (setf (get-head-voice-property head voice-name :last-melodic-interval)
+                      ;;       (getf melody-item :interval-object))
                       (setf (get-head-voice-property head voice-name :interval-to-origin)
                             (chain-intervals (get-head-voice-property head
                                                                       voice-name
