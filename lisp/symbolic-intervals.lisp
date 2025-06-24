@@ -297,12 +297,14 @@ name (symbol defined in INTERVAL-TREE), the second one is NIL (only for UNISONO)
   (mapcar (lambda (voice)
             (cons (car voice)
                   `(:interval-to-origin ,(make-interval 'unisono nil 0)
+                    :last-melodic-interval ,(make-interval 'unisono nil 0)
+                    :last-melodic-interval-updated-p nil
                     :soundingp nil
                     :pitch 1/1
                     :relative-intervals
                     ,(loop for reference-voice in parsed-score
-                            unless (eq (car voice) (car reference-voice))
-                              collect (cons (car reference-voice) nil)))))
+                           unless (eq (car voice) (car reference-voice))
+                             collect (cons (car reference-voice) nil)))))
           parsed-score))
 
 (defmacro get-head-voice (head voice-name)
@@ -351,6 +353,10 @@ name (symbol defined in INTERVAL-TREE), the second one is NIL (only for UNISONO)
                                  (get-identity-interval tree-name)))))))
   head)
 
+
+;;; Tuning interlude, needs to be abstracted and put in a different file.
+;;; STARTING HERE
+
 (defparameter *ji* '((tono . 9/8)
                      (semitono-maggiore . 16/15)
                      (quinta . 3/2)
@@ -373,18 +379,28 @@ name (symbol defined in INTERVAL-TREE), the second one is NIL (only for UNISONO)
                (* (lookup-interval-size (first interval-object))
                   (expt 2 (third interval-object))))))
 
+(defun modify-interval-size (current-pitch interval-object)
+  (* current-pitch (calculate-interval-size interval-object)))
+
 (defun update-pitch (head)
   (dolist (voice-name (mapcar #'first head) head)
-    (setf (get-head-voice-property head voice-name :pitch)
-          (calculate-interval-size (get-head-voice-property head voice-name :interval-to-origin)))))
+    (when (get-head-voice-property head voice-name :last-melodic-interval-updated-p)
+      (setf (get-head-voice-property head voice-name :pitch)
+            (modify-interval-size (get-head-voice-property head voice-name :pitch)
+                                  (get-head-voice-property head voice-name :last-melodic-interval)))
+      (setf (get-head-voice-property head voice-name :last-melodic-interval-updated-p)
+            nil))))
+
+;;; ENDING HERE
 
 (defun print-keyframe-info (head keyframe)
   (format t "~&keyframe ~a:" keyframe)
   (dolist (voice head)
     (cond ((getf (rest voice) :soundingp)
-           (format t "~%  ~a to origin ~a, ~a, at pitch ~a, relative:"
+           (format t "~%  ~a to origin ~a by ~a, ~a, at pitch ~a, relative:"
                    (first voice)
                    (getf (rest voice) :interval-to-origin)
+                   (getf (rest voice) :last-melodic-interval)
                    (getf (rest voice) :soundingp)
                    (getf (rest voice) :pitch))
            (dolist (relation (getf (rest voice) :relative-intervals))
@@ -404,8 +420,12 @@ name (symbol defined in INTERVAL-TREE), the second one is NIL (only for UNISONO)
                       (loop-over-voice voice-name (rest voice-data)))
                      ((and (eq (getf melody-item :type) :interval)
                            (<= (getf melody-item :time) keyframe))
-                      ;; (setf (get-head-voice-property head voice-name :last-melodic-interval)
-                      ;;       (getf melody-item :interval-object))
+                      (setf (get-head-voice-property head voice-name :last-melodic-interval)
+                            (getf melody-item :interval-object))
+                      (setf (get-head-voice-property head
+                                                     voice-name
+                                                     :last-melodic-interval-updated-p)
+                            t)
                       (setf (get-head-voice-property head voice-name :interval-to-origin)
                             (chain-intervals (get-head-voice-property head
                                                                       voice-name
@@ -423,27 +443,75 @@ name (symbol defined in INTERVAL-TREE), the second one is NIL (only for UNISONO)
 
 
 
+;;; Sequencer interlude, needs to be abstracted away and probably put somewhere else.
+;;; STARTING HERE
+
+(defparameter *mother-dict* '((:cantus . :soprano)
+                              (:altus . :alto)
+                              (:tenor . :tenore)
+                              (:bassus . :basso)))
+
+(defun lookup-mother-name (voice-name)
+  (cdr (assoc voice-name *mother-dict*)))
+
+(defun update-mothers (head)
+  (dolist (voice head)
+    (let ((mother-name (lookup-mother-name (first voice))))
+      (am-mo:set-mother-pitch mother-name (* 2 (getf (rest voice) :pitch)))
+      (if (getf (rest voice) :soundingp)
+          (am-mo:mother-on mother-name)
+          (am-mo:mother-off mother-name)))))
+
+(defun compute-time (keyframe)
+  (* keyframe 2 (incudine:rt-sample-rate)))
+
+;;; ENDING HERE
+
+
 ;;; Public functions
 
+;; (defun read-score (tree-name score-data)
+;;   (do* ((parsed-score (parse-score score-data))
+;;         (head (init-head parsed-score))
+;;         (time-cursor 0)
+;;         (end-flag nil))
+;;        (end-flag nil)
+;;     (let ((next-keyframe (cdr (identify-closest-event parsed-score))))
+;;       (if next-keyframe
+;;           (multiple-value-bind (new-parsed-score new-head)
+;;               (process-score-keyframe tree-name parsed-score head next-keyframe)
+;;             (setf parsed-score new-parsed-score)
+;;             (setf head (update-pitch new-head))
+;;             (setf time-cursor next-keyframe)
+;;             (print-keyframe-info head time-cursor)
+;;             ;; (format t "~&NEW ITERATION, KEYFRAME: ~a" time-cursor)
+;;             ;; (format t "~&NEW SCORE: ~a" parsed-score)
+;;             ;; (format t "~&NEW HEAD: ~a" head)
+;;             )
+;;           (setf end-flag t)))))
+
+(defun score-reader-loop (tree-name score head start-time time-cursor)
+  ;; TIME-CURSOR can probably be removed
+  (declare (ignore time-cursor))
+  (let ((next-keyframe (cdr (identify-closest-event score))))
+    (when next-keyframe
+      (multiple-value-bind (new-score new-head)
+          (process-score-keyframe tree-name score head next-keyframe)
+        (setf new-head (update-pitch new-head))
+        (print-keyframe-info new-head next-keyframe)
+        (update-mothers new-head)
+        (when (cdr (identify-closest-event new-score))
+          (incudine:at (+ start-time (compute-time (cdr (identify-closest-event new-score))))
+                       #'score-reader-loop
+                       tree-name
+                       new-score
+                       new-head
+                       start-time
+                       next-keyframe))))))
+
 (defun read-score (tree-name score-data)
-  (do* ((parsed-score (parse-score score-data))
-        (head (init-head parsed-score))
-        (time-cursor 0)
-        (end-flag nil))
-       (end-flag nil)
-    (let ((next-keyframe (cdr (identify-closest-event parsed-score))))
-      (if next-keyframe
-          (multiple-value-bind (new-parsed-score new-head)
-              (process-score-keyframe tree-name parsed-score head next-keyframe)
-            (setf parsed-score new-parsed-score)
-            (setf head (update-pitch new-head))
-            (setf time-cursor next-keyframe)
-            (print-keyframe-info head time-cursor)
-            ;; (format t "~&NEW ITERATION, KEYFRAME: ~a" time-cursor)
-            ;; (format t "~&NEW SCORE: ~a" parsed-score)
-            ;; (format t "~&NEW HEAD: ~a" head)
-            )
-          (setf end-flag t)))))
+  (let ((parsed-score (parse-score score-data)))
+    (score-reader-loop tree-name parsed-score (init-head parsed-score) (incudine:now) 0)))
 
 
 
