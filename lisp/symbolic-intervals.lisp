@@ -470,26 +470,6 @@ name (symbol defined in INTERVAL-TREE), the second one is NIL (only for UNISONO)
 
 ;;; Public functions
 
-;; (defun read-score (tree-name score-data)
-;;   (do* ((parsed-score (parse-score score-data))
-;;         (head (init-head parsed-score))
-;;         (time-cursor 0)
-;;         (end-flag nil))
-;;        (end-flag nil)
-;;     (let ((next-keyframe (cdr (identify-closest-event parsed-score))))
-;;       (if next-keyframe
-;;           (multiple-value-bind (new-parsed-score new-head)
-;;               (process-score-keyframe tree-name parsed-score head next-keyframe)
-;;             (setf parsed-score new-parsed-score)
-;;             (setf head (update-pitch new-head))
-;;             (setf time-cursor next-keyframe)
-;;             (print-keyframe-info head time-cursor)
-;;             ;; (format t "~&NEW ITERATION, KEYFRAME: ~a" time-cursor)
-;;             ;; (format t "~&NEW SCORE: ~a" parsed-score)
-;;             ;; (format t "~&NEW HEAD: ~a" head)
-;;             )
-;;           (setf end-flag t)))))
-
 (defun score-reader-loop (tree-name score head start-time time-cursor)
   ;; TIME-CURSOR can probably be removed
   (declare (ignore time-cursor))
