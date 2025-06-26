@@ -17,7 +17,10 @@
 (defun lookup-terminus (keyword-name)
   ;; TODO handle non-existend entries.
   (if (keywordp keyword-name)
-      (gethash keyword-name *terminology*)
+      (let ((result (gethash keyword-name *terminology*)))
+        (if result
+            result
+            (error "Terminus ~a not in dictionary." keyword-name)))
       keyword-name))
 
 

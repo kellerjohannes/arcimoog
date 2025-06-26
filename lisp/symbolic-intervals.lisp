@@ -128,6 +128,13 @@ name (symbol defined in INTERVAL-TREE), the second one is NIL (only for UNISONO)
               (eq (name a) (name b))
               (not (eq (direction a) (direction b))))
          (make-interval 'unisono nil 0))
+        ;; This clause is new and untested
+        ((and (eq (name a) (name b))
+              (> (multiplier a) (multiplier b))
+              (not (eq (direction a) (direction b))))
+         (make-interval identity-interval-name
+                        (direction a)
+                        (- (multiplier a) 1 (multiplier b))))
         ((and (> (multiplier a) (multiplier b))
               (eq (name b) identity-interval-name))
          (make-interval (name a)
@@ -153,7 +160,9 @@ name (symbol defined in INTERVAL-TREE), the second one is NIL (only for UNISONO)
                                                               identity-interval-name)
                                   (direction a)
                                   (+ 1 (multiplier a) (multiplier b)))))))
-        ((and (= (multiplier a) (multiplier b))
+        ;; This clause has been modified and not tested
+        ((and ;; (= (multiplier a) (multiplier b))  ; this one was original
+              (zerop (multiplier b)) ; this one is new
               (not (eq (direction a) (direction b))))
          (multiple-value-bind (attempt container)
              (delta-interval-names (name a) (name b) interval-tree)
@@ -220,9 +229,10 @@ name (symbol defined in INTERVAL-TREE), the second one is NIL (only for UNISONO)
 
 (defun get-note-value (value-name &optional (collector 4))
   (let ((result (gethash value-name *note-values*)))
-    (if (numberp result)
-        collector
-        (get-note-value (first result) (* (second result) collector)))))
+    (cond ((numberp result) collector)
+          ((null result) (format t "~&Note value ~a not valid." value-name))
+          (t (get-note-value (first result) (* (second result) collector))))))
+
 
 
 
@@ -252,7 +262,8 @@ name (symbol defined in INTERVAL-TREE), the second one is NIL (only for UNISONO)
                  (if (second interval-data)
                      (case (second interval-data)
                        (:➚ 'ascendente)
-                       (:➘ 'discendente))
+                       (:➘ 'discendente)
+                       (error "Interval direction keyword ~a is not valid." (second interval-data)))
                      'ascendente)
                  (if-exists (third interval-data) 0)))
 
@@ -260,7 +271,7 @@ name (symbol defined in INTERVAL-TREE), the second one is NIL (only for UNISONO)
   (let ((numeric-note-value (get-note-value note-value)))
     (if (numberp numeric-note-value)
         (* numeric-note-value (if dotp 3/2 1))
-        (format t "~&~a not a recognized note value." note-value))))
+        (error "~a not a recognized note value." note-value))))
 
 (defun parse-singing (singing-data)
   (interpret-note-value (lookup-terminus (first singing-data))
@@ -288,7 +299,8 @@ name (symbol defined in INTERVAL-TREE), the second one is NIL (only for UNISONO)
                           :note-value (rest melody-item)
                           :duration (parse-tacet (rest melody-item))
                           :start-time time-cursor
-                          :end-time (incf time-cursor (parse-tacet (rest melody-item)))))))
+                          :end-time (incf time-cursor (parse-tacet (rest melody-item)))))
+                (otherwise (error "Melody data ID ~a not valid." (first melody-item)))))
             melody-data)))
 
 (defun parse-score (score-data)
@@ -324,23 +336,25 @@ name (symbol defined in INTERVAL-TREE), the second one is NIL (only for UNISONO)
 (defun has-duration-p (voice-data-item)
   (member (getf voice-data-item :type) '(:sound :tacet)))
 
-(defun find-closest-end-time (voice-data)
-  (unless (null (cdr voice-data))
+(defun find-closest-start-time (voice-data)
+  (unless (null voice-data)
     (if (has-duration-p (first voice-data))
         (getf (first voice-data) :start-time)
-        (find-closest-end-time (rest voice-data)))))
+        (find-closest-start-time (rest voice-data)))))
 
 (defun identify-closest-event (parsed-score)
   (let ((candidate (labels ((find-first-candidate (score)
-                              (if (cdr (first score))
-                                  (cons (car (first score))
-                                        (find-closest-end-time (cdr (first score))))
-                                  (find-first-candidate (rest score)))))
+                              (when score
+                                (if (cdr (first score))
+                                    (cons (car (first score))
+                                          (find-closest-start-time (cdr (first score))))
+                                    (find-first-candidate (rest score))))))
                      (find-first-candidate parsed-score))))
     (dolist (voice (rest parsed-score) candidate)
-      (let ((closest-local-end-time (find-closest-end-time (cdr voice))))
-        (when (and closest-local-end-time (< closest-local-end-time (cdr candidate)))
-          (setf candidate (cons (first voice) closest-local-end-time)))))))
+      (when (rest voice)
+        (let ((closest-local-end-time (find-closest-start-time (cdr voice))))
+          (when (and closest-local-end-time (< closest-local-end-time (cdr candidate)))
+            (setf candidate (cons (first voice) closest-local-end-time))))))))
 
 (defun update-relative-intervals (tree-name parsed-score head)
   (let ((all-voice-names (mapcar #'car parsed-score)))
@@ -360,6 +374,8 @@ name (symbol defined in INTERVAL-TREE), the second one is NIL (only for UNISONO)
 ;;; Tuning interlude, needs to be abstracted and put in a different file.
 ;;; STARTING HERE
 
+;; JI preliminary solution
+
 (defparameter *ji* '((tono . 9/8)
                      (semitono-maggiore . 16/15)
                      (quinta . 3/2)
@@ -372,7 +388,10 @@ name (symbol defined in INTERVAL-TREE), the second one is NIL (only for UNISONO)
                      (ottava . 2)))
 
 (defun lookup-interval-size (interval-name)
-  (cdr (assoc interval-name *ji*)))
+  (let ((result (cdr (assoc interval-name *ji*))))
+    (if (numberp result)
+        result
+        (error "Interval ~a does not have a defined size." interval-name))))
 
 (defun calculate-interval-size (interval-object)
   (if (eq (first interval-object) 'unisono)
@@ -394,10 +413,70 @@ name (symbol defined in INTERVAL-TREE), the second one is NIL (only for UNISONO)
       (setf (get-head-voice-property head voice-name :last-melodic-interval-updated-p)
             nil))))
 
+
+;; Preliminary linear system
+
+
+(defparameter *fifth-indices* '((semitono-minore 7)
+                                (tritono . 6)
+                                (settima-maggiore . 5)
+                                (terza-maggiore . 4)
+                                (sesta-maggiore . 3)
+                                (tono . 2)
+                                (quinta . 1)
+                                (unisono . 0)
+                                (ottava . 0)
+                                (quarta . -1)
+                                (settima-minore . -2)
+                                (terza-minore . -3)
+                                (sesta-minore . -4)
+                                (semitono-maggiore . -5)
+                                (quinta-imperfetta . -6)))
+
+(defun lookup-fifth-index (interval-name)
+  (cdr (assoc interval-name *fifth-indices*)))
+
+(defun to-pitchclass (interval-ratio &optional (identity-interval 2/1))
+  (cond ((< interval-ratio 1)
+         (to-pitchclass (* interval-ratio identity-interval) identity-interval))
+        ((>= interval-ratio identity-interval)
+         (to-pitchclass (/ interval-ratio identity-interval) identity-interval))
+        (t interval-ratio)))
+
+(defun temper (interval-ratio amount &optional (comma 81/80))
+  (* interval-ratio (expt comma amount)))
+
+(defun linear-system (index generator-interval &optional (identity-interval 2/1))
+  (to-pitchclass (expt generator-interval index) identity-interval))
+
+(defun lookup-linear-system (interval-name)
+  (linear-system (lookup-fifth-index interval-name)
+                 (temper 3/2 -1/4)))
+
+(defun calculate-interval-size (interval-object)
+  (case (first interval-object)
+    (unisono 1/1)
+    (ottava 2/1)
+    (otherwise (funcall (if (eq (second interval-object) 'ascendente) #'* #'/) 1/1
+                        (* (lookup-linear-system (first interval-object))
+                           (expt 2 (third interval-object)))))))
+
+(defun modify-interval-size (current-pitch interval-object)
+  (* current-pitch (calculate-interval-size interval-object)))
+
+(defun update-pitch (head)
+  (dolist (voice-name (mapcar #'first head) head)
+    (when (get-head-voice-property head voice-name :last-melodic-interval-updated-p)
+      (setf (get-head-voice-property head voice-name :pitch)
+            (modify-interval-size (get-head-voice-property head voice-name :pitch)
+                                  (get-head-voice-property head voice-name :last-melodic-interval)))
+      (setf (get-head-voice-property head voice-name :last-melodic-interval-updated-p)
+            nil))))
+
 ;;; ENDING HERE
 
 (defun print-keyframe-info (head keyframe)
-  (format t "~&keyframe ~a:" keyframe)
+  (format t "~%~%------------------------~%Keyframe ~a:" keyframe)
   (dolist (voice head)
     (cond ((getf (rest voice) :soundingp)
            (format t "~%  ~a to origin ~a by ~a, ~a, at pitch ~a, relative:"
@@ -409,12 +488,26 @@ name (symbol defined in INTERVAL-TREE), the second one is NIL (only for UNISONO)
            (dolist (relation (getf (rest voice) :relative-intervals))
              (when (cdr relation)
                (format t "~%    to ~a ~a" (car relation) (cdr relation)))))
-          (t (format t "~% ~a tacet" (first voice))))))
+          (t (format t "~% ~a tacet" (first voice))))
+    (format t "~%")))
+
+(defun print-melody-info (head keyframe voice-name)
+  (format t "~&Keyframe ~a:" keyframe)
+  (dolist (voice head)
+    (when (eq (first voice) voice-name)
+      (format t "~&  ~a moves to ~a (from origin) by ~a."
+              (first voice)
+              (getf (rest voice) :interval-to-origin)
+              (getf (rest voice) :last-melodic-interval)))))
 
 (defun process-score-keyframe (tree-name parsed-score head keyframe)
   (labels ((loop-over-voice (voice-name voice-data)
              (let ((melody-item (first voice-data)))
-               (cond ((and (has-duration-p melody-item)
+               (cond ((null melody-item)
+                      (setf (get-head-voice-property head voice-name :soundingp) nil)
+                      (format t "~&Voice ~a is done." voice-name)
+                      voice-data)
+                     ((and (has-duration-p melody-item)
                            (<= (getf melody-item :start-time)
                                keyframe))
                       (case (getf melody-item :type)
@@ -473,25 +566,40 @@ name (symbol defined in INTERVAL-TREE), the second one is NIL (only for UNISONO)
 
 ;;; Public functions
 
-(defun score-reader-loop (tree-name score head start-time)
+(defun score-reader-loop (tree-name score head start-time skip-pitch-update skip-timing-function)
   (let ((next-keyframe (cdr (identify-closest-event score))))
     (when next-keyframe
       (multiple-value-bind (new-score new-head)
           (process-score-keyframe tree-name score head next-keyframe)
         (setf new-head (update-pitch new-head))
         (print-keyframe-info new-head next-keyframe)
-        (update-mothers new-head)
+        ;; (print-melody-info new-head next-keyframe :bassus)
+        (unless skip-pitch-update (update-mothers new-head))
         (when (cdr (identify-closest-event new-score))
-          (incudine:at (+ start-time (compute-time (cdr (identify-closest-event new-score))))
-                       #'score-reader-loop
-                       tree-name
-                       new-score
-                       new-head
-                       start-time))))))
+          (if skip-timing-function
+              (score-reader-loop tree-name
+                                 new-score
+                                 new-head
+                                 start-time
+                                 skip-pitch-update
+                                 skip-timing-function)
+              (incudine:at (+ start-time (compute-time (cdr (identify-closest-event new-score))))
+                           #'score-reader-loop
+                           tree-name
+                           new-score
+                           new-head
+                           start-time
+                           skip-pitch-update
+                           skip-timing-function)))))))
 
-(defun read-score (tree-name score-data)
+(defun read-score (tree-name score-data &key (skip-pitch-update nil) (skip-timing-function nil))
   (let ((parsed-score (parse-score score-data)))
-    (score-reader-loop tree-name parsed-score (init-head parsed-score) (incudine:now))))
+    (score-reader-loop tree-name
+                       parsed-score
+                       (init-head parsed-score)
+                       (incudine:now)
+                       skip-pitch-update
+                       skip-timing-function)))
 
 
 
@@ -534,6 +642,18 @@ name (symbol defined in INTERVAL-TREE), the second one is NIL (only for UNISONO)
                          (:i :semitono-maggiore)
                          (:s :semiminima)
                          (:i :tono)
+                         (:s :semibrevis)
+                         ;; bar 14
+                         (:i :tono :➘)
+                         (:s :minima :dot)
+                         (:i :semitono-maggiore :➘)
+                         (:s :semiminima)
+                         (:i :tono :➘)
+                         (:s :minima)
+                         (:i :tono :➘)
+                         (:s :minima)
+                         ;; bar 15
+                         (:i :quarta)
                          (:s :semibrevis)))
 
 (defparameter *tenor* '((:s :brevis)
@@ -667,7 +787,7 @@ name (symbol defined in INTERVAL-TREE), the second one is NIL (only for UNISONO)
                         (:s :minima)
                         (:i :semitono-maggiore)
                         (:s :semibrevis)
-                        (:i :semitono-maggiore)
+                        (:i :semitono-maggiore :➘) ; correction
                         (:s :semiminima)
                         (:i :tono :➘)
                         (:s :semiminima)
@@ -689,7 +809,7 @@ name (symbol defined in INTERVAL-TREE), the second one is NIL (only for UNISONO)
                          ;; bar 9
                          (:i :terza-minore)
                          (:s :semibrevis :dot)
-                         (:i :semitono-minore :➘)
+                         (:i :semitono-maggiore :➘)
                          (:s :semiminima)
                          (:i :tono :➘)
                          (:s :semiminima)
