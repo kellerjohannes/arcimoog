@@ -416,7 +416,6 @@ name (symbol defined in INTERVAL-TREE), the second one is NIL (only for UNISONO)
 
 ;; Preliminary linear system
 
-
 (defparameter *fifth-indices* '((semitono-minore 7)
                                 (tritono . 6)
                                 (settima-maggiore . 5)
@@ -451,7 +450,8 @@ name (symbol defined in INTERVAL-TREE), the second one is NIL (only for UNISONO)
 
 (defun lookup-linear-system (interval-name)
   (linear-system (lookup-fifth-index interval-name)
-                 (temper 3/2 -1/4)))
+                 ;; (temper 3/2 -1/4)
+                 3/2))
 
 (defun calculate-interval-size (interval-object)
   (case (first interval-object)
