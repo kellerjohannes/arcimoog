@@ -274,13 +274,20 @@ name (symbol defined in INTERVAL-TREE), the second one is NIL (only for UNISONO)
         (error "~a not a recognized note value." note-value))))
 
 (defun parse-singing (singing-data)
-  (interpret-note-value (lookup-terminus (first singing-data))
-                        (eq (second singing-data) :dot)))
+  (values
+   (interpret-note-value (lookup-terminus (first singing-data))
+                         (eq (second singing-data) :dot))
+   (let ((candidate (car (last singing-data))))
+     (when (member candidate '(:word :sillable)) candidate))))
 
 (defun parse-tacet (tacet-data)
   (interpret-note-value (lookup-terminus (first tacet-data))
                         (eq (second tacet-data) :dot)))
 
+(defun extract-note-value (singing-data)
+  (if (eq (second singing-data) :dot)
+      (list (first singing-data) (second singing-data))
+      (list (first singing-data))))
 
 
 (defun parse-melody-data (melody-data)
@@ -290,11 +297,14 @@ name (symbol defined in INTERVAL-TREE), the second one is NIL (only for UNISONO)
                 (:i (list :type :interval
                           :time time-cursor
                           :interval-object (parse-interval (rest melody-item))))
-                (:s (list :type :sound
-                          :note-value (rest melody-item)
-                          :duration (parse-singing (rest melody-item))
-                          :start-time time-cursor
-                          :end-time (incf time-cursor (parse-singing (rest melody-item)))))
+                (:s (multiple-value-bind (numeric-note-value attack)
+                        (parse-singing (rest melody-item))
+                      (list :type :sound
+                            :note-value (extract-note-value (rest melody-item))
+                            :duration numeric-note-value
+                            :start-time time-cursor
+                            :attack attack
+                            :end-time (incf time-cursor numeric-note-value))))
                 (:t (list :type :tacet
                           :note-value (rest melody-item)
                           :duration (parse-tacet (rest melody-item))
@@ -308,14 +318,16 @@ name (symbol defined in INTERVAL-TREE), the second one is NIL (only for UNISONO)
             (cons (first voice) (parse-melody-data (rest voice))))
           score-data))
 
-(defun init-head (parsed-score)
+(defun init-head (parsed-score &optional (root-pitch 1/1))
   (mapcar (lambda (voice)
             (cons (car voice)
-                  `(:interval-to-origin ,(make-interval 'unisono nil 0)
+                  `(:new-note-p t
+                    :interval-to-origin ,(make-interval 'unisono nil 0)
                     :last-melodic-interval ,(make-interval 'unisono nil 0)
                     :last-melodic-interval-updated-p nil
                     :soundingp nil
-                    :pitch 1/1
+                    :pitch ,root-pitch
+                    :attack nil
                     :relative-intervals
                     ,(loop for reference-voice in parsed-score
                            unless (eq (car voice) (car reference-voice))
@@ -450,8 +462,9 @@ name (symbol defined in INTERVAL-TREE), the second one is NIL (only for UNISONO)
 
 (defun lookup-linear-system (interval-name)
   (linear-system (lookup-fifth-index interval-name)
-                 ;; (temper 3/2 -1/4)
-                 3/2))
+                 (temper 3/2 -1/4) ; meantone
+                 ;; 3/2 ; pythagorean
+                 ))
 
 (defun calculate-interval-size (interval-object)
   (case (first interval-object)
@@ -479,11 +492,12 @@ name (symbol defined in INTERVAL-TREE), the second one is NIL (only for UNISONO)
   (format t "~%~%------------------------~%Keyframe ~a:" keyframe)
   (dolist (voice head)
     (cond ((getf (rest voice) :soundingp)
-           (format t "~%  ~a to origin ~a by ~a, ~a, at pitch ~a, relative:"
+           (format t "~%  ~a to origin ~a by ~a, ~a (new note: ~a), at pitch ~a, relative:"
                    (first voice)
                    (getf (rest voice) :interval-to-origin)
                    (getf (rest voice) :last-melodic-interval)
                    (getf (rest voice) :soundingp)
+                   (getf (rest voice) :new-note-p)
                    (getf (rest voice) :pitch))
            (dolist (relation (getf (rest voice) :relative-intervals))
              (when (cdr relation)
@@ -512,7 +526,11 @@ name (symbol defined in INTERVAL-TREE), the second one is NIL (only for UNISONO)
                                keyframe))
                       (case (getf melody-item :type)
                         (:tacet (setf (get-head-voice-property head voice-name :soundingp) nil))
-                        (:sound (setf (get-head-voice-property head voice-name :soundingp) t)))
+                        (:sound
+                         (setf (get-head-voice-property head voice-name :new-note-p) t)
+                         (setf (get-head-voice-property head voice-name :attack)
+                               (getf melody-item :attack))
+                         (setf (get-head-voice-property head voice-name :soundingp) t)))
                       (loop-over-voice voice-name (rest voice-data)))
                      ((and (eq (getf melody-item :type) :interval)
                            (<= (getf melody-item :time) keyframe))
@@ -531,6 +549,8 @@ name (symbol defined in INTERVAL-TREE), the second one is NIL (only for UNISONO)
                                              (get-identity-interval tree-name)))
                       (loop-over-voice voice-name (rest voice-data)))
                      (t voice-data)))))
+    (dolist (voice head)
+      (setf (getf (rest voice) :new-note-p) nil))
     (let ((updated-score (mapcar (lambda (voice)
                                    (cons (first voice)
                                          (loop-over-voice (car voice) (cdr voice))))
@@ -554,12 +574,17 @@ name (symbol defined in INTERVAL-TREE), the second one is NIL (only for UNISONO)
   (dolist (voice head)
     (let ((mother-name (lookup-mother-name (first voice))))
       (am-mo:set-mother-pitch mother-name (* 2 (getf (rest voice) :pitch)))
+      (when (getf (rest voice) :new-note-p)
+        ;; (format t "~&DEBUG attack ~a" (getf (rest voice) :attack))
+        (case (getf (rest voice) :attack)
+          (:word (am-mo:trigger-natura-accent mother-name 1 0.4))
+          (:sillable (am-mo:trigger-natura-accent mother-name 0.4 0.2))))
       (if (getf (rest voice) :soundingp)
-          (am-mo:mother-on mother-name)
-          (am-mo:mother-off mother-name)))))
+          (unless (am-mo:mother-on-p mother-name) (am-mo:mother-on mother-name))
+          (when (am-mo:mother-on-p mother-name) (am-mo:mother-off mother-name))))))
 
-(defun compute-time (keyframe)
-  (* keyframe 2 (incudine:rt-sample-rate)))
+(defun compute-time (keyframe factor)
+  (* keyframe factor (incudine:rt-sample-rate)))
 
 ;;; ENDING HERE
 
@@ -583,7 +608,8 @@ name (symbol defined in INTERVAL-TREE), the second one is NIL (only for UNISONO)
                                  start-time
                                  skip-pitch-update
                                  skip-timing-function)
-              (incudine:at (+ start-time (compute-time (cdr (identify-closest-event new-score))))
+              (incudine:at (+ start-time (compute-time (cdr (identify-closest-event new-score))
+                                                       4))
                            #'score-reader-loop
                            tree-name
                            new-score
@@ -592,24 +618,26 @@ name (symbol defined in INTERVAL-TREE), the second one is NIL (only for UNISONO)
                            skip-pitch-update
                            skip-timing-function)))))))
 
-(defun read-score (tree-name score-data &key (skip-pitch-update nil) (skip-timing-function nil))
+(defun read-score (tree-name score-data &key (root-pitch 1/1)
+                                          (skip-pitch-update nil)
+                                          (skip-timing-function nil))
   (let ((parsed-score (parse-score score-data)))
     (score-reader-loop tree-name
                        parsed-score
-                       (init-head parsed-score)
+                       (init-head parsed-score root-pitch)
                        (incudine:now)
                        skip-pitch-update
                        skip-timing-function)))
 
 
 
-(defparameter *bassus* '((:s :brevis)
-                         (:s :semibrevis :dot)
+(defparameter *bassus* '((:s :brevis :word)
+                         (:s :semibrevis :dot :sillable)
                          (:i :tono :➘)
-                         (:s :minima)
-                         (:s :brevis)
+                         (:s :minima :sillable)
+                         (:s :brevis :sillable)
                          (:i :semitono-maggiore :➘)
-                         (:s :brevis)
+                         (:s :brevis :sillable)
                          (:t :longa :dot)
                          ;; bar 8
                          (:t :semibrevis)
@@ -656,12 +684,12 @@ name (symbol defined in INTERVAL-TREE), the second one is NIL (only for UNISONO)
                          (:i :quarta)
                          (:s :semibrevis)))
 
-(defparameter *tenor* '((:s :brevis)
+(defparameter *tenor* '((:s :brevis :word)
                         (:i :terza-minore)
-                        (:s :semibrevis :dot)
+                        (:s :semibrevis :dot :sillable)
                         (:i :semitono-maggiore :➘)
-                        (:s :minima)
-                        (:s :brevis)
+                        (:s :minima :sillable)
+                        (:s :brevis :sillable)
                         (:t :semibrevis)
                         (:i :tono :➘)
                         (:s :brevis)
@@ -730,11 +758,11 @@ name (symbol defined in INTERVAL-TREE), the second one is NIL (only for UNISONO)
 
 (defparameter *altus* '((:t :semibrevis)
                         (:i :quinta)
-                        (:s :brevis)
-                        (:s :semibrevis :dot)
+                        (:s :brevis :word)
+                        (:s :semibrevis :dot :sillable)
                         (:i :tono :➘)
-                        (:s :minima)
-                        (:s :brevis)
+                        (:s :minima :sillable)
+                        (:s :brevis :sillable)
                         (:i :semitono-maggiore :➘)
                         (:s :brevis)
                         (:i :terza-minore)
@@ -797,13 +825,13 @@ name (symbol defined in INTERVAL-TREE), the second one is NIL (only for UNISONO)
 
 (defparameter *cantus* '((:t :longa :dot)
                          (:i :ottava)
-                         (:s :brevis)
-                         (:s :semibrevis :dot)
+                         (:s :brevis :word)
+                         (:s :semibrevis :dot :sillable)
                          (:i :tono :➘)
-                         (:s :minima)
-                         (:s :brevis)
+                         (:s :minima :sillable)
+                         (:s :brevis :sillable)
                          (:i :semitono-maggiore :➘)
-                         (:s :brevis)
+                         (:s :brevis :sillable)
                          (:i :tono :➘)
                          (:s :brevis)
                          ;; bar 9
@@ -852,10 +880,10 @@ name (symbol defined in INTERVAL-TREE), the second one is NIL (only for UNISONO)
                          (:s :semiminima)
                          (:i :tono :➘)
                          (:s :semibrevis)
-                         (:i :tono :➘)
+                         (:i :semitono-maggiore :➘) ; ficta, notated :tono
                          (:s :minima)
                          ;; bar 17
-                         (:i :tono)
+                         (:i :semitono-maggiore) ; ficta, notated :tono
                          (:s :semibrevis)))
 
 (defparameter *score* (list (cons :cantus *cantus*)

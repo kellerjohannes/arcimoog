@@ -4,15 +4,19 @@
 
 (defclass mother ()
   ((pitch-ratio :initform 1/1 :accessor pitch)
+   (pitch-updated-p :initform nil :accessor pitch-updated-p)
    (natura :initform 0 :accessor natura)
+   (natura-updated-p :initform nil :accessor natura-updated-p)
    (soundingp :initform nil :accessor soundingp)
+   (sounding-updated-p :initform nil :accessor sounding-updated-p)
    (cv-offset :initform 0 :accessor cv-offset)
    (cv-factor :initform 0.2 :accessor cv-factor)
    (vco-name :initarg :vco-name :reader vco-name)
    (vcf-name :initarg :vcf-name :reader vcf-name)
    (res-name :initarg :res-name :reader res-name)
    (vca-name :initarg :vca-name :reader vca-name)
-   (gate-name :initarg :gate-name :reader gate-name)))
+   (gate-name :initarg :gate-name :reader gate-name)
+   ))
 
 (defmethod ratio-to-cv-relative ((instance mother) ratio)
   (* 0.1 (cv-factor instance) (/ (log ratio) (log 2/1))))
@@ -22,41 +26,68 @@
 
 (defmethod update-cvs ((instance mother))
   "To be called whenever any of the slots of INSTANCE have been changed. This method updates CV relevant parameters. It does not change any slots of INSTANCE."
-  (am-par:set-scalar (vco-name instance) (ratio-to-cv-absolute instance (pitch instance)))
+  (when (pitch-updated-p instance)
+    (am-par:set-scalar (vco-name instance) (ratio-to-cv-absolute instance (pitch instance)))
+    (setf (pitch-updated-p instance) nil))
   ;; TODO update scalars for vcf, res, vca. This is the secret sauce for the sound design aspects
   ;; beyond pitch definitions.
   ;;
   ;; These are dummy values to test synths.
-  (am-par:set-scalar (vcf-name instance) (+ 0.1 (* (natura instance) 0.1)))
-  (am-par:set-scalar (res-name instance) -0.8)
-  (am-par:set-scalar (vca-name instance) (if (soundingp instance) 0.7 -1.0))
-  (am-par:set-scalar (gate-name instance) (if (soundingp instance) 1.0 -1.0))
-  ;; Because high VCA values might cause bleeding when gate closed, VCA needs to be set to zero as
-  ;; well.
-  )
+  (when (natura-updated-p instance)
+    (am-par:set-scalar (vcf-name instance) (+ 0.1 (* (natura instance) 0.1)))
+    (am-par:set-scalar (res-name instance) -0.8)
+    (setf (natura-updated-p instance) nil))
+  ;; VCA is not used to create tacet, if it remains on CV 0.0, GATE is enough to create silence.
+  (when (sounding-updated-p instance)
+    (am-par:set-scalar (vca-name instance)
+                       ;; (if (soundingp instance) 0.0 -1.0)
+                       0.0)
+    (am-par:set-scalar (gate-name instance) (if (soundingp instance) 1.0 -1.0))
+    (setf (sounding-updated-p instance) nil)))
+
+(defmethod initialize-instance :after ((instance mother) &key &allow-other-keys)
+  (unlock-pitch-update instance)
+  (unlock-natura-update instance)
+  (unlock-sounding-update instance)
+  (update-cvs instance))
+
+(defmethod unlock-pitch-update ((instance mother))
+  (setf (pitch-updated-p instance) t))
+
+(defmethod unlock-natura-update ((instance mother))
+  (setf (natura-updated-p instance) t))
+
+(defmethod unlock-sounding-update ((instance mother))
+  (setf (sounding-updated-p instance) t))
 
 (defmethod set-cv-offset ((instance mother) new-offset)
   (setf (cv-offset instance) new-offset)
+  (unlock-pitch-update instance)
   (update-cvs instance))
 
 (defmethod modify-cv-offset ((instance mother) offset-delta)
   (incf (cv-offset instance) offset-delta)
+  (unlock-pitch-update instance)
   (update-cvs instance))
 
 (defmethod set-cv-factor ((instance mother) new-factor)
   (setf (cv-factor instance) new-factor)
+  (unlock-pitch-update instance)
   (update-cvs instance))
 
 (defmethod modify-cv-factor ((instance mother) factor-delta)
   (incf (cv-factor instance) factor-delta)
+  (unlock-pitch-update instance)
   (update-cvs instance))
 
 (defmethod set-gate ((instance mother) gate-state)
   (setf (soundingp instance) gate-state)
+  (unlock-sounding-update instance)
   (update-cvs instance))
 
 (defmethod set-pitch ((instance mother) new-ratio)
   (setf (pitch instance) new-ratio)
+  (unlock-pitch-update instance)
   (update-cvs instance))
 
 (defmethod modify-pitch ((instance mother) interval-ratio)
@@ -65,6 +96,7 @@
 (defmethod set-natura ((instance mother) new-natura)
   ;; TODO check for valid natura values
   (setf (natura instance) new-natura)
+  (unlock-natura-update instance)
   (update-cvs instance))
 
 (defmethod modify-natura ((instance mother) natura-delta)
@@ -107,7 +139,12 @@
   (maphash (lambda (mother-name mother) (funcall fun mother-name mother)) *mothers*))
 
 (defun update-all-mothers ()
-  (apply-to-all-mothers (lambda (name instance) (declare (ignore name)) (update-cvs instance))))
+  (apply-to-all-mothers (lambda (name instance)
+                          (declare (ignore name))
+                          (unlock-pitch-update instance)
+                          (unlock-natura-update instance)
+                          (unlock-sounding-update instance)
+                          (update-cvs instance))))
 
 (defparameter *selected-mother* nil)
 
@@ -182,6 +219,8 @@
 (defun modify-selected-natura (natura-delta)
   (set-natura (get-mother *selected-mother*) natura-delta))
 
+(defun get-mother-natura (name)
+  (natura (get-mother name)))
 
 ;; PITCH and NATURA
 
@@ -219,6 +258,8 @@
                           (declare (ignore name))
                           (set-gate instance gate-state))))
 
+(defun mother-on-p (name)
+  (soundingp (get-mother name)))
 
 ;; Tuning (CV-OFFSET and CV-FACTOR)
 
@@ -290,3 +331,33 @@
       (dolist (mother-state snapshot)
         (set-mother-pitch (first mother-state) (second mother-state))
         (set-mother-natura (first mother-state) (third mother-state))))))
+
+
+
+
+;;; Effects and modulation
+
+(defun natura-accent-loop (mother-instance original-natura delta-natura time step-duration end-time)
+  (cond ((>= time end-time) (set-natura mother-instance original-natura))
+        (t (modify-natura mother-instance (- delta-natura))
+           (incudine:at (+ time step-duration)
+                        #'natura-accent-loop
+                        mother-instance
+                        original-natura
+                        delta-natura
+                        (+ time step-duration)
+                        step-duration
+                        end-time))))
+
+(defun trigger-natura-accent (mother-name natura-delta duration &optional (step-duration 300))
+  (let ((original-natura (get-mother-natura mother-name)))
+    (set-natura (get-mother mother-name) (+ original-natura natura-delta))
+    (natura-accent-loop (get-mother mother-name)
+                        original-natura
+                        (coerce (* (/ (- natura-delta original-natura)
+                                      (* duration (incudine:rt-sample-rate)))
+                                   step-duration)
+                                'single-float)
+                        (incudine:now)
+                        step-duration
+                        (+ (incudine:now) (* duration (incudine:rt-sample-rate))))))

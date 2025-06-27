@@ -131,7 +131,10 @@
            #:set-cv-1/1
            #:get-cv-1/1
            #:modify-cv-1/1
-           #:read-mother-tunings))
+           #:read-mother-tunings
+           #:get-natura
+           #:mother-on-p
+           #:trigger-natura-accent))
 
 (defpackage :raw-pitch
   (:use :cl)
