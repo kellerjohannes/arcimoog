@@ -34,7 +34,7 @@
   ;;
   ;; These are dummy values to test synths.
   (when (natura-updated-p instance)
-    (am-par:set-scalar (vcf-name instance) (+ 0.1 (* (natura instance) 0.1)))
+    (am-par:set-scalar (vcf-name instance) (+ 0.1 (* (natura instance) 0.05)))
     (am-par:set-scalar (res-name instance) -0.8)
     (setf (natura-updated-p instance) nil))
   ;; VCA is not used to create tacet, if it remains on CV 0.0, GATE is enough to create silence.

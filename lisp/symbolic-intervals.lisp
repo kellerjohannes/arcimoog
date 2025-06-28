@@ -417,6 +417,50 @@ name (symbol defined in INTERVAL-TREE), the second one is NIL (only for UNISONO)
   head)
 
 
+
+;;; Natura manipulation interluade, rudimentary implementation
+
+(defparameter *natura-dict* '((quinta . 1)
+                              (quarta . -1)
+                              (tono . 2)
+                              (terza-minore . -3)
+                              (terza-maggiore . 4)
+                              (semitono-maggiore . -5)
+                              (semitono-minore . 6) (diesis-maggiore . 6)
+                              (diesis-minore . -2)
+                              (tono-minore . -1.5)
+                              (tono-maggiore . 5)
+                              (terza-minima . -6)
+                              (terza-più-di-minore . 0)
+                              (terza-più-di-maggiore . 5)
+                              (quarta-minima . -3)
+                              (quarta-propinqua . 4)
+                              (tritono . 5)
+                              (quinta-imperfetta . -3)
+                              (quinta-imperfetta-propinqua . 0)
+                              (quinta-propinqua . 4)
+                              (sesta-minima . -5)
+                              (sesta-minore . -4)
+                              (sesta-più-di-minore . 0)
+                              (sesta-maggiore . 3)
+                              (sesta-più-di-maggiore . 4)
+                              (settima-minima . -3)
+                              (settima-minore . -2)
+                              (settima-più-di-minore . 0)
+                              (settima-maggiore . 3)
+                              (settima-più-di-maggiore . 5)
+                              (ottava-minore . -3)
+                              (unisono . 0)
+                              (ottava . 0)))
+
+(defun lookup-interval-natura (interval-object)
+  (* (case (second interval-object)
+       (ascendente 1)
+       (discendente -1)
+       (otherwise 0))
+     (cdr (assoc (first interval-object) *natura-dict*))))
+
+
 ;;; Tuning interlude, needs to be abstracted and put in a different file.
 ;;; STARTING HERE
 
@@ -668,26 +712,23 @@ name (symbol defined in INTERVAL-TREE), the second one is NIL (only for UNISONO)
 ;;; Sequencer interlude, needs to be abstracted away and probably put somewhere else.
 ;;; STARTING HERE
 
-(defparameter *mother-dict* '((:cantus . :soprano)
-                              (:altus . :alto)
-                              (:tenor . :tenore)
-                              (:bassus . :basso)))
 
-(defun lookup-mother-name (voice-name)
-  (cdr (assoc voice-name *mother-dict*)))
-
-(defun update-mothers (head)
+(defun update-mothers (head mother-name-dict)
   (dolist (voice head)
-    (let ((mother-name (lookup-mother-name (first voice))))
+    (let ((mother-name (if mother-name-dict
+                           (cdr (assoc (first voice) mother-name-dict))
+                           (first voice))))
       (am-mo:set-mother-pitch mother-name (* 2 (getf (rest voice) :pitch)))
       (when (getf (rest voice) :new-note-p)
-        ;; (format t "~&DEBUG attack ~a" (getf (rest voice) :attack))
+        (am-mo:modify-mother-natura mother-name (lookup-interval-natura
+                                                 (getf (rest voice) :last-melodic-interval)))
         (case (getf (rest voice) :attack)
-          (:word (am-mo:trigger-natura-accent mother-name 1 0.4))
-          (:sillable (am-mo:trigger-natura-accent mother-name 0.4 0.2))))
-      (if (getf (rest voice) :soundingp)
-          (unless (am-mo:mother-on-p mother-name) (am-mo:mother-on mother-name))
-          (when (am-mo:mother-on-p mother-name) (am-mo:mother-off mother-name))))))
+          (:word (am-mo:trigger-natura-accent mother-name 3 0.4))
+          (:sillable (am-mo:trigger-natura-accent mother-name 1.4 0.2))))
+      (cond ((getf (rest voice) :soundingp)
+             (unless (am-mo:mother-on-p mother-name) (am-mo:mother-on mother-name)))
+            (t (when (am-mo:mother-on-p mother-name) (am-mo:mother-off mother-name))
+               (am-mo:set-mother-natura mother-name 0))))))
 
 (defun compute-time (keyframe factor)
   (* keyframe factor (incudine:rt-sample-rate)))
@@ -697,7 +738,8 @@ name (symbol defined in INTERVAL-TREE), the second one is NIL (only for UNISONO)
 
 ;;; Public functions
 
-(defun score-reader-loop (tree-name score head start-time skip-pitch-update skip-timing-function)
+(defun score-reader-loop (tree-name score head start-time mother-name-dict
+                          skip-pitch-update skip-timing-function)
   (let ((next-keyframe (cdr (identify-closest-event score))))
     (when next-keyframe
       (multiple-value-bind (new-score new-head)
@@ -705,13 +747,14 @@ name (symbol defined in INTERVAL-TREE), the second one is NIL (only for UNISONO)
         (setf new-head (update-pitch new-head))
         (print-keyframe-info new-head next-keyframe)
         ;; (print-melody-info new-head next-keyframe :bassus)
-        (unless skip-pitch-update (update-mothers new-head))
+        (unless skip-pitch-update (update-mothers new-head mother-name-dict))
         (when (cdr (identify-closest-event new-score))
           (if skip-timing-function
               (score-reader-loop tree-name
                                  new-score
                                  new-head
                                  start-time
+                                 mother-name-dict
                                  skip-pitch-update
                                  skip-timing-function)
               (incudine:at (+ start-time (compute-time (cdr (identify-closest-event new-score))
@@ -721,10 +764,13 @@ name (symbol defined in INTERVAL-TREE), the second one is NIL (only for UNISONO)
                            new-score
                            new-head
                            start-time
+                           mother-name-dict
                            skip-pitch-update
                            skip-timing-function)))))))
 
-(defun read-score (tree-name score-data &key (root-pitch 1/1)
+(defun read-score (tree-name score-data &key
+                                          (mother-name-dict )
+                                          (root-pitch 1/1)
                                           (skip-pitch-update nil)
                                           (skip-timing-function nil))
   (let ((parsed-score (parse-score score-data)))
@@ -732,10 +778,22 @@ name (symbol defined in INTERVAL-TREE), the second one is NIL (only for UNISONO)
                        parsed-score
                        (init-head parsed-score root-pitch)
                        (incudine:now)
+                       mother-name-dict
                        skip-pitch-update
                        skip-timing-function)))
 
 
+(defparameter *mother-dict-willaert* '((:cantus . :soprano)
+                                       (:altus . :alto)
+                                       (:tenor . :tenore)
+                                       (:bassus . :basso)))
+
+
+(defun go-willaert ()
+  (read-score :vicentino-enarmonico *mirabile* :mother-name-dict *mother-dict-willaert*))
+
+(defun go-vicentino ()
+  (read-score :vicentino-enarmonico *soave*))
 
 ;; TODO Delete, when done with debugging.
 (defparameter *pscore* (parse-score *mirabile*))
