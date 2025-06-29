@@ -170,7 +170,8 @@
 (defpackage :arcimoog
   (:use :cl)
   (:nicknames :am)
-  (:export #:init)
+  (:export #:init
+           #:*output-cv-updates-p*)
   (:import-from :arcimoog.utilities
                 #:register-constant
                 #:register-cv

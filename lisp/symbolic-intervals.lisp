@@ -620,7 +620,8 @@ name (symbol defined in INTERVAL-TREE), the second one is NIL (only for UNISONO)
     (ottava 2/1)
     (otherwise (funcall (if (eq (second interval-object) 'ascendente) #'* #'/) 1/1
                         (* (lookup-linear-system (first interval-object))
-                           (expt 2 (third interval-object)))))))
+                           (expt 2 (third interval-object))
+                           (if (eq (first interval-object) 'ottava) 2 1))))))
 
 (defun modify-interval-size (current-pitch interval-object)
   (* current-pitch (calculate-interval-size interval-object)))
@@ -629,9 +630,9 @@ name (symbol defined in INTERVAL-TREE), the second one is NIL (only for UNISONO)
   (dolist (voice-name (mapcar #'first head) head)
     (when (get-head-voice-property head voice-name :last-melodic-interval-updated-p)
       (setf (get-head-voice-property head voice-name :pitch)
-            ;; (modify-interval-size (get-head-voice-property head voice-name :pitch)
-            ;;                       (get-head-voice-property head voice-name :last-melodic-interval))
-            (calculate-interval-size (get-head-voice-property head voice-name :interval-to-origin))
+            (modify-interval-size (get-head-voice-property head voice-name :pitch)
+                                  (get-head-voice-property head voice-name :last-melodic-interval))
+            ;; (calculate-interval-size (get-head-voice-property head voice-name :interval-to-origin))
             )
       (setf (get-head-voice-property head voice-name :last-melodic-interval-updated-p)
             nil))))
@@ -720,11 +721,13 @@ name (symbol defined in INTERVAL-TREE), the second one is NIL (only for UNISONO)
                            (first voice))))
       (am-mo:set-mother-pitch mother-name (* 2 (getf (rest voice) :pitch)))
       (when (getf (rest voice) :new-note-p)
-        (am-mo:modify-mother-natura mother-name (lookup-interval-natura
-                                                 (getf (rest voice) :last-melodic-interval)))
+        (am-mo:modify-mother-natura mother-name
+                                    (lookup-interval-natura (getf (rest voice)
+                                                                  :last-melodic-interval)))
         (case (getf (rest voice) :attack)
-          (:word (am-mo:trigger-natura-accent mother-name 3 0.4))
-          (:sillable (am-mo:trigger-natura-accent mother-name 1.4 0.2))))
+          (:word (am-mo:trigger-natura-accent mother-name 8 0.3))
+          (:sillable (am-mo:trigger-natura-accent mother-name 4.8 0.35)))
+        )
       (cond ((getf (rest voice) :soundingp)
              (unless (am-mo:mother-on-p mother-name) (am-mo:mother-on mother-name)))
             (t (when (am-mo:mother-on-p mother-name) (am-mo:mother-off mother-name))
@@ -790,7 +793,10 @@ name (symbol defined in INTERVAL-TREE), the second one is NIL (only for UNISONO)
 
 
 (defun go-willaert ()
-  (read-score :vicentino-enarmonico *mirabile* :mother-name-dict *mother-dict-willaert*))
+  (read-score :vicentino-enarmonico
+              *mirabile*
+              :root-pitch 1/3
+              :mother-name-dict *mother-dict-willaert*))
 
 (defun go-vicentino ()
   (read-score :vicentino-enarmonico *soave*))

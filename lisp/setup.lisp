@@ -49,11 +49,11 @@
   (register-cv :vca4 18)
   (register-cv :gate4 19)
 
-  (register-cv :vco5 20)
-  (register-cv :vcf5 21)
-  (register-cv :res5 22)
-  (register-cv :vca5 23)
-  (register-cv :gate5 24)
+  ;; (register-cv :vco5 20)
+  ;; (register-cv :vcf5 21)
+  ;; (register-cv :res5 22)
+  ;; (register-cv :vca5 23)
+  ;; (register-cv :gate5 24)
 
   ;; Set up Faderfox input for direct CV manipulation.
   (register-precision-dial 1 0 1 2 3 "VCO1 quad precision." :vco1)
@@ -80,18 +80,18 @@
   (register-precision-dial 1 60 61 nil nil "VCA4 dual precision." :vca4)
   (register-toggle-dial 1 62 "Gate4 toggle dial." :gate4)
 
-  (register-precision-dial 1 64 65 66 67 "VCO3 quad precision." :vco5)
-  (register-precision-dial 1 68 69 70 71 "VCF3 quad precision." :vcf5)
-  (register-precision-dial 1 72 73 74 75 "Res3 quad precision." :res5)
-  (register-precision-dial 1 76 77 nil nil "VCA3 dual precision." :vca5)
-  (register-toggle-dial 1 78 "Gate3 toggle dial." :gate5)
+  ;; (register-precision-dial 1 64 65 66 67 "VCO3 quad precision." :vco5)
+  ;; (register-precision-dial 1 68 69 70 71 "VCF3 quad precision." :vcf5)
+  ;; (register-precision-dial 1 72 73 74 75 "Res3 quad precision." :res5)
+  ;; (register-precision-dial 1 76 77 nil nil "VCA3 dual precision." :vca5)
+  ;; (register-toggle-dial 1 78 "Gate3 toggle dial." :gate5)
 
   ;; Setup Mother abstractions
   (am-mo:register-mother :soprano :vco1 :vcf1 :res1 :vca1 :gate1)
   (am-mo:register-mother :alto :vco2 :vcf2 :res2 :vca2 :gate2)
   (am-mo:register-mother :tenore :vco3 :vcf3 :res3 :vca3 :gate3)
   (am-mo:register-mother :basso :vco4 :vcf4 :res4 :vca4 :gate4)
-  (am-mo:register-mother :quinto :vco5 :vcf5 :res5 :vca5 :gate5)
+  ;; (am-mo:register-mother :quinto :vco5 :vcf5 :res5 :vca5 :gate5)
 
   (am-mo:select-mother :soprano)
 
