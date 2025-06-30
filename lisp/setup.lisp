@@ -266,6 +266,13 @@
 
 
 
+(defun cvdon ()
+  (setf *output-cv-updates-p* t))
+
+(defun cvdoff ()
+  (setf *output-cv-updates-p* nil))
+
+
 ;; (progn
 ;;   (on :s)
 ;;   (on :a)
