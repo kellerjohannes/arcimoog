@@ -3,8 +3,8 @@
 ;; DONE debug natura attack
 ;; DONE implement pitch glide
 ;; DONE observe tempo stability
-;; TODO hot-swappaple pitch calculation
-;; TODO remote control tuning parameters (ed and mt)
+;; DONE hot-swappaple pitch calculation
+;; DONE remote control tuning parameters (ed and mt)
 ;; TODO attempt to implement adaptive ji
 ;; TODO finish mirabile
 
@@ -630,21 +630,30 @@ name (symbol defined in INTERVAL-TREE), the second one is NIL (only for UNISONO)
 (defun modify-interval-size (current-pitch interval-object)
   (* current-pitch (calculate-interval-size interval-object)))
 
+(defun find-current-lowest-voice (head)
+  (declare (ignore head))
+  ;; TODO implement!
+  :cantus)
+
 (defun update-pitch (head transposition)
-  (dolist (voice-name (mapcar #'first head) head)
-    (when (get-head-voice-property head voice-name :last-melodic-interval-updated-p)
-      (setf (get-head-voice-property head voice-name :pitch)
-            (if *relative-interval-calculation-p*
-                (modify-interval-size (get-head-voice-property head voice-name :pitch)
-                                      (get-head-voice-property head
-                                                               voice-name
-                                                               :last-melodic-interval))
-                (* transposition
-                   (calculate-interval-size (get-head-voice-property head
-                                                                     voice-name
-                                                                     :interval-to-origin)))))
-      (setf (get-head-voice-property head voice-name :last-melodic-interval-updated-p)
-            nil))))
+  (if (eq *interval-calculation-approach* :adaptive-just)
+      (let ((lowest-voice (find-current-lowest-voice head)))
+        ;; TODO implement!
+        (format t "~&Current lowest voice: ~a." lowest-voice))
+      (dolist (voice-name (mapcar #'first head) head)
+        (when (get-head-voice-property head voice-name :last-melodic-interval-updated-p)
+          (setf (get-head-voice-property head voice-name :pitch)
+                (if *relative-interval-calculation-p*
+                    (modify-interval-size (get-head-voice-property head voice-name :pitch)
+                                          (get-head-voice-property head
+                                                                   voice-name
+                                                                   :last-melodic-interval))
+                    (* transposition
+                       (calculate-interval-size (get-head-voice-property head
+                                                                         voice-name
+                                                                         :interval-to-origin)))))
+          (setf (get-head-voice-property head voice-name :last-melodic-interval-updated-p)
+                nil)))))
 
 ;;; ENDING HERE
 
@@ -827,7 +836,8 @@ name (symbol defined in INTERVAL-TREE), the second one is NIL (only for UNISONO)
   (case model-number
     (1 (setf *interval-calculation-approach* :linear-system))
     (2 (setf *interval-calculation-approach* :equal-division))
-    (3 (setf *interval-calculation-approach* :just-intonation))))
+    (3 (setf *interval-calculation-approach* :just-intonation))
+    (4 (setf *interval-calculation-approach* :adaptive-just))))
 
 (defun relative (t-or-nil)
   (if t-or-nil
