@@ -351,10 +351,10 @@
 
 (defun trigger-natura-accent (mother-name natura-delta duration &optional (step-duration 300))
   (let ((original-natura (get-mother-natura mother-name)))
-    (set-natura (get-mother mother-name) (+ original-natura natura-delta))
+    (set-mother-natura mother-name (+ original-natura natura-delta))
     (natura-accent-loop (get-mother mother-name)
                         original-natura
-                        (coerce (* (/ (- natura-delta original-natura)
+                        (coerce (* (/ natura-delta
                                       (* duration (incudine:rt-sample-rate)))
                                    step-duration)
                                 'single-float)

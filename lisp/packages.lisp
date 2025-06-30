@@ -51,6 +51,7 @@
 
 (defpackage :arcimoog.symbolic-intervals
   (:use :cl)
+  (:nicknames :am-si)
   (:import-from :arcimoog.utilities
                 #:if-exists))
 
