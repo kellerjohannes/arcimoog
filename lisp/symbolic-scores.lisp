@@ -52,7 +52,12 @@
                             (:s :minima)
                             ;; bar 15
                             (:i :quarta)
-                            (:s :semibrevis))
+                            (:s :semibrevis)
+                            ;; delcaratur ...
+                            (:t :semibrevis)
+                            (:t :minima)
+                            ()
+                            )
                            (:tenor
                             (:s :brevis :word)
                             (:i :terza-minore)
