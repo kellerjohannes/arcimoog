@@ -1,12 +1,14 @@
 (in-package :arcimoog.symbolic-intervals)
 
 ;; DONE debug natura attack
-;; TODO implement pitch glide
-;; TODO observe tempo stability
+;; DONE implement pitch glide
+;; DONE observe tempo stability
 ;; TODO hot-swappaple pitch calculation
 ;; TODO remote control tuning parameters (ed and mt)
 ;; TODO attempt to implement adaptive ji
 ;; TODO finish mirabile
+
+;; TODO investigate why SCORE-READER-LOOP is sensitive to CPU load
 
 ;; prepare settings for ruedi
 
@@ -473,10 +475,12 @@ name (symbol defined in INTERVAL-TREE), the second one is NIL (only for UNISONO)
      (cdr (assoc (first interval-object) *natura-dict*))))
 
 
+
+
 ;;; Tuning interlude, needs to be abstracted and put in a different file.
 ;;; STARTING HERE
 
-;; JI preliminary solution
+;; JI calculation
 
 (defparameter *ji* '((tono . 9/8)
                      (semitono-maggiore . 16/15)
@@ -495,28 +499,8 @@ name (symbol defined in INTERVAL-TREE), the second one is NIL (only for UNISONO)
         result
         (error "Interval ~a does not have a defined size." interval-name))))
 
-(defun calculate-interval-size (interval-object)
-  (if (eq (first interval-object) 'unisono)
-      1/1
-      (funcall (if (eq (second interval-object) 'ascendente) #'* #'/)
-               1/1
-               (* (lookup-interval-size (first interval-object))
-                  (expt 2 (third interval-object))))))
 
-(defun modify-interval-size (current-pitch interval-object)
-  (* current-pitch (calculate-interval-size interval-object)))
-
-(defun update-pitch (head)
-  (dolist (voice-name (mapcar #'first head) head)
-    (when (get-head-voice-property head voice-name :last-melodic-interval-updated-p)
-      (setf (get-head-voice-property head voice-name :pitch)
-            (modify-interval-size (get-head-voice-property head voice-name :pitch)
-                                  (get-head-voice-property head voice-name :last-melodic-interval)))
-      (setf (get-head-voice-property head voice-name :last-melodic-interval-updated-p)
-            nil))))
-
-
-;; Preliminary xEDy
+;; 31ed2 calculation
 
 (defparameter *31ed2-indices* '((unisono . 0)
                                 (diesis-minore . 1)
@@ -551,35 +535,7 @@ name (symbol defined in INTERVAL-TREE), the second one is NIL (only for UNISONO)
                                 (ottava-minore . 30)
                                 (ottava . 31)))
 
-(defun calculate-interval-size (interval-object)
-  ;; TODO make this remote-controllable
-  (let ((divided-interval (* 2/1 1/1)))
-    (funcall (case (second interval-object)
-               (ascendente #'*)
-               (discendente #'/)
-               (otherwise #'*))
-             1/1
-             (* (expt divided-interval (/ (cdr (assoc (first interval-object) *31ed2-indices*)) 31))
-                (expt divided-interval (third interval-object))))))
-
-(defun update-pitch (head transposition)
-  (dolist (voice-name (mapcar #'first head) head)
-    (when (get-head-voice-property head voice-name :last-melodic-interval-updated-p)
-      (setf (get-head-voice-property head voice-name :pitch)
-            (* transposition
-               (calculate-interval-size (get-head-voice-property head
-                                                                 voice-name
-                                                                 :interval-to-origin))))
-      ;; (setf (get-head-voice-property head voice-name :pitch)
-      ;;       (modify-interval-size (get-head-voice-property head voice-name :pitch)
-      ;;                             (calculate-interval-size
-      ;;                              (get-head-voice-property head voice-name
-      ;;                                                       :last-melodic-interval))))
-      (setf (get-head-voice-property head voice-name :last-melodic-interval-updated-p)
-            nil))))
-
-
-;; Preliminary linear system
+;; Linear system calculation
 
 (defparameter *fifth-indices* '((settima-più-di-minore . 17)
                                 (terza-più-di-minore . 16)
@@ -633,18 +589,42 @@ name (symbol defined in INTERVAL-TREE), the second one is NIL (only for UNISONO)
 (defun lookup-linear-system (interval-name)
   (linear-system (lookup-fifth-index interval-name)
                  ;; TODO make this remote-controllable
-                 (temper 3/2 -1/4) ; meantone
-                 ;; 3/2 ; pythagorean
-                 ))
+                 (temper 3/2 -1/4)))
+
+
+;; Functions that are independent of a specific pitch calculation model
+
+(defparameter *interval-calculation-approach* :linear-system)
+
+(defparameter *relative-interval-calculation-p* nil)
 
 (defun calculate-interval-size (interval-object)
-  (case (first interval-object)
-    (unisono 1/1)
-    (ottava 2/1)
-    (otherwise (funcall (if (eq (second interval-object) 'ascendente) #'* #'/) 1/1
-                        (* (lookup-linear-system (first interval-object))
-                           (expt 2 (third interval-object))
-                           (if (eq (first interval-object) 'ottava) 2 1))))))
+  (case *interval-calculation-approach*
+    (:linear-system
+     (case (first interval-object)
+       (unisono 1/1)
+       (ottava 2/1)
+       (otherwise (funcall (if (eq (second interval-object) 'ascendente) #'* #'/) 1/1
+                           (* (lookup-linear-system (first interval-object))
+                              (expt 2 (third interval-object))
+                              (if (eq (first interval-object) 'ottava) 2 1))))))
+    (:equal-division
+     (let ((divided-interval (* 2/1 1/1)))
+       (funcall (case (second interval-object)
+                  (ascendente #'*)
+                  (discendente #'/)
+                  (otherwise #'*))
+                1/1
+                (* (expt divided-interval (/ (cdr (assoc (first interval-object) *31ed2-indices*))
+                                             31))
+                   (expt divided-interval (third interval-object))))))
+    (:just-intonation
+     (if (eq (first interval-object) 'unisono)
+         1/1
+         (funcall (if (eq (second interval-object) 'ascendente) #'* #'/)
+                  1/1
+                  (* (lookup-interval-size (first interval-object))
+                     (expt 2 (third interval-object))))))))
 
 (defun modify-interval-size (current-pitch interval-object)
   (* current-pitch (calculate-interval-size interval-object)))
@@ -653,19 +633,25 @@ name (symbol defined in INTERVAL-TREE), the second one is NIL (only for UNISONO)
   (dolist (voice-name (mapcar #'first head) head)
     (when (get-head-voice-property head voice-name :last-melodic-interval-updated-p)
       (setf (get-head-voice-property head voice-name :pitch)
-            ;; (modify-interval-size (get-head-voice-property head voice-name :pitch)
-            ;;                       (get-head-voice-property head voice-name :last-melodic-interval))
-            (* transposition
-               (calculate-interval-size (get-head-voice-property head
-                                                                 voice-name
-                                                                 :interval-to-origin))))
+            (if *relative-interval-calculation-p*
+                (modify-interval-size (get-head-voice-property head voice-name :pitch)
+                                      (get-head-voice-property head
+                                                               voice-name
+                                                               :last-melodic-interval))
+                (* transposition
+                   (calculate-interval-size (get-head-voice-property head
+                                                                     voice-name
+                                                                     :interval-to-origin)))))
       (setf (get-head-voice-property head voice-name :last-melodic-interval-updated-p)
             nil))))
 
 ;;; ENDING HERE
 
+
+
+
 (defun print-keyframe-info (head keyframe)
-  (format t "~%~%------------------------~%Keyframe ~a:" keyframe)
+  (format t "~%~%------------------------~%Keyframe ~a:" (coerce keyframe 'single-float))
   (dolist (voice head)
     (cond ((getf (rest voice) :soundingp)
            (format t "~%  ~a to origin ~a by ~a, ~a (new note: ~a), at pitch ~a, relative:"
@@ -775,9 +761,6 @@ name (symbol defined in INTERVAL-TREE), the second one is NIL (only for UNISONO)
 
 ;;; ENDING HERE
 
-
-;;; Public functions
-
 (defun score-reader-loop (tree-name score head start-time mother-name-dict
                           skip-pitch-update skip-timing-function global-transposition)
   (let ((next-keyframe (cdr (identify-closest-event score))))
@@ -799,7 +782,7 @@ name (symbol defined in INTERVAL-TREE), the second one is NIL (only for UNISONO)
                                  skip-timing-function
                                  global-transposition)
               (incudine:at (+ start-time (compute-time (cdr (identify-closest-event new-score))
-                                                       4.5))
+                                                       3.8))
                            #'score-reader-loop
                            tree-name
                            new-score
@@ -809,6 +792,8 @@ name (symbol defined in INTERVAL-TREE), the second one is NIL (only for UNISONO)
                            skip-pitch-update
                            skip-timing-function
                            global-transposition)))))))
+
+;;; Public functions
 
 (defun read-score (tree-name score-data &key
                                           (mother-name-dict )
@@ -843,5 +828,13 @@ name (symbol defined in INTERVAL-TREE), the second one is NIL (only for UNISONO)
   (score-on)
   (read-score :vicentino-enarmonico *soave*))
 
-;; TODO Delete, when done with debugging.
-(defparameter *pscore* (parse-score *mirabile*))
+(defun model (model-number)
+  (case model-number
+    (1 (setf *interval-calculation-approach* :linear-system))
+    (2 (setf *interval-calculation-approach* :equal-division))
+    (3 (setf *interval-calculation-approach* :just-intonation))))
+
+(defun relative (t-or-nil)
+  (if t-or-nil
+      (setf *relative-interval-calculation-p* t)
+      (setf *relative-interval-calculation-p* nil)))
