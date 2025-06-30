@@ -29,13 +29,9 @@
   (when (pitch-updated-p instance)
     (am-par:set-scalar (vco-name instance) (ratio-to-cv-absolute instance (pitch instance)))
     (setf (pitch-updated-p instance) nil))
-  ;; TODO update scalars for vcf, res, vca. This is the secret sauce for the sound design aspects
-  ;; beyond pitch definitions.
-  ;;
-  ;; These are dummy values to test synths.
   (when (natura-updated-p instance)
     (am-par:set-scalar (vcf-name instance) (+ 0.1 (* (natura instance) 0.007)))
-    (am-par:set-scalar (res-name instance) -0.8)
+    (am-par:set-scalar (res-name instance) (+ -0.4 (* (natura instance) 0.03)))
     (setf (natura-updated-p instance) nil))
   ;; VCA is not used to create tacet, if it remains on CV 0.0, GATE is enough to create silence.
   (when (sounding-updated-p instance)
@@ -192,11 +188,47 @@
 
 ;; PITCH
 
-(defun set-mother-pitch (name ratio)
-  (set-pitch (get-mother name) ratio))
+;; TODO move somwhere else
+(defun looper (update-function time end-time step-duration value value-delta target-value)
+  (cond ((>= time end-time)
+         (funcall update-function target-value))
+        (t (funcall update-function value)
+           (incudine:at (+ time step-duration)
+                        #'looper
+                        update-function
+                        (+ time step-duration)
+                        end-time
+                        step-duration
+                        (+ value value-delta)
+                        value-delta
+                        target-value))))
 
-(defun modify-mother-pitch (name interval)
-  (modify-pitch (get-mother name) interval))
+(defun start-loop (duration origin-value target-value update-function &optional (step-duration 300))
+  ;; TODO keep an eye on logarithmic vs. exponential. Maybe this needs to be an option.
+  (looper update-function
+          (incudine:now)
+          (+ (incudine:now) (* duration (incudine:rt-sample-rate)))
+          step-duration
+          origin-value
+          (coerce (* (/ (- target-value origin-value)
+                        (* duration (incudine:rt-sample-rate)))
+                     step-duration)
+                  'single-float)
+          target-value))
+
+(defun get-mother-pitch (name)
+  (pitch (get-mother name)))
+
+(defun set-mother-pitch (name ratio &optional duration)
+  (if duration
+      (start-loop duration
+                  (get-mother-pitch name)
+                  ratio
+                  (lambda (new-value) (set-mother-pitch name new-value)))
+      (set-pitch (get-mother name) ratio)))
+
+(defun modify-mother-pitch (name interval &optional duration)
+  (set-mother-pitch name (* interval (get-mother-pitch name)) duration))
 
 (defun set-selected-pitch (ratio)
   (set-pitch (get-mother *selected-mother*) ratio))
@@ -206,6 +238,9 @@
 
 
 ;; NATURA
+
+(defun get-mother-natura (name)
+  (natura (get-mother name)))
 
 (defun set-mother-natura (name natura)
   (set-natura (get-mother name) natura))
@@ -218,9 +253,6 @@
 
 (defun modify-selected-natura (natura-delta)
   (set-natura (get-mother *selected-mother*) natura-delta))
-
-(defun get-mother-natura (name)
-  (natura (get-mother name)))
 
 ;; PITCH and NATURA
 

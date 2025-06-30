@@ -1,13 +1,12 @@
 (in-package :arcimoog.symbolic-intervals)
 
-;; TODO
-;; debug natura attack
-;; implement pitch glide
-;; observe tempo stability
-;; hot-swappaple pitch calculation
-;; remote control tuning parameters (ed and mt)
-;; attempt to implement adaptive ji
-;; finish mirabile
+;; DONE debug natura attack
+;; TODO implement pitch glide
+;; TODO observe tempo stability
+;; TODO hot-swappaple pitch calculation
+;; TODO remote control tuning parameters (ed and mt)
+;; TODO attempt to implement adaptive ji
+;; TODO finish mirabile
 
 ;; prepare settings for ruedi
 
@@ -754,15 +753,18 @@ name (symbol defined in INTERVAL-TREE), the second one is NIL (only for UNISONO)
     (let ((mother-name (if mother-name-dict
                            (cdr (assoc (first voice) mother-name-dict))
                            (first voice))))
-      (am-mo:set-mother-pitch mother-name (* 2 (getf (rest voice) :pitch)))
+      (am-mo:set-mother-pitch mother-name
+                              (getf (rest voice) :pitch)
+                              (unless (eq (getf (rest voice) :attack)
+                                          :word)
+                                0.03))
       (when (getf (rest voice) :new-note-p)
         (am-mo:modify-mother-natura mother-name
                                     (lookup-interval-natura (getf (rest voice)
                                                                   :last-melodic-interval)))
         (case (getf (rest voice) :attack)
           (:word (am-mo:trigger-natura-accent mother-name 9 0.3))
-          (:sillable (am-mo:trigger-natura-accent mother-name 4.8 0.35)))
-        )
+          (:sillable (am-mo:trigger-natura-accent mother-name 4.8 0.35))))
       (cond ((getf (rest voice) :soundingp)
              (unless (am-mo:mother-on-p mother-name) (am-mo:mother-on mother-name)))
             (t (when (am-mo:mother-on-p mother-name) (am-mo:mother-off mother-name))
@@ -797,7 +799,7 @@ name (symbol defined in INTERVAL-TREE), the second one is NIL (only for UNISONO)
                                  skip-timing-function
                                  global-transposition)
               (incudine:at (+ start-time (compute-time (cdr (identify-closest-event new-score))
-                                                       3.5))
+                                                       4.5))
                            #'score-reader-loop
                            tree-name
                            new-score
@@ -834,7 +836,7 @@ name (symbol defined in INTERVAL-TREE), the second one is NIL (only for UNISONO)
   (score-on)
   (read-score :vicentino-enarmonico
               *mirabile*
-              :root-pitch 1/2
+              :root-pitch 2/3
               :mother-name-dict *mother-dict-willaert*))
 
 (defun go-vicentino ()
