@@ -1,5 +1,18 @@
 (in-package :arcimoog.symbolic-intervals)
 
+;; TODO
+;; debug natura attack
+;; implement pitch glide
+;; observe tempo stability
+;; hot-swappaple pitch calculation
+;; remote control tuning parameters (ed and mt)
+;; attempt to implement adaptive ji
+;; finish mirabile
+
+;; prepare settings for ruedi
+
+
+
 
 
 ;;; Navigating a tree
@@ -540,19 +553,29 @@ name (symbol defined in INTERVAL-TREE), the second one is NIL (only for UNISONO)
                                 (ottava . 31)))
 
 (defun calculate-interval-size (interval-object)
-  (funcall (case (second interval-object)
-             (ascendente #'*)
-             (discendente #'/)
-             (otherwise #'*))
-           1/1
-           (* (expt 2 (/ (cdr (assoc (first interval-object) *31ed2-indices*)) 31))
-              (expt 2 (third interval-object)))))
+  ;; TODO make this remote-controllable
+  (let ((divided-interval (* 2/1 1/1)))
+    (funcall (case (second interval-object)
+               (ascendente #'*)
+               (discendente #'/)
+               (otherwise #'*))
+             1/1
+             (* (expt divided-interval (/ (cdr (assoc (first interval-object) *31ed2-indices*)) 31))
+                (expt divided-interval (third interval-object))))))
 
-(defun update-pitch (head)
+(defun update-pitch (head transposition)
   (dolist (voice-name (mapcar #'first head) head)
     (when (get-head-voice-property head voice-name :last-melodic-interval-updated-p)
       (setf (get-head-voice-property head voice-name :pitch)
-            (calculate-interval-size (get-head-voice-property head voice-name :interval-to-origin)))
+            (* transposition
+               (calculate-interval-size (get-head-voice-property head
+                                                                 voice-name
+                                                                 :interval-to-origin))))
+      ;; (setf (get-head-voice-property head voice-name :pitch)
+      ;;       (modify-interval-size (get-head-voice-property head voice-name :pitch)
+      ;;                             (calculate-interval-size
+      ;;                              (get-head-voice-property head voice-name
+      ;;                                                       :last-melodic-interval))))
       (setf (get-head-voice-property head voice-name :last-melodic-interval-updated-p)
             nil))))
 
@@ -610,6 +633,7 @@ name (symbol defined in INTERVAL-TREE), the second one is NIL (only for UNISONO)
 
 (defun lookup-linear-system (interval-name)
   (linear-system (lookup-fifth-index interval-name)
+                 ;; TODO make this remote-controllable
                  (temper 3/2 -1/4) ; meantone
                  ;; 3/2 ; pythagorean
                  ))
@@ -626,14 +650,16 @@ name (symbol defined in INTERVAL-TREE), the second one is NIL (only for UNISONO)
 (defun modify-interval-size (current-pitch interval-object)
   (* current-pitch (calculate-interval-size interval-object)))
 
-(defun update-pitch (head)
+(defun update-pitch (head transposition)
   (dolist (voice-name (mapcar #'first head) head)
     (when (get-head-voice-property head voice-name :last-melodic-interval-updated-p)
       (setf (get-head-voice-property head voice-name :pitch)
-            (modify-interval-size (get-head-voice-property head voice-name :pitch)
-                                  (get-head-voice-property head voice-name :last-melodic-interval))
-            ;; (calculate-interval-size (get-head-voice-property head voice-name :interval-to-origin))
-            )
+            ;; (modify-interval-size (get-head-voice-property head voice-name :pitch)
+            ;;                       (get-head-voice-property head voice-name :last-melodic-interval))
+            (* transposition
+               (calculate-interval-size (get-head-voice-property head
+                                                                 voice-name
+                                                                 :interval-to-origin))))
       (setf (get-head-voice-property head voice-name :last-melodic-interval-updated-p)
             nil))))
 
@@ -665,41 +691,50 @@ name (symbol defined in INTERVAL-TREE), the second one is NIL (only for UNISONO)
               (getf (rest voice) :interval-to-origin)
               (getf (rest voice) :last-melodic-interval)))))
 
+(defparameter *score-processing-p* t)
+
+(defun score-on ()
+  (setf *score-processing-p* t))
+
+(defun score-off ()
+  (setf *score-processing-p* nil))
+
 (defun process-score-keyframe (tree-name parsed-score head keyframe)
   (labels ((loop-over-voice (voice-name voice-data)
-             (let ((melody-item (first voice-data)))
-               (cond ((null melody-item)
-                      (setf (get-head-voice-property head voice-name :soundingp) nil)
-                      (format t "~&Voice ~a is done." voice-name)
-                      voice-data)
-                     ((and (has-duration-p melody-item)
-                           (<= (getf melody-item :start-time)
-                               keyframe))
-                      (case (getf melody-item :type)
-                        (:tacet (setf (get-head-voice-property head voice-name :soundingp) nil))
-                        (:sound
-                         (setf (get-head-voice-property head voice-name :new-note-p) t)
-                         (setf (get-head-voice-property head voice-name :attack)
-                               (getf melody-item :attack))
-                         (setf (get-head-voice-property head voice-name :soundingp) t)))
-                      (loop-over-voice voice-name (rest voice-data)))
-                     ((and (eq (getf melody-item :type) :interval)
-                           (<= (getf melody-item :time) keyframe))
-                      (setf (get-head-voice-property head voice-name :last-melodic-interval)
-                            (getf melody-item :interval-object))
-                      (setf (get-head-voice-property head
-                                                     voice-name
-                                                     :last-melodic-interval-updated-p)
-                            t)
-                      (setf (get-head-voice-property head voice-name :interval-to-origin)
-                            (chain-intervals (get-head-voice-property head
-                                                                      voice-name
-                                                                      :interval-to-origin)
-                                             (getf melody-item :interval-object)
-                                             (get-interval-tree tree-name)
-                                             (get-identity-interval tree-name)))
-                      (loop-over-voice voice-name (rest voice-data)))
-                     (t voice-data)))))
+             (when *score-processing-p*
+               (let ((melody-item (first voice-data)))
+                 (cond ((null melody-item)
+                        (setf (get-head-voice-property head voice-name :soundingp) nil)
+                        (format t "~&Voice ~a is done." voice-name)
+                        voice-data)
+                       ((and (has-duration-p melody-item)
+                             (<= (getf melody-item :start-time)
+                                 keyframe))
+                        (case (getf melody-item :type)
+                          (:tacet (setf (get-head-voice-property head voice-name :soundingp) nil))
+                          (:sound
+                           (setf (get-head-voice-property head voice-name :new-note-p) t)
+                           (setf (get-head-voice-property head voice-name :attack)
+                                 (getf melody-item :attack))
+                           (setf (get-head-voice-property head voice-name :soundingp) t)))
+                        (loop-over-voice voice-name (rest voice-data)))
+                       ((and (eq (getf melody-item :type) :interval)
+                             (<= (getf melody-item :time) keyframe))
+                        (setf (get-head-voice-property head voice-name :last-melodic-interval)
+                              (getf melody-item :interval-object))
+                        (setf (get-head-voice-property head
+                                                       voice-name
+                                                       :last-melodic-interval-updated-p)
+                              t)
+                        (setf (get-head-voice-property head voice-name :interval-to-origin)
+                              (chain-intervals (get-head-voice-property head
+                                                                        voice-name
+                                                                        :interval-to-origin)
+                                               (getf melody-item :interval-object)
+                                               (get-interval-tree tree-name)
+                                               (get-identity-interval tree-name)))
+                        (loop-over-voice voice-name (rest voice-data)))
+                       (t voice-data))))))
     (dolist (voice head)
       (setf (getf (rest voice) :new-note-p) nil))
     (let ((updated-score (mapcar (lambda (voice)
@@ -724,9 +759,9 @@ name (symbol defined in INTERVAL-TREE), the second one is NIL (only for UNISONO)
         (am-mo:modify-mother-natura mother-name
                                     (lookup-interval-natura (getf (rest voice)
                                                                   :last-melodic-interval)))
-        (case (getf (rest voice) :attack)
-          (:word (am-mo:trigger-natura-accent mother-name 8 0.3))
-          (:sillable (am-mo:trigger-natura-accent mother-name 4.8 0.35)))
+        ;; (case (getf (rest voice) :attack)
+        ;;   (:word (am-mo:trigger-natura-accent mother-name 8 0.3))
+        ;;   (:sillable (am-mo:trigger-natura-accent mother-name 4.8 0.35)))
         )
       (cond ((getf (rest voice) :soundingp)
              (unless (am-mo:mother-on-p mother-name) (am-mo:mother-on mother-name)))
@@ -742,12 +777,12 @@ name (symbol defined in INTERVAL-TREE), the second one is NIL (only for UNISONO)
 ;;; Public functions
 
 (defun score-reader-loop (tree-name score head start-time mother-name-dict
-                          skip-pitch-update skip-timing-function)
+                          skip-pitch-update skip-timing-function global-transposition)
   (let ((next-keyframe (cdr (identify-closest-event score))))
     (when next-keyframe
       (multiple-value-bind (new-score new-head)
           (process-score-keyframe tree-name score head next-keyframe)
-        (setf new-head (update-pitch new-head))
+        (setf new-head (update-pitch new-head global-transposition))
         (print-keyframe-info new-head next-keyframe)
         ;; (print-melody-info new-head next-keyframe :bassus)
         (unless skip-pitch-update (update-mothers new-head mother-name-dict))
@@ -759,9 +794,10 @@ name (symbol defined in INTERVAL-TREE), the second one is NIL (only for UNISONO)
                                  start-time
                                  mother-name-dict
                                  skip-pitch-update
-                                 skip-timing-function)
+                                 skip-timing-function
+                                 global-transposition)
               (incudine:at (+ start-time (compute-time (cdr (identify-closest-event new-score))
-                                                       4))
+                                                       3.5))
                            #'score-reader-loop
                            tree-name
                            new-score
@@ -769,7 +805,8 @@ name (symbol defined in INTERVAL-TREE), the second one is NIL (only for UNISONO)
                            start-time
                            mother-name-dict
                            skip-pitch-update
-                           skip-timing-function)))))))
+                           skip-timing-function
+                           global-transposition)))))))
 
 (defun read-score (tree-name score-data &key
                                           (mother-name-dict )
@@ -783,7 +820,8 @@ name (symbol defined in INTERVAL-TREE), the second one is NIL (only for UNISONO)
                        (incudine:now)
                        mother-name-dict
                        skip-pitch-update
-                       skip-timing-function)))
+                       skip-timing-function
+                       root-pitch)))
 
 
 (defparameter *mother-dict-willaert* '((:cantus . :soprano)
@@ -793,12 +831,14 @@ name (symbol defined in INTERVAL-TREE), the second one is NIL (only for UNISONO)
 
 
 (defun go-willaert ()
+  (score-on)
   (read-score :vicentino-enarmonico
               *mirabile*
-              :root-pitch 1/3
+              :root-pitch 1/2
               :mother-name-dict *mother-dict-willaert*))
 
 (defun go-vicentino ()
+  (score-on)
   (read-score :vicentino-enarmonico *soave*))
 
 ;; TODO Delete, when done with debugging.

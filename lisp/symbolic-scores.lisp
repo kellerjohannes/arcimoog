@@ -84,20 +84,120 @@
   (parse-shorthand
    '((:cantus
       ;; Mirabile
-      ta ld i o s sb wo s sbd si i tod s m si s sb si i std s sb
+      ta ld i o s b wo s sbd si i tod s m si s b si i std s b
       ;; mysterium
-      i tod s sb wo i tmin s sbd si i std s sm i tod s sm i to s m i st s sb i std s m si i st s sb si
+      i tod s b wo i tmin s sbd si i std s sm i tod s sm i to s m i st s sb i std s m si i st s sb si
       ;; declaratur
       ta m s sb wo i to s m si i to s sb si i tod s b si
       ;; hodie,
       ta m i to s md wo i to s sm i st s sb i std s sm si i tod s sm i tod s m si
       ;; hodie,
-      i qua s md wo i std s m i tod s sb i tod s m si i to s sb si
+      i qua s md wo i std s sm i tod s sb i tod s m si i to s sb si
       ;; declaratur
-      ta b ta m
+      ta b ta m s sb wo i to s m si i st s m si i tmind s m si
+      ;; hodie,
+      i to s m wo s m si i tod s m si
+      ;; hodie
+      i tmin s md wo i std s sm i tod s sb i tod s sm i tod s sm i std s md i tod s sm i to s m i st s m si i tmind s sb si
+      ;; hodie
+      i tod s md wo i to s sm i to s m i st s md i to s sm i to s md i to s sm i st s sb i std s sm si i tod s sm i tod s sb si
+      ;; innovantur
+      ta sb i tod s sb wo i tmag s sb si i tmin s b si s sb si i std s sb
+      ;; naturae
+      ta m i tod s sb wo i tod s sm i tod s sm i to s m i to s md si i tod s sm s sb i std s m i st s b si
+      ;; Deus
+      ta sb ta l ta m)
+     (:altus
+      ;; Mirabile
+      ta sb i qui s b wo s sbd si i tod s m si s b si
+      ;; mirabile
+      i std s b wo i tmin s sbd si i tod s m si s b si i std s b
+      ;; mysterium
+      i tod s sb wo s sb si i tmagd s sb si i qui s b si
+      ;; declaratur
+      ta sb s sb wo i to s m si i to s sb si i tod s m si
+      ;; hodie
+      i to s m wo s m si i tod s md si i tod s sm i tmind s m
+      ;; declaratur
+      i tmin s m wo i to s m si i to s sb si i tod s m si
+      ;; hodie
+      i to s sb wo s m si i st s sb si i std s sm i tod s sm i tod s m
+      ;; hodie
+      i qua s md wo i std s sm i tod s sb i std s m si i st s md si i tod s sm i tmind s m
+      ;; declaratur
+      i qui s sb wo i st s m si i to s m si i quad s m si i tmin s m wo s m si i std s sb si
+      ;; innovatur
+      ta sb ta l ta l ta sb i tod s sb wo s sb si i tmin s sb si i std s sb si
+      ;; naturae
+      ta m s sb wo i tod s sm i tod s sm i to s m i to s md si i tod s sm i tod s sm i std s sm i st s m i to s m i to s m i tod s sb i tod s m i to s sb si i to s sb
+      ;; innovantur
+      ta m s m wo i tod s m si i tod s sb si i std s m si i st s m wo i to s md si i tod s sm s sb i std s m i st s b si
+      ;; Deus
 
       )
-     (:altus i o s sb))))
+     (:tenor
+      ;; Mirabile
+      s b wo i tmin s sbd si i std s m si s b si
+      ;; mirabile
+      ta sb i tod s b wo i tmin s sbd si i std s m si s b si i tod s b si
+      ;; mysterium
+      i tod s b wo i tmag s sbd si i tod s sm i tod s sm i to s m s m si i tod s sb si
+      ;; mysterium
+      ta m i tmag s sb wo i tmin s sb si i std s sm i tod s sm i to s m i st s sb i std s m si i st s m si
+      ;; declaratur
+      i quid s sb wo i to s m si i to s md si i to s sm i st s m i tmind s m si
+      ;; hodie
+      i tmin s m wo i to s m i tmind s sb si i tod s sb si
+      ;; declaratur
+      ta b ta m i tmagd s sb wo i to s m si i to s sb si i tod s sb si
+      ;; hodie
+      ta m i to s md wo i to s sm i st s sb i std s sm si i tod s sm i tod s m si
+      ;; hodie
+      i qua s md wo i std s sm i tod s sb i std s m si i st s b si
+      ;; innovantur
+      ta m i tmagd s m wo i tmag s sb si i tmin s sb si s sb si i std s sb
+      ;; naturae
+      ta m i tod s sb wo i tod s sm i tod s sm i to s m i to s md si i tod s sm s md i std s sm s sm i tod s sm i tmin s sb si
+      ;; innovantur
+      ta bd s sb wo i to s sb si i tmin s sb si i std s sb si
+      ;; naturae
+      ta m i tod s sb wo i tod s sm i tod s sm i to s m i to s md si i tod s sm s sb i tod s m i to s sb si
+      ;; Deus
+      ta m
+      )
+     (:bassus
+      ;; mirabile
+      s b wo s sbd si i tod s m si s b si i std s b
+      ;; mysterium
+      ta ld ta sb i tod s sb wo s sbd si s m si i tod s b si
+      ;; declaratur
+      ta m i smag s md wo i tod s sm i tod s sm i std s sm i tod s m i tod s m si i qua s sb si i std s md si i st s sm i to s sb
+      ;; hodie
+      i tod s md wo i std s sm i tod s m i tod s m si i qua s sb si
+      ;; declaratur
+      ta sb ta m i tmind s sb wo i to s m si i st s m si i tmind s m si
+      ;; hodie
+      i tmin s m wo i to s m si i tmind s sb si i tod s sb
+      ;; declaratur
+      ta l i quad s sbd wo i to s m si i st s m si i tmind s m si
+      ;; hodie
+      i tmin s m wo i to s m si i tmind s sb si i tod s sb
+      ;; innovantur
+      ta m i qua s m wo s sb si i tmin s sb si s sb si i std s md i st s sm i to s m
+      ;; innovantur
+      i od s m wo i qui s sb si s sb si i tod s m si
+      ;; naturae
+      i tmind s m wo i tmin s md si i std s sm i tod s sb i tod s m si
+      ;; naturae
+      i o s m wo i to s md si i tod s sm i tod s m i std s sm i tod s sm i tod s m si
+      ;; naturae
+      i qua s m wo i std s sb si i tod s sb si
+      ;; innovantur
+      ta m i tod s m wo i tmag s sb si i st s sb si i std s md si i tod s sm i to s m
+      ;; naturae
+      i st s m wo i quad s m si i tmag s m i tod s sb i tod s b si
+      ;; Deus
+      ta sbd))))
 
 
 (defparameter *mirabile* '((:bassus
@@ -167,211 +267,210 @@
                             (:i :terza-minore)
                             (:s :minima :word)
                             (:i :tono)
+                            (:s :minima :sillable))
+                           (:tenor
+                            (:s :brevis :word)
+                            (:i :terza-minore)
+                            (:s :semibrevis :dot :sillable)
+                            (:i :semitono-maggiore :➘)
                             (:s :minima :sillable)
-                            ))
-  (:tenor
-   (:s :brevis :word)
-   (:i :terza-minore)
-   (:s :semibrevis :dot :sillable)
-   (:i :semitono-maggiore :➘)
-   (:s :minima :sillable)
-   (:s :brevis :sillable)
-   (:t :semibrevis)
-   (:i :tono :➘)
-   (:s :brevis :word)
-   (:i :terza-minore)
-   (:s :semibrevis :dot :sillable)
-   (:i :semitono-maggiore :➘)
-   (:s :minima :sillable)
-   (:s :brevis :sillable)
-   (:i :tono :➘)
-   (:s :brevis)
-   (:i :tono :➘)
-   (:s :brevis :word)
-   (:i :terza-maggiore)
-   (:s :semibrevis :dot :sillable)
-   (:i :tono :➘)
-   (:s :semiminima)
-   (:i :tono :➘)
-   (:s :semiminima)
-   (:i :tono)
-   (:s :minima)
-   (:s :minima :sillable)
-   ;; bar 11
-   (:i :tono :➘)
-   (:s :semibrevis :sillable)
-   (:t :minima)
-   (:i :terza-maggiore)
-   (:s :semibrevis :word)
-   (:i :terza-minore)
-   (:s :semibrevis :sillable)
-   (:i :semitono-maggiore :➘)
-   (:s :semiminima)
-   (:i :tono :➘)
-   (:s :semiminima)
-   ;; bar 13
-   (:i :tono)
-   (:s :minima)
-   (:i :semitono-maggiore)
-   (:s :semibrevis)
-   (:i :semitono-maggiore :➘)
-   (:s :minima :sillable)
-   ;; bar 14
-   (:i :semitono-maggiore)
-   (:s :minima :sillable)
-   (:i :quinta :➘)
-   (:s :semibrevis :word)
-   (:i :tono)
-   (:s :minima :sillable)
-   ;; bar 15
-   (:i :tono)
-   (:s :minima :dot)
-   (:i :tono)
-   (:s :semiminima)
-   (:i :semitono-maggiore)
-   (:s :minima)
-   (:i :terza-minore :➘)
-   (:s :minima :sillable)
-   ;; bar 16
-   (:i :terza-minore)
-   (:s :minima :word)
-   (:i :tono)
-   (:s :minima)
-   (:i :terza-minore :➘)
-   (:s :semibrevis :sillable)
-   (:i :tono :➘)
-   (:s :semibrevis :sillable))
-  (:altus
-   (:t :semibrevis)
-   (:i :quinta)
-   (:s :brevis :word)
-   (:s :semibrevis :dot :sillable)
-   (:i :tono :➘)
-   (:s :minima :sillable)
-   (:s :brevis :sillable)
-   (:i :semitono-maggiore :➘)
-   (:s :brevis :word)
-   (:i :terza-minore)
-   (:s :semibrevis :dot :sillable)
-   (:i :tono :➘)
-   (:s :minima :sillable)
-   (:s :brevis :sillable)
-   (:i :semitono-maggiore :➘)
-   (:s :brevis)
-   (:i :tono :➘)
-   (:s :semibrevis :word)
-   ;; bar 9
-   (:s :semibrevis :sillable)
-   (:i :terza-maggiore :➘)
-   (:s :semibrevis :sillable)
-   (:i :quinta)
-   (:s :brevis :sillable)
-   ;; bar 11
-   (:t :semibrevis)
-   (:s :semibrevis :word)
-   ;; bar 12
-   (:i :tono)
-   (:s :minima :sillable)
-   (:i :tono)
-   (:s :semibrevis :sillable)
-   (:i :tono :➘)
-   (:s :minima :sillable)
-   ;; bar 13
-   (:i :tono)
-   (:s :minima :word)
-   (:s :minima :sillable)
-   (:i :tono :➘)
-   (:s :minima :dot :sillable)
-   (:i :tono :➘)
-   (:s :semiminima)
-   ;; bar 14
-   (:i :terza-minore :➘)
-   (:s :minima)
-   (:i :terza-minore)
-   (:s :minima :word)
-   (:i :tono)
-   (:s :minima :sillable)
-   (:i :tono)
-   (:s :semibrevis :sillable)
-   (:i :tono :➘)
-   (:s :minima :sillable)
-   (:i :tono)
-   (:s :semibrevis :word)
-   ;; bar 16
-   (:s :minima :sillable)
-   (:i :semitono-maggiore)
-   (:s :semibrevis :sillable)
-   (:i :semitono-maggiore :➘)           ; correction
-   (:s :semiminima)
-   (:i :tono :➘)
-   (:s :semiminima)
-   ;; bar 17
-   (:i :tono :➘)
-   (:s :minima))
-  (:cantus
-   (:t :longa :dot)
-   (:i :ottava)
-   (:s :brevis :word)
-   (:s :semibrevis :dot :sillable)
-   (:i :tono :➘)
-   (:s :minima :sillable)
-   (:s :brevis :sillable)
-   (:i :semitono-maggiore :➘)
-   (:s :brevis)
-   (:i :tono :➘)
-   (:s :brevis :word)
-   ;; bar 9
-   (:i :terza-minore)
-   (:s :semibrevis :dot :sillable)
-   (:i :semitono-maggiore :➘)
-   (:s :semiminima)
-   (:i :tono :➘)
-   (:s :semiminima)
-   ;; bar 10
-   (:i :tono)
-   (:s :minima)
-   (:i :semitono-maggiore)
-   (:s :semibrevis)
-   (:i :semitono-maggiore :➘)
-   (:s :minima :sillable)
-   ;; bar 11
-   (:i :semitono-maggiore)
-   (:s :semibrevis :sillable)
-   (:t :minima)
-   (:s :semibrevis :word)
-   (:i :tono)
-   (:s :minima :sillable)
-   (:i :tono)
-   (:s :semibrevis :sillable)
-   ;; bar 13
-   (:i :tono :➘)
-   (:s :brevis :sillable)
-   ;; bar 14
-   (:t :minima)
-   (:i :tono)
-   (:s :minima :dot :word)
-   (:i :tono)
-   (:s :semiminima)
-   (:i :semitono-maggiore)
-   (:s :semibrevis)
-   (:i :semitono-maggiore :➘)
-   (:s :semiminima :sillable)
-   (:i :tono :➘)
-   (:s :semiminima)
-   (:i :tono :➘)
-   (:s :minima :sillable)
-   (:i :quarta)
-   (:s :minima :dot :word)
-   (:i :semitono-maggiore :➘)
-   (:s :semiminima)
-   (:i :tono :➘)
-   (:s :semibrevis)
-   (:i :semitono-maggiore :➘)           ; ficta, notated :tono
-   (:s :minima :sillable)
-   ;; bar 17
-   (:i :semitono-maggiore)              ; ficta, notated :tono
-   (:s :semibrevis :sillable)
-   (:t :semibrevis)))
+                            (:s :brevis :sillable)
+                            (:t :semibrevis)
+                            (:i :tono :➘)
+                            (:s :brevis :word)
+                            (:i :terza-minore)
+                            (:s :semibrevis :dot :sillable)
+                            (:i :semitono-maggiore :➘)
+                            (:s :minima :sillable)
+                            (:s :brevis :sillable)
+                            (:i :tono :➘)
+                            (:s :brevis)
+                            (:i :tono :➘)
+                            (:s :brevis :word)
+                            (:i :terza-maggiore)
+                            (:s :semibrevis :dot :sillable)
+                            (:i :tono :➘)
+                            (:s :semiminima)
+                            (:i :tono :➘)
+                            (:s :semiminima)
+                            (:i :tono)
+                            (:s :minima)
+                            (:s :minima :sillable)
+                            ;; bar 11
+                            (:i :tono :➘)
+                            (:s :semibrevis :sillable)
+                            (:t :minima)
+                            (:i :terza-maggiore)
+                            (:s :semibrevis :word)
+                            (:i :terza-minore)
+                            (:s :semibrevis :sillable)
+                            (:i :semitono-maggiore :➘)
+                            (:s :semiminima)
+                            (:i :tono :➘)
+                            (:s :semiminima)
+                            ;; bar 13
+                            (:i :tono)
+                            (:s :minima)
+                            (:i :semitono-maggiore)
+                            (:s :semibrevis)
+                            (:i :semitono-maggiore :➘)
+                            (:s :minima :sillable)
+                            ;; bar 14
+                            (:i :semitono-maggiore)
+                            (:s :minima :sillable)
+                            (:i :quinta :➘)
+                            (:s :semibrevis :word)
+                            (:i :tono)
+                            (:s :minima :sillable)
+                            ;; bar 15
+                            (:i :tono)
+                            (:s :minima :dot)
+                            (:i :tono)
+                            (:s :semiminima)
+                            (:i :semitono-maggiore)
+                            (:s :minima)
+                            (:i :terza-minore :➘)
+                            (:s :minima :sillable)
+                            ;; bar 16
+                            (:i :terza-minore)
+                            (:s :minima :word)
+                            (:i :tono)
+                            (:s :minima)
+                            (:i :terza-minore :➘)
+                            (:s :semibrevis :sillable)
+                            (:i :tono :➘)
+                            (:s :semibrevis :sillable))
+                           (:altus
+                            (:t :semibrevis)
+                            (:i :quinta)
+                            (:s :brevis :word)
+                            (:s :semibrevis :dot :sillable)
+                            (:i :tono :➘)
+                            (:s :minima :sillable)
+                            (:s :brevis :sillable)
+                            (:i :semitono-maggiore :➘)
+                            (:s :brevis :word)
+                            (:i :terza-minore)
+                            (:s :semibrevis :dot :sillable)
+                            (:i :tono :➘)
+                            (:s :minima :sillable)
+                            (:s :brevis :sillable)
+                            (:i :semitono-maggiore :➘)
+                            (:s :brevis)
+                            (:i :tono :➘)
+                            (:s :semibrevis :word)
+                            ;; bar 9
+                            (:s :semibrevis :sillable)
+                            (:i :terza-maggiore :➘)
+                            (:s :semibrevis :sillable)
+                            (:i :quinta)
+                            (:s :brevis :sillable)
+                            ;; bar 11
+                            (:t :semibrevis)
+                            (:s :semibrevis :word)
+                            ;; bar 12
+                            (:i :tono)
+                            (:s :minima :sillable)
+                            (:i :tono)
+                            (:s :semibrevis :sillable)
+                            (:i :tono :➘)
+                            (:s :minima :sillable)
+                            ;; bar 13
+                            (:i :tono)
+                            (:s :minima :word)
+                            (:s :minima :sillable)
+                            (:i :tono :➘)
+                            (:s :minima :dot :sillable)
+                            (:i :tono :➘)
+                            (:s :semiminima)
+                            ;; bar 14
+                            (:i :terza-minore :➘)
+                            (:s :minima)
+                            (:i :terza-minore)
+                            (:s :minima :word)
+                            (:i :tono)
+                            (:s :minima :sillable)
+                            (:i :tono)
+                            (:s :semibrevis :sillable)
+                            (:i :tono :➘)
+                            (:s :minima :sillable)
+                            (:i :tono)
+                            (:s :semibrevis :word)
+                            ;; bar 16
+                            (:s :minima :sillable)
+                            (:i :semitono-maggiore)
+                            (:s :semibrevis :sillable)
+                            (:i :semitono-maggiore :➘)           ; correction
+                            (:s :semiminima)
+                            (:i :tono :➘)
+                            (:s :semiminima)
+                            ;; bar 17
+                            (:i :tono :➘)
+                            (:s :minima))
+                           (:cantus
+                            (:t :longa :dot)
+                            (:i :ottava)
+                            (:s :brevis :word)
+                            (:s :semibrevis :dot :sillable)
+                            (:i :tono :➘)
+                            (:s :minima :sillable)
+                            (:s :brevis :sillable)
+                            (:i :semitono-maggiore :➘)
+                            (:s :brevis)
+                            (:i :tono :➘)
+                            (:s :brevis :word)
+                            ;; bar 9
+                            (:i :terza-minore)
+                            (:s :semibrevis :dot :sillable)
+                            (:i :semitono-maggiore :➘)
+                            (:s :semiminima)
+                            (:i :tono :➘)
+                            (:s :semiminima)
+                            ;; bar 10
+                            (:i :tono)
+                            (:s :minima)
+                            (:i :semitono-maggiore)
+                            (:s :semibrevis)
+                            (:i :semitono-maggiore :➘)
+                            (:s :minima :sillable)
+                            ;; bar 11
+                            (:i :semitono-maggiore)
+                            (:s :semibrevis :sillable)
+                            (:t :minima)
+                            (:s :semibrevis :word)
+                            (:i :tono)
+                            (:s :minima :sillable)
+                            (:i :tono)
+                            (:s :semibrevis :sillable)
+                            ;; bar 13
+                            (:i :tono :➘)
+                            (:s :brevis :sillable)
+                            ;; bar 14
+                            (:t :minima)
+                            (:i :tono)
+                            (:s :minima :dot :word)
+                            (:i :tono)
+                            (:s :semiminima)
+                            (:i :semitono-maggiore)
+                            (:s :semibrevis)
+                            (:i :semitono-maggiore :➘)
+                            (:s :semiminima :sillable)
+                            (:i :tono :➘)
+                            (:s :semiminima)
+                            (:i :tono :➘)
+                            (:s :minima :sillable)
+                            (:i :quarta)
+                            (:s :minima :dot :word)
+                            (:i :semitono-maggiore :➘)
+                            (:s :semiminima)
+                            (:i :tono :➘)
+                            (:s :semibrevis)
+                            (:i :semitono-maggiore :➘)           ; ficta, notated :tono
+                            (:s :minima :sillable)
+                            ;; bar 17
+                            (:i :semitono-maggiore)              ; ficta, notated :tono
+                            (:s :semibrevis :sillable)
+                            (:t :semibrevis))))
 
 (defparameter *soave* '((:soprano
                          ;; Soav'e dolc' ardore,
