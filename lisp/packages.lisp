@@ -53,7 +53,16 @@
   (:use :cl)
   (:nicknames :am-si)
   (:import-from :arcimoog.utilities
-                #:if-exists))
+                #:if-exists)
+  (:export #:go-vicentino
+           #:go-willaert
+           #:model
+           #:relative
+           #:score-off
+           #:reset-meantone
+           #:modify-fifth
+           #:modify-edx
+           #:reset-ed2))
 
 ;; (defpackage :arcimoog.score-model
 ;;   (:use :cl)
@@ -181,4 +190,12 @@
                 #:register-precision-dial
                 #:register-precision-dial-callback)
   (:import-from :arcimoog.pitch-data
-                #:nn))
+                #:nn)
+  (:import-from :arcimoog.symbolic-intervals
+                #:go-vicentino
+                #:go-willaert
+                #:model
+                #:relative
+                #:score-off
+                #:reset-meantone
+                #:reset-ed2))

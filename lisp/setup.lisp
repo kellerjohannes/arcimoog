@@ -110,6 +110,14 @@
                                     "Setting global VCO offset (origin pitch)."
                                     #'am-mo:modify-cv-1/1)
 
+  (register-precision-dial-callback 3 20 21 22 23
+                                    "Modifying the tempering of the fifth in linear systems."
+                                    #'am-si:modify-fifth)
+
+  (register-precision-dial-callback 3 24 25 26 27
+                                    "Modifying the identity interval in EDx systems."
+                                    #'am-si:modify-edx)
+
 
   ;; Startup webserver UI (CLOG)
   (am-ui:init))

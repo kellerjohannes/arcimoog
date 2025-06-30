@@ -586,10 +586,10 @@ name (symbol defined in INTERVAL-TREE), the second one is NIL (only for UNISONO)
 (defun linear-system (index generator-interval &optional (identity-interval 2/1))
   (to-pitchclass (expt generator-interval index) identity-interval))
 
+(defparameter *fifth-tempering* -1/4)
+
 (defun lookup-linear-system (interval-name)
-  (linear-system (lookup-fifth-index interval-name)
-                 ;; TODO make this remote-controllable
-                 (temper 3/2 -1/4)))
+  (linear-system (lookup-fifth-index interval-name) (temper 3/2 *fifth-tempering*)))
 
 
 ;; Functions that are independent of a specific pitch calculation model
@@ -597,6 +597,8 @@ name (symbol defined in INTERVAL-TREE), the second one is NIL (only for UNISONO)
 (defparameter *interval-calculation-approach* :linear-system)
 
 (defparameter *relative-interval-calculation-p* nil)
+
+(defparameter *edx* 2/1)
 
 (defun calculate-interval-size (interval-object)
   (case *interval-calculation-approach*
@@ -609,15 +611,14 @@ name (symbol defined in INTERVAL-TREE), the second one is NIL (only for UNISONO)
                               (expt 2 (third interval-object))
                               (if (eq (first interval-object) 'ottava) 2 1))))))
     (:equal-division
-     (let ((divided-interval (* 2/1 1/1)))
-       (funcall (case (second interval-object)
-                  (ascendente #'*)
-                  (discendente #'/)
-                  (otherwise #'*))
-                1/1
-                (* (expt divided-interval (/ (cdr (assoc (first interval-object) *31ed2-indices*))
-                                             31))
-                   (expt divided-interval (third interval-object))))))
+     (funcall (case (second interval-object)
+                (ascendente #'*)
+                (discendente #'/)
+                (otherwise #'*))
+              1/1
+              (* (expt *edx* (/ (cdr (assoc (first interval-object) *31ed2-indices*))
+                                31))
+                 (expt *edx* (third interval-object)))))
     (:just-intonation
      (if (eq (first interval-object) 'unisono)
          1/1
@@ -677,12 +678,6 @@ name (symbol defined in INTERVAL-TREE), the second one is NIL (only for UNISONO)
               (getf (rest voice) :last-melodic-interval)))))
 
 (defparameter *score-processing-p* t)
-
-(defun score-on ()
-  (setf *score-processing-p* t))
-
-(defun score-off ()
-  (setf *score-processing-p* nil))
 
 (defun process-score-keyframe (tree-name parsed-score head keyframe)
   (labels ((loop-over-voice (voice-name voice-data)
@@ -838,3 +833,23 @@ name (symbol defined in INTERVAL-TREE), the second one is NIL (only for UNISONO)
   (if t-or-nil
       (setf *relative-interval-calculation-p* t)
       (setf *relative-interval-calculation-p* nil)))
+
+(defun modify-fifth (delta)
+  (incf *fifth-tempering* (* delta 0.01))
+  (format t "~&Tempered fifth modified to ~a of a syntonic comma." *fifth-tempering*))
+
+(defun reset-meantone ()
+  (setf *fifth-tempering* -1/4))
+
+(defun modify-edx (delta)
+  (setf *edx* (+ *edx* (* delta 0.01)))
+  (format t "~&EDx modified to ~a (interval ratio)." *edx*))
+
+(defun reset-ed2 ()
+  (setf *edx* 2/1))
+
+(defun score-on ()
+  (setf *score-processing-p* t))
+
+(defun score-off ()
+  (setf *score-processing-p* nil))
