@@ -6,9 +6,9 @@
   :serial t
   :components ((:file "clog-webgl-patch")
                (:file "packages")
+               (:file "global-definitions")
                (:file "utilities")
                (:file "conditions")
-               (:file "global-definitions")
                (:file "interval-trees")
                (:file "symbolic-scores")
                (:file "symbolic-intervals")
