@@ -333,14 +333,14 @@
 
 (defun set-cv-1/1 (new-cv-1/1)
   (setf *cv-1/1* new-cv-1/1)
-  (update-all-mothers))
+  (update-all-mothers)
+  (format t "~&CV-1/1 (origin) set to ~a." *cv-1/1*))
 
 (defun get-cv-1/1 ()
   *cv-1/1*)
 
 (defun modify-cv-1/1 (cv-delta)
-  (set-cv-1/1 (+ *cv-1/1* cv-delta))
-  (format t "~&CV-1/1 (origin) modified to ~a." *cv-1/1*))
+  (set-cv-1/1 (+ *cv-1/1* cv-delta)))
 
 
 

@@ -825,7 +825,7 @@ name (symbol defined in INTERVAL-TREE), the second one is NIL (only for UNISONO)
   (score-on)
   (read-score :vicentino-enarmonico
               *mirabile*
-              :root-pitch 2/3
+              :root-pitch 1/1
               :mother-name-dict *mother-dict-willaert*))
 
 (defun go-vicentino ()
