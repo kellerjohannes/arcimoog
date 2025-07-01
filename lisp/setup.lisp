@@ -210,9 +210,16 @@
 
 
 
+
+
+
+;;; Sketches for Apollo Kreuzlingen, not in use for live set
+
+;;; STARTING HERE
+
 (defun origin-simple-swipe (time value direction target-value &optional
-                                                         (time-interval 1410)
-                                                         (cv-delta 0.001))
+                                                                (time-interval 1410)
+                                                                (cv-delta 0.001))
   (cond ((and (> direction 0) (>= value target-value)) (am-mo:set-cv-1/1 target-value))
         ((and (< direction 0) (<= value target-value)) (am-mo:set-cv-1/1 target-value))
         (t (am-mo:set-cv-1/1 value)
@@ -449,3 +456,82 @@
 
 ;; wide
 (make-flux c5 1 1 1 1 1 6 8 10)
+
+
+;;; ENDING HERE
+
+
+
+
+;;; Apollo Kreuzlingen live set
+
+(defun all-1 (&optional duration)
+  (am-mo:set-mother-pitch :soprano 1/1 duration)
+  (am-mo:set-mother-pitch :alto 1/1 duration)
+  (am-mo:set-mother-pitch :tenore 1/1 duration)
+  (am-mo:set-mother-pitch :basso 1/1 duration))
+
+(defparameter *1/1-slots* (make-array 16 :initial-element -1))
+
+(defun init-1/1-values ()
+  (setf (aref *1/1-slots* 1) -0.8)
+  (setf (aref *1/1-slots* 2) -1.822)
+  (setf (aref *1/1-slots* 3) 0.0)
+  (setf (aref *1/1-slots* 4) -0.951881))
+
+(defun save-1/1 (slot-id)
+  (setf (aref *1/1-slots* slot-id) (am-mo:get-cv-1/1)))
+
+(defun recall-1/1 (slot-id)
+  (aref *1/1-slots* slot-id))
+
+(defun reset-natura (&optional (value-list (list 0 0 0 0)))
+  (loop for value in value-list
+        for mother in (list :soprano :alto :tenore :basso)
+        do (am-mo:set-mother-natura mother value)))
+
+(defun set-chord (soprano-pitch alto-pitch tenore-pitch basso-pitch &optional duration)
+  (am-mo:set-mother-pitch :soprano soprano-pitch duration)
+  (am-mo:set-mother-pitch :alto alto-pitch duration)
+  (am-mo:set-mother-pitch :tenore tenore-pitch duration)
+  (am-mo:set-mother-pitch :basso basso-pitch duration))
+
+
+;; Takeoff
+
+(defun takeoff-reset ()
+  (reset-natura)
+  (init-1/1-values)
+  (all-1)
+  (recall-1/1 2))
+
+
+(defun takeoff-chord (&optional duration)
+  (set-chord 4 5/2 3/2 1 duration))
+
+
+
+;; Touchdown
+
+(defparameter *chord-slots* (make-array 16 :initial-element (list 1 1 1 1)))
+
+(defun set-chord-slot (slot-id soprano alto tenore basso)
+  (setf (aref *chord-slots* slot-id) (list soprano alto tenore basso)))
+
+(defun get-chord-slot (slot-id)
+  (aref *chord-slots* slot-id))
+
+(defun populate-chord-slots ()
+  (set-chord-slot 1 4 5/2 3/2 1)
+  (set-chord-slot 2 2/1 5/4 3/1 9/4)
+  (set-chord-slot 3 1/1 1/1 1/1 1/1) ;; origin, unsplit
+  (set-chord-slot 4 8 4 2 1) ;; origin, octave split
+  (set-chord-slot 5 3/2 3/2 3/2 3/2) ;; quinta, unsplit
+  (set-chord-slot 6 (* 8 3/2) (* 4 3/2) (* 2 3/2) (* 1 3/2)) ;; quinta, unsplit
+  )
+
+(defun touchdown-reset ()
+  (populate-chord-slots))
+
+(defun chord (slot-id &optional duration)
+  (apply #'set-chord (append (get-chord-slot slot-id) (list duration))))

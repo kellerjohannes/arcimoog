@@ -2,6 +2,8 @@
 
 (defparameter *cv-1/1* -0.8)
 
+(defun get-cv-1/1 () *cv-1/1*)
+
 (defclass mother ()
   ((pitch-ratio :initform 1/1 :accessor pitch)
    (pitch-updated-p :initform nil :accessor pitch-updated-p)
@@ -15,8 +17,7 @@
    (vcf-name :initarg :vcf-name :reader vcf-name)
    (res-name :initarg :res-name :reader res-name)
    (vca-name :initarg :vca-name :reader vca-name)
-   (gate-name :initarg :gate-name :reader gate-name)
-   ))
+   (gate-name :initarg :gate-name :reader gate-name)))
 
 (defmethod ratio-to-cv-relative ((instance mother) ratio)
   (* 0.1 (cv-factor instance) (/ (log ratio) (log 2/1))))
@@ -338,7 +339,8 @@
   *cv-1/1*)
 
 (defun modify-cv-1/1 (cv-delta)
-  (set-cv-1/1 (+ *cv-1/1* cv-delta)))
+  (set-cv-1/1 (+ *cv-1/1* cv-delta))
+  (format t "~&CV-1/1 (origin) modified to ~a." *cv-1/1*))
 
 
 
