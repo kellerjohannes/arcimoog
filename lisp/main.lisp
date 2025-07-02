@@ -257,9 +257,10 @@
 ;;; ENDING HERE
 
 
-
+;;; TODO find out where Complex Numbers come from!
 
 ;;; Apollo Kreuzlingen live set
+
 
 (defun all-1 (&optional duration)
   (am-mo:set-mother-pitch :soprano 1/1 duration)
@@ -267,20 +268,30 @@
   (am-mo:set-mother-pitch :tenore 1/1 duration)
   (am-mo:set-mother-pitch :basso 1/1 duration))
 
-(defparameter *1/1-slots* (make-array 16 :initial-element -1))
+(defun pitchpanic ()
+  "Good to tune everything."
+  (all-1)
+  (am-mo:set-master-transpose 1/1)
+  (am-mo:set-cv-1/1 -0.802) ; resulting in ca. 0V output current
+  )
 
-(defun init-1/1-values ()
-  (setf (aref *1/1-slots* 1) -0.8) ; target takeoff
-  (setf (aref *1/1-slots* 2) -1.822) ; origin takeoff
-  (setf (aref *1/1-slots* 3) 0.0) ; neutral (best to tune?)
-  (setf (aref *1/1-slots* 4) -0.951881) ; F# for ruedi (touchdown)
-  (setf (aref *1/1-slots* 5) -0.7828815)) ; origin for Willaert
+(pitchpanic)
 
-(defun save-1/1 (slot-id)
-  (setf (aref *1/1-slots* slot-id) (am-mo:get-cv-1/1)))
+(defparameter *transposer-slots* (make-array 16 :initial-element -1))
 
-(defun recall-1/1 (slot-id)
-  (am-mo:set-cv-1/1 (aref *1/1-slots* slot-id)))
+(defun init-transposer-values ()
+  (setf (aref *transposer-slots* 1) 1/1) ; target takeoff
+  (setf (aref *transposer-slots* 2) 0.0052932655) ; origin takeoff
+  (setf (aref *transposer-slots* 3) 1/1) ; neutral (best to tune?)
+  (setf (aref *transposer-slots* 4) 0.35219964) ; F# for ruedi (touchdown)
+  (setf (aref *transposer-slots* 5) 0.9133662) ; origin for Willaert, bassa cappella
+ )
+
+(defun save-transposer (slot-id)
+  (setf (aref *transposer-slots* slot-id) (am-mo:get-master-transpose)))
+
+(defun recall-transposer (slot-id)
+  (am-mo:set-master-transpose (aref *transposer-slots* slot-id)))
 
 (defun reset-natura (&optional (value-list (list 0 0 0 0)))
   (loop for value in value-list
@@ -294,27 +305,56 @@
   (am-mo:set-mother-pitch :tenore tenore-pitch duration)
   (am-mo:set-mother-pitch :basso basso-pitch duration))
 
-
-;; Takeoff
+;;;;;;;;;;;;;
+;; Takeoff ;;
+;;;;;;;;;;;;;
 
 (defun takeoff-reset ()
   (cvdoff)
   (reset-natura)
-  (init-1/1-values)
+  (init-transposer-values)
   (all-1)
-  (recall-1/1 2))
-
-;; Attention, manual intervention is required after recalling 1/1 in slot 2, *CV-1/1* is not set
-;; properly, because it lies outside of valid parameter boundaries.
-
-;; go to -1.42 to take effect.
+  (recall-transposer 2))
 
 (defun takeoff-chord (&optional duration)
   (set-chord 4 5/2 3/2 1 duration))
 
+;; TAKEOFF-RESET to prepare (called when loading ARCIMOOG)
+;; ALLON in advance, Ruedi is mute
+;; TAKEOFF-CHORD, timing ca. 30'
+;; Manually raise
+;; Ruedi cuts everything, then:
+;; ALLOFF (Ruedi needs to open the channels for Willaert)
 
 
-;; Touchdown
+;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; Willaert / Vicentino ;;
+;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+(defun willaert-reset ()
+  (recall-transposer 5)
+  (model 2)
+  (reset-meantone)
+  (am-si:set-edx 1/1))
+
+;; WILLAERT-RESET to prepare (no sound)
+;; M32 MIX 100%, Res 75%
+;; GO-WILLAERT, Ruedi fadein
+;; ... finish ...
+
+
+
+;;;;;;;;;;;
+;; YanaY ;;
+;;;;;;;;;;;
+
+;; tacet
+
+
+
+;;;;;;;;;;;;;;;
+;; Touchdown ;;
+;;;;;;;;;;;;;;;
 
 (defparameter *chord-slots* (make-array 16 :initial-element (list 1 1 1 1)))
 
@@ -326,9 +366,9 @@
 
 (defun populate-chord-slots ()
   (set-chord-slot 1 1/1 1/1 1/1 1/1) ;; origin, unsplit
-  (set-chord-slot 2 8 4 2 1) ;; origin, octave split
-  (set-chord-slot 3 (* 4 6/5) (* 4 9/4) (* 4 3/2) (* 2 1/1)) ;; special 9 chord, octave
-  (set-chord-slot 4 (* 4 6/5) (* 4 9/4) (* 4 3/2) (* 2 1/1)) ;; special 9 chord, octave
+  (set-chord-slot 2 1/1 81/80 80/81 25/24) ;; origin, detuned
+  (set-chord-slot 3 8 4 2 1) ;; origin, octave split
+  (set-chord-slot 4 (* 8 1/1) (* 4 81/80) (* 2 80/81) (* 1 128/125)) ;; origin, octaves, detuned
   (set-chord-slot 5 (* 4 6/5) (* 4 9/4) (* 4 3/2) (* 2 1/1)) ;; special 9 chord, octave
 
   (set-chord-slot 6 3/2 3/2 3/2 3/2) ;; quinta, unsplit
@@ -336,23 +376,35 @@
   (set-chord-slot 8 (* 1 3/2)  (* 2 3/2)  (* 4 3/2) (* 8 3/2)) ;; quinta, reordered
   (set-chord-slot 9 (* 3/2 4 6/5) (* 3/2 4 9/4) (* 3/2 4 3/2) (* 3/2 2 1/1)) ;; quinta special 9 chord
   (set-chord-slot 0 3/2 3/2 3/2 3/2) ;; quinta, unsplit
-
   )
-
-(defun touchdown-reset ()
-  (all-1)
-  (recall-1/1 4)
-  (populate-chord-slots))
 
 (defun chord (slot-id &optional (duration 1))
   (apply #'set-chord (append (get-chord-slot slot-id) (list duration))))
 
+(defun touchdown-reset ()
+  (all-1)
+  (chord 4 nil)
+  (recall-transposer 4)
+  (populate-chord-slots))
 
+
+(defun go-ruedi ()
+  (chord 1 nil)
+  (allon)
+  (chord 4))
 
 (defun reset-all ()
-  (takeoff-reset)
-  (touchdown-reset))
+  (touchdown-reset)
+  (takeoff-reset))
+
+;; TOUCHDOWN-RESET
+;; To start sound: GO-RUEDI
+;; Intro: play with chords 4, 2
+;; Song: play with all chords RH/LH
+;; Outro: chord 2, manually down
+;; Close filters manually, then close VCAs
 
 
 
+;; This is for startup, before the performance
 (reset-all)

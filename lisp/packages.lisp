@@ -61,6 +61,7 @@
            #:score-off
            #:reset-meantone
            #:modify-fifth
+           #:set-edx
            #:modify-edx
            #:reset-ed2))
 

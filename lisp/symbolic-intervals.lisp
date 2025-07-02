@@ -851,6 +851,10 @@ name (symbol defined in INTERVAL-TREE), the second one is NIL (only for UNISONO)
 (defun reset-meantone ()
   (setf *fifth-tempering* -1/4))
 
+(defun set-edx (ratio)
+  (setf *edx* ratio)
+  (format t "~&EDx set to ~a (interval ratio)." *edx*))
+
 (defun modify-edx (delta)
   (setf *edx* (+ *edx* (* delta 0.01)))
   (format t "~&EDx modified to ~a (interval ratio)." *edx*))
