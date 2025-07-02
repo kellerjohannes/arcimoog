@@ -105,24 +105,24 @@
       ta sb i tod s sb wo i tmag s sb si i tmin s b si s sb si i std s sb
       ;; naturae
       ta m i tod s sb wo i tod s sm i tod s sm i to s m i to s md si i tod s sm s sb i std s m i st s b si
-      ;; Deus
-      ta sb ta l ta m i tmind s sb wo s m si
-      ;; homo
-      i st s sb wo i tmind s m si
-      ;; factus
-      i to s md wo i tmagd s sm i qua s sb
-      ;; est,
-      i std s m si
-      ;; Deus
-      i tmag s sb wo i tmagd s m si
-      ;; homo
-      i to s sb wo i to s sb i tod s sb si
-      ;; factus
-      i tod s md wo i std s sm i st s m i tmag s m
-      ;; est
-      i tod s sb wo i tod s sb
-      ;; Deus
-      ta sb ta m tmag sb wo
+      ;; ;; Deus
+      ;; ta sb ta l ta m i tmind s sb wo s m si
+      ;; ;; homo
+      ;; i st s sb wo i tmind s m si
+      ;; ;; factus
+      ;; i to s md wo i tmagd s sm i qua s sb
+      ;; ;; est,
+      ;; i std s m si
+      ;; ;; Deus
+      ;; i tmag s sb wo i tmagd s m si
+      ;; ;; homo
+      ;; i to s sb wo i to s sb i tod s sb si
+      ;; ;; factus
+      ;; i tod s md wo i std s sm i st s m i tmag s m
+      ;; ;; est
+      ;; i tod s sb wo i tod s sb
+      ;; ;; Deus
+      ;; ta sb ta m tmag sb wo
 
       )
      (:altus
