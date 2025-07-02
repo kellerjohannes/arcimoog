@@ -270,10 +270,11 @@
 (defparameter *1/1-slots* (make-array 16 :initial-element -1))
 
 (defun init-1/1-values ()
-  (setf (aref *1/1-slots* 1) -0.8)
-  (setf (aref *1/1-slots* 2) -1.822)
-  (setf (aref *1/1-slots* 3) 0.0)
-  (setf (aref *1/1-slots* 4) -0.951881))
+  (setf (aref *1/1-slots* 1) -0.8) ; target takeoff
+  (setf (aref *1/1-slots* 2) -1.822) ; origin takeoff
+  (setf (aref *1/1-slots* 3) 0.0) ; neutral (best to tune?)
+  (setf (aref *1/1-slots* 4) -0.951881) ; F# for ruedi (touchdown)
+  (setf (aref *1/1-slots* 5) -0.7828815)) ; origin for Willaert
 
 (defun save-1/1 (slot-id)
   (setf (aref *1/1-slots* slot-id) (am-mo:get-cv-1/1)))
