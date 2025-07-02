@@ -4,6 +4,8 @@
 
 (defparameter *master-transpose* 1/1)
 
+(defparameter *natura-muted-p* nil)
+
 (defclass mother ()
   ((pitch-ratio :initform 1/1 :accessor pitch)
    (pitch-updated-p :initform nil :accessor pitch-updated-p)
@@ -30,7 +32,7 @@
   (when (pitch-updated-p instance)
     (am-par:set-scalar (vco-name instance) (ratio-to-cv-absolute instance (pitch instance)))
     (setf (pitch-updated-p instance) nil))
-  (when (natura-updated-p instance)
+  (when (and (not *natura-muted-p*) (natura-updated-p instance))
     (am-par:set-scalar (vcf-name instance) (+ 0.1 (* (natura instance) 0.007)))
     (am-par:set-scalar (res-name instance) (+ -0.4 (* (natura instance) 0.03)))
     (setf (natura-updated-p instance) nil))
@@ -347,6 +349,8 @@ tuning parameters of the Mothers."
 
 
 (defun set-master-transpose (new-master-transpose)
+  (when (zerop new-master-transpose)
+    (setf new-master-transpose 1))
   (setf *master-transpose* new-master-transpose)
   (update-all-mothers)
   (format t "~&Master transpose parameter set to ~a." *master-transpose*))
@@ -358,6 +362,9 @@ tuning parameters of the Mothers."
 tuning parameters of the Mothers."
   (set-master-transpose (* *master-transpose* (expt 9/8 interval-delta))))
 
+(defun set-natura-muted-p (state)
+  (setf *natura-muted-p* state)
+  (format t "~&Natura mute state set to ~a." state))
 
 
 

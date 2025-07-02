@@ -149,6 +149,7 @@
            #:get-master-transpose
            #:set-master-transpose
            #:modify-master-transpose
+           #:set-natura-muted-p
            ))
 
 (defpackage :raw-pitch

@@ -274,7 +274,8 @@
                          (:i :semitono-maggiore :➘)
                          (:s :semibrevis)
                          (:i :semitono-minore)
-                         (:s :semibrevis :sillable)
+                         ;; (:s :semibrevis :sillable) ; original
+                         (:s :minima :sillable) ; adapted for clean ending
                          (:t :brevis))
                         (:alto
                          (:t :brevis)

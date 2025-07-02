@@ -257,7 +257,8 @@
 ;;; ENDING HERE
 
 
-;;; TODO find out where Complex Numbers come from!
+;;; DONE find out where Complex Numbers come from!
+;;; TODO debug natura modification in repeated notes
 
 ;;; Apollo Kreuzlingen live set
 
@@ -277,7 +278,7 @@
 
 (pitchpanic)
 
-(defparameter *transposer-slots* (make-array 16 :initial-element -1))
+(defparameter *transposer-slots* (make-array 16 :initial-element 1/1))
 
 (defun init-transposer-values ()
   (setf (aref *transposer-slots* 1) 1/1) ; target takeoff
@@ -285,6 +286,7 @@
   (setf (aref *transposer-slots* 3) 1/1) ; neutral (best to tune?)
   (setf (aref *transposer-slots* 4) 0.35219964) ; F# for ruedi (touchdown)
   (setf (aref *transposer-slots* 5) 0.9133662) ; origin for Willaert, bassa cappella
+  (setf (aref *transposer-slots* 6) 1.8538494) ; origin Vicentino
  )
 
 (defun save-transposer (slot-id)
@@ -332,15 +334,44 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 (defun willaert-reset ()
+  (am-mo:set-natura-muted-p nil)
   (recall-transposer 5)
   (model 2)
   (reset-meantone)
   (am-si:set-edx 1/1))
 
+(defun vicentino-reset ()
+  (am-mo:set-natura-muted-p nil)
+  (reset-natura)
+;;  (am-mo:set-natura-muted-p nil)
+  (recall-transposer 6)
+  (model 2)
+  (reset-meantone)
+  (reset-ed2))
+
+(defun soave ()
+  (vicentino-reset)
+  (go-vicentino))
+
+
+;; Light on
+
 ;; WILLAERT-RESET to prepare (no sound)
 ;; M32 MIX 100%, Res 75%
+
 ;; GO-WILLAERT, Ruedi fadein
-;; ... finish ...
+
+;; SOAVE
+;; Ruedi fadeout
+
+
+;; Check synth settings
+;; Light off
+
+
+;; TODO loop Willaert 2x
+;; TODO solve natura problem in Vicentino
+
 
 
 
@@ -397,6 +428,7 @@
   (touchdown-reset)
   (takeoff-reset))
 
+;; Open filters for everybody, especially I (soprano, sounding as bass)
 ;; TOUCHDOWN-RESET
 ;; To start sound: GO-RUEDI
 ;; Intro: play with chords 4, 2
