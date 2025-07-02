@@ -138,14 +138,17 @@
            #:modify-mother-cv-factor
            #:set-selected-cv-factor
            #:modify-selected-cv-factor
-           #:set-cv-1/1
-           #:get-cv-1/1
-           #:modify-cv-1/1
            #:read-mother-tunings
            #:get-natura
            #:mother-on-p
            #:trigger-natura-accent
-           #:get-cv-1/1))
+           #:get-cv-1/1
+           #:set-cv-1/1
+           #:modify-cv-1/1
+           #:get-master-transpose
+           #:set-master-transpose
+           #:modify-master-transpose
+           ))
 
 (defpackage :raw-pitch
   (:use :cl)

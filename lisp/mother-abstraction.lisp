@@ -2,7 +2,7 @@
 
 (defparameter *cv-1/1* -0.8)
 
-(defun get-cv-1/1 () *cv-1/1*)
+(defparameter *master-transpose* 1/1)
 
 (defclass mother ()
   ((pitch-ratio :initform 1/1 :accessor pitch)
@@ -23,7 +23,7 @@
   (* 0.1 (cv-factor instance) (/ (log ratio) (log 2/1))))
 
 (defmethod ratio-to-cv-absolute ((instance mother) ratio)
-  (+ *cv-1/1* (cv-offset instance) (ratio-to-cv-relative instance ratio)))
+  (+ *cv-1/1* (cv-offset instance) (ratio-to-cv-relative instance (* *master-transpose* ratio))))
 
 (defmethod update-cvs ((instance mother))
   "To be called whenever any of the slots of INSTANCE have been changed. This method updates CV relevant parameters. It does not change any slots of INSTANCE."
@@ -332,15 +332,31 @@
 ;; Global reference pitch (CV value for pitch 1/1)
 
 (defun set-cv-1/1 (new-cv-1/1)
+  "Not to be touched after Mothers have been tuned. Modifying *CV-1/1* does not respect individual
+tuning parameters of the Mothers."
   (setf *cv-1/1* new-cv-1/1)
   (update-all-mothers)
   (format t "~&CV-1/1 (origin) set to ~a." *cv-1/1*))
 
-(defun get-cv-1/1 ()
-  *cv-1/1*)
+(defun get-cv-1/1 () *cv-1/1*)
 
 (defun modify-cv-1/1 (cv-delta)
-  (set-cv-1/1 (+ *cv-1/1* cv-delta)))
+  "Not to be touched after Mothers have been tuned. Modifying *CV-1/1* does not respect individual
+tuning parameters of the Mothers."
+  (set-cv-1/1 (+ *cv-1/1* (* 0.1 cv-delta))))
+
+
+(defun set-master-transpose (new-master-transpose)
+  (setf *master-transpose* new-master-transpose)
+  (update-all-mothers)
+  (format t "~&Master transpose parameter set to ~a." *master-transpose*))
+
+(defun get-master-transpose () *master-transpose*)
+
+(defun modify-master-transpose (interval-delta)
+  "Not to be touched after Mothers have been tuned. Modifying *CV-1/1* does not respect individual
+tuning parameters of the Mothers."
+  (set-master-transpose (* *master-transpose* (expt 9/8 interval-delta))))
 
 
 
