@@ -307,6 +307,10 @@
   (am-mo:set-mother-pitch :tenore tenore-pitch duration)
   (am-mo:set-mother-pitch :basso basso-pitch duration))
 
+
+
+
+
 ;;;;;;;;;;;;;
 ;; Takeoff ;;
 ;;;;;;;;;;;;;
@@ -413,6 +417,7 @@
   (apply #'set-chord (append (get-chord-slot slot-id) (list duration))))
 
 (defun touchdown-reset ()
+  (reset-natura)
   (all-1)
   (chord 4 nil)
   (recall-transposer 4)
