@@ -347,7 +347,6 @@
 (defun vicentino-reset ()
   (am-mo:set-natura-muted-p nil)
   (reset-natura)
-;;  (am-mo:set-natura-muted-p nil)
   (recall-transposer 6)
   (model 2)
   (reset-meantone)
@@ -372,9 +371,6 @@
 ;; Check synth settings
 ;; Light off
 
-
-;; TODO loop Willaert 2x
-;; TODO solve natura problem in Vicentino
 
 
 
