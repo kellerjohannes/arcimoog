@@ -186,8 +186,6 @@
 (defpackage :arcimoog
   (:use :cl)
   (:nicknames :am)
-  (:export #:init
-           #:*output-cv-updates-p*)
   (:import-from :arcimoog.utilities
                 #:register-constant
                 #:register-cv
@@ -202,6 +200,35 @@
                 #:go-willaert
                 #:model
                 #:relative
+                #:score-off
+                #:reset-meantone
+                #:reset-ed2)
+  (:export #:init
+           #:*output-cv-updates-p*
+           #:s
+           #:offset
+           #:soffset
+           #:factor
+           #:sfactor
+           #:morel
+           #:smorel
+           #:moabs
+           #:smoabs
+           #:on
+           #:off
+           #:allon
+           #:alloff
+           #:cvdon
+           #:cvdoff))
+
+
+(defpackage :arcimoog.performance.apollo
+  (:use :cl :arcimoog)
+  (:nicknames :apollo)
+  (:import-from :arcimoog.symbolic-intervals
+                #:go-vicentino
+                #:go-willaert
+                #:model
                 #:score-off
                 #:reset-meantone
                 #:reset-ed2))

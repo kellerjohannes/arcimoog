@@ -27,4 +27,5 @@
                (:file "ui")
                (:file "setup")
                (:file "main")
+               (:file "performance-01-apollo")
                ))

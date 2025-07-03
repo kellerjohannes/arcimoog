@@ -209,3 +209,11 @@
 (defun alloff ()
   "Sets the GATE CV of all MOTHERs to 0"
   (am-mo:set-all-gates nil))
+
+(defun cvdon ()
+  "Enable text output for all CV changes."
+  (setf *output-cv-updates-p* t))
+
+(defun cvdoff ()
+  "Disable text output for all CV changes."
+  (setf *output-cv-updates-p* nil))
