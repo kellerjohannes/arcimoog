@@ -27,5 +27,7 @@
                (:file "ui")
                (:file "setup")
                (:file "main")
+               ;; From here: all performance sets, all based on main.lisp.
                (:file "performance-01-apollo")
+               ;; Add more performance sets here, in their separate packages.
                ))

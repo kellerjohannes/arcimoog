@@ -205,6 +205,7 @@
                 #:reset-ed2)
   (:export #:init
            #:*output-cv-updates-p*
+           ;; Frome here: DSL to tune and manipulated Mothers.
            #:s
            #:offset
            #:soffset
@@ -221,6 +222,11 @@
            #:cvdon
            #:cvdoff))
 
+
+
+;;; Performance sets are defined in individual packages. Add more packages below. Usually it makes
+;;; sense to :use the :arcimoog package, sketches can be written into main.lisp before moving the
+;;; code into a separate package and a separate file.
 
 (defpackage :arcimoog.performance.apollo
   (:use :cl :arcimoog)
