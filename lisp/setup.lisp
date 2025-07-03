@@ -107,17 +107,20 @@
 
   ;; Global pitch control
   (register-precision-dial-callback 3 16 17 18 19
-                                    "Setting global VCO offset (origin pitch)."
-                                    #'am-mo:modify-cv-1/1)
+                                    "Setting master transposer, quad precision."
+                                    #'am-mo:modify-master-transpose)
 
   (register-precision-dial-callback 3 20 21 22 23
-                                    "Modifying the tempering of the fifth in linear systems."
+                                    "Modifying the tempering of the fifth in linear systems. Quad precision."
                                     #'am-si:modify-fifth)
 
   (register-precision-dial-callback 3 24 25 26 27
-                                    "Modifying the identity interval in EDx systems."
+                                    "Modifying the identity interval in EDx systems. Quad precision"
                                     #'am-si:modify-edx)
 
+  (register-precision-dial-callback 3 28 29 30 31
+                                    "Setting global VCO offset (origin pitch)."
+                                    #'am-mo:modify-cv-1/1)
 
   ;; Startup webserver UI (CLOG)
   (am-ui:init))

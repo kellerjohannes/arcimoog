@@ -105,7 +105,40 @@
       ta sb i tod s sb wo i tmag s sb si i tmin s b si s sb si i std s sb
       ;; naturae
       ta m i tod s sb wo i tod s sm i tod s sm i to s m i to s md si i tod s sm s sb i std s m i st s b si
-      ;; Deus
+
+
+
+      ;; REPEAT
+      ta sb ta ld ; filler
+
+
+
+      ;; Mirabile
+      ta ld s b wo s sbd si i tod s m si s b si i std s b
+      ;; mysterium
+      i tod s b wo i tmin s sbd si i std s sm i tod s sm i to s m i st s sb i std s m si i st s sb si
+      ;; declaratur
+      ta m s sb wo i to s m si i to s sb si i tod s b si
+      ;; hodie,
+      ta m i to s md wo i to s sm i st s sb i std s sm si i tod s sm i tod s m si
+      ;; hodie,
+      i qua s md wo i std s sm i tod s sb i tod s m si i to s sb si
+      ;; declaratur
+      ta b ta m s sb wo i to s m si i st s m si i tmind s m si
+      ;; hodie,
+      i to s m wo s m si i tod s m si
+      ;; hodie
+      i tmin s md wo i std s sm i tod s sb i tod s sm i tod s sm i std s md i tod s sm i to s m i st s m si i tmind s sb si
+      ;; hodie
+      i tod s md wo i to s sm i to s m i st s md i to s sm i to s md i to s sm i st s sb i std s sm si i tod s sm i tod s sb si
+      ;; innovantur
+      ta sb i tod s sb wo i tmag s sb si i tmin s b si s sb si i std s sb
+      ;; naturae
+      ta m i tod s sb wo i tod s sm i tod s sm i to s m i to s md si i tod s sm s sb i std s m i st s b si
+
+      ta l ; dummy to make the last note sound
+
+      ;; ;; Deus
       ;; ta sb ta l ta m i tmind s sb wo s m si
       ;; ;; homo
       ;; i st s sb wo i tmind s m si
@@ -150,6 +183,43 @@
       ta m s sb wo i tod s sm i tod s sm i to s m i to s md si i tod s sm i tod s sm i std s sm i st s m i to s m i to s m i tod s sb i tod s m i to s sb si i to s sb
       ;; innovantur
       ta m s m wo i tod s m si i tod s sb si i std s m si i st s m wo i to s md si i tod s sm s sb i std s m i st s b si
+
+
+
+      ;; REPEAT
+
+
+      ;; Mirabile
+      ta sb i to s b wo s sbd si i tod s m si s b si
+      ;; mirabile
+      i std s b wo i tmin s sbd si i tod s m si s b si i std s b
+      ;; mysterium
+      i tod s sb wo s sb si i tmagd s sb si i qui s b si
+      ;; declaratur
+      ta sb s sb wo i to s m si i to s sb si i tod s m si
+      ;; hodie
+      i to s m wo s m si i tod s md si i tod s sm i tmind s m
+      ;; declaratur
+      i tmin s m wo i to s m si i to s sb si i tod s m si
+      ;; hodie
+      i to s sb wo s m si i st s sb si i std s sm i tod s sm i tod s m
+      ;; hodie
+      i qua s md wo i std s sm i tod s sb i std s m si i st s md si i tod s sm i tmind s m
+      ;; declaratur
+      i qui s sb wo i st s m si i to s m si i quad s m si i tmin s m wo s m si i std s sb si
+      ;; innovatur
+      ta sb ta l ta l ta sb i tod s sb wo s sb si i tmin s sb si i std s sb si
+      ;; naturae
+      ta m s sb wo i tod s sm i tod s sm i to s m i to s md si i tod s sm i tod s sm i std s sm i st s m i to s m i to s m i tod s sb i tod s m i to s sb si i to s sb
+      ;; innovantur
+      ta m s m wo i tod s m si i tod s sb si i std s m si i st s m wo i to s md si i tod s sm s sb i std s m i st s b si
+
+
+
+      ta sb ; end piece to make the last note sound
+
+
+
       ;; Deus
 
       )
@@ -179,9 +249,51 @@
       ;; innovantur
       ta bd s sb wo i to s sb si i tmin s sb si i std s sb si
       ;; naturae
-      ta m i tod s sb wo i tod s sm i tod s sm i to s m i to s md si i tod s sm s sb i tod s m i to s sb si
+      ta m i tod s sb wo i tod s sm i tod s sm i to s m i to s md si i tod s sm s sb i tod s m i to
+
+      ;; s sb si ; original
+      s b si ; adapted to fill the last bar before repeat
+
+
+      ;; REPEAT
+
+
+      ;; Mirabile
+      s b wo i tmin s sbd si i std s m si s b si
+      ;; mirabile
+      ta sb i tod s b wo i tmin s sbd si i std s m si s b si i tod s b si
+      ;; mysterium
+      i tod s b wo i tmag s sbd si i tod s sm i tod s sm i to s m s m si i tod s sb si
+      ;; mysterium
+      ta m i tmag s sb wo i tmin s sb si i std s sm i tod s sm i to s m i st s sb i std s m si i st s m si
+      ;; declaratur
+      i quid s sb wo i to s m si i to s md si i to s sm i st s m i tmind s m si
+      ;; hodie
+      i tmin s m wo i to s m i tmind s sb si i tod s sb si
+      ;; declaratur
+      ta b ta m i tmagd s sb wo i to s m si i to s sb si i tod s sb si
+      ;; hodie
+      ta m i to s md wo i to s sm i st s sb i std s sm si i tod s sm i tod s m si
+      ;; hodie
+      i qua s md wo i std s sm i tod s sb i std s m si i st s b si
+      ;; innovantur
+      ta m i tmagd s m wo i tmag s sb si i tmin s sb si s sb si i std s sb
+      ;; naturae
+      ta m i tod s sb wo i tod s sm i tod s sm i to s m i to s md si i tod s sm s md i std s sm s sm i tod s sm i tmin s sb si
+      ;; innovantur
+      ta bd s sb wo i to s sb si i tmin s sb si i std s sb si
+      ;; naturae
+      ta m i tod s sb wo i tod s sm i tod s sm i to s m i to s md si i tod s sm s sb i tod s m i to
+
+      ;; s sb si ; original
+      s b si ; adapted to fill the last bar before repeat
+
+      ta sb ; end piece to make the last note sound
+
+
+
       ;; Deus
-      ta m
+      ;; ta m
       )
      (:bassus
       ;; mirabile
@@ -214,8 +326,50 @@
       ta m i tod s m wo i tmag s sb si i st s sb si i std s md si i tod s sm i to s m
       ;; naturae
       i st s m wo i quad s m si i tmag s m i tod s sb i tod s b si
+
+      ;; REPEAT
+
+
+
+      ;; mirabile
+      i qui s b wo s sbd si i tod s m si s b si i std s b
+      ;; mysterium
+      ta ld ta sb i tod s sb wo s sbd si s m si i tod s b si
+      ;; declaratur
+      ta m i smag s md wo i tod s sm i tod s sm i std s sm i tod s m i tod s m si i qua s sb si i std s md si i st s sm i to s sb
+      ;; hodie
+      i tod s md wo i std s sm i tod s m i tod s m si i qua s sb si
+      ;; declaratur
+      ta sb ta m i tmind s sb wo i to s m si i st s m si i tmind s m si
+      ;; hodie
+      i tmin s m wo i to s m si i tmind s sb si i tod s sb
+      ;; declaratur
+      ta l i quad s sbd wo i to s m si i st s m si i tmind s m si
+      ;; hodie
+      i tmin s m wo i to s m si i tmind s sb si i tod s sb
+      ;; innovantur
+      ta m i qua s m wo s sb si i tmin s sb si s sb si i std s md i st s sm i to s m
+      ;; innovantur
+      i od s m wo i qui s sb si s sb si i tod s m si
+      ;; naturae
+      i tmind s m wo i tmin s md si i std s sm i tod s sb i tod s m si
+      ;; naturae
+      i o s m wo i to s md si i tod s sm i tod s m i std s sm i tod s sm i tod s m si
+      ;; naturae
+      i qua s m wo i std s sb si i tod s sb si
+      ;; innovantur
+      ta m i tod s m wo i tmag s sb si i st s sb si i std s md si i tod s sm i to s m
+      ;; naturae
+      i st s m wo i quad s m si i tmag s m i tod s sb i tod s b si
+
+
+      ta sb ; end piece to make the last note sound
+
+
+
       ;; Deus
-      ta sbd))))
+      ;; ta sbd
+      ))))
 
 (defparameter *soave* '((:soprano
                          ;; Soav'e dolc' ardore,
@@ -274,7 +428,8 @@
                          (:i :semitono-maggiore :➘)
                          (:s :semibrevis)
                          (:i :semitono-minore)
-                         (:s :semibrevis :sillable)
+                         ;; (:s :semibrevis :sillable) ; original
+                         (:s :semibrevis :sillable) ; adapted for clean ending
                          (:t :brevis))
                         (:alto
                          (:t :brevis)
@@ -332,7 +487,7 @@
                          (:i :diesis-minore :➘)
                          (:s :minima :word)
                          (:i :ottava)
-                         (:s :minima :word)
+                         (:s :semibrevis :word)
                          (:t :brevis))
                         (:tenore
                          (:t :longa)
@@ -391,7 +546,7 @@
                          (:i :semitono-minore)
                          (:s :minima :word)
                          (:i :semitono-minore)
-                         (:s :minima :word)
+                         (:s :semibrevis :word)
                          (:t :brevis))
                         (:basso
                          (:t :longa :dot)
@@ -439,5 +594,5 @@
                          ;; pian-
                          (:t :semibrevis)
                          (:i :diesis-minore :➘)
-                         (:s :semibrevis :word)
+                         (:s :semibrevis :dot :word)
                          (:t :brevis))))
