@@ -5,12 +5,12 @@
 ;; DONE observe tempo stability
 ;; DONE hot-swappaple pitch calculation
 ;; DONE remote control tuning parameters (ed and mt)
+;; DONE finish mirabile
 ;; TODO attempt to implement adaptive ji
-;; TODO finish mirabile
 
 ;; TODO investigate why SCORE-READER-LOOP is sensitive to CPU load
 
-;; prepare settings for ruedi
+;; DONE prepare settings for ruedi
 
 
 
@@ -133,7 +133,7 @@
 (defun chain-intervals (a b interval-tree identity-interval-name)
   "A and B are in the form of '(quinta ascendente 0), where the first element is an interval
 name (symbol defined in INTERVAL-TREE), the second one is NIL (only for UNISONO) or 'ASCENDENTE or
-'DISCENDENTE."
+'DISCENDENTE. The third one is an integer describing the number of octaves added to the interval name (for the interval of a tenth, you'd use :terza with 1."
   ;; (format t "~&DEBUG: ~a:~a" a b)
   (cond ((and (null (direction b)) (null (direction a)) a))
         ((null (direction a)) b)
