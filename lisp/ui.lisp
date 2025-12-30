@@ -403,16 +403,31 @@ void main()
 
 
 
+
+;;; Explorateur UI
+
+(defun build-explorateur-pressures (clog-parent)
+  (dotimes (row-index 16)
+    (let ((row (create-div clog-parent :class "explorateur-row")))
+      (dotimes (note-index 128)
+        (create-div row :class "explorateur-cell" :content "O")))))
+
+
 ;;; Entry point for UI construction.
 
 (defun build-ui (parent)
   (create-div parent :class "main-title" :content "Arcimoog")
-  (build-cv-meters (create-div parent :class "tile"))
-  (build-cv-roll (create-div parent :class "tile")))
+  ;; TODO implement proper GUI switching mechanism
+  ;; Uncomment for visual interface of VC values
+  ;; (build-cv-meters (create-div parent :class "tile"))
+  ;; (build-cv-roll (create-div parent :class "tile"))
+
+  (build-explorateur-pressures (create-div parent :class "tile"))
+  )
 
 (defun on-main (body)
-  (load-css (html-document body) "styles.css")
-  (setf (title (html-document body)) "Arcimoog Main Parameters")
+  ;; (load-css (html-document body) "styles.css")
+  (setf (title (html-document body)) "Arcimoog UI")
   (setf (connection-data-item body "window") (window body))
   (let ((main-container (create-div body :class "main-container")))
     (build-ui main-container)))
@@ -423,7 +438,7 @@ void main()
   (initialize #'on-main
               :host "127.0.0.1"
               :port 8080
-              :static-root (merge-pathnames "clog/static-files/"
+              :static-root (merge-pathnames "./lisp/clog/static-files/"
                                             (asdf/system:system-source-directory :arcimoog)))
   (open-browser))
 

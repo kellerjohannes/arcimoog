@@ -99,6 +99,10 @@
   (:export #:init
            #:send))
 
+(defpackage :arcimoog.explorateur
+  (:use :cl)
+  (:nicknames :am-exp))
+
 (defpackage :arcimoog.ui
   (:use :cl :clog :clog-webgl)
   (:nicknames :am-ui)

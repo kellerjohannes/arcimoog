@@ -24,6 +24,7 @@
                (:file "history-tracker")
                (:file "mother-abstraction")
                (:file "raw-pitch")
+               (:file "explorateur")
                (:file "ui")
                (:file "setup")
                (:file "main")
