@@ -70,6 +70,6 @@ html * {
 
 .explorateur-cell {
   width: 9px;
-  height: 9px;
-  background-color: darkgrey;
+  height: 18px;
+  background-color: blue;
 }
