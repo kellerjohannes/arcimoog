@@ -343,7 +343,6 @@
   (vicentino-reset)
   (go-vicentino))
 
-
 ;; Light on
 
 ;; WILLAERT-RESET to prepare (no sound)
