@@ -27,7 +27,7 @@
   "Callback function for the MIDI listener. This function is called whenever there is incoming MIDI
 data. The first and the second argument are used as array subscripts, the third one represents the
 actual value."
-  ;; (format t "~&~a, ~a, ~a" channel-raw controller-raw value-raw)
+  (format t "~&~a, ~a, ~a" channel controller-raw value-raw)
   (let ((controller (- controller-raw +controller-offset+)))
     (if (valid-subscripts-p controller channel)
         (let ((callback-fun (aref *midi-callbacks* controller channel)))

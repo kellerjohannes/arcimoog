@@ -105,7 +105,6 @@
 
 
 
-
 (defparameter *midi-dump-test* nil)
 
 (defun dump-responder (st d1 d2)
