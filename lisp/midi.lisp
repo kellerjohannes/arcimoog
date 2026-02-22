@@ -59,7 +59,7 @@ actual value."
 ;; Handling the MIDI connection.
 ;; TODO: from here, add doc strings.
 
-(defparameter *midi-in* nil)
+(defparameter *faderfox-in* nil)
 (defparameter *midi-responder* nil)
 
 (defun incudine-real-time-p ()
@@ -75,45 +75,60 @@ actual value."
   (unless (incudine-real-time-p)
     (error 'acond:incudine-is-not-in-rt)))
 
-(defun init-port-midi ()
-  (let ((status (pm:initialize)))
-    (unless (eq status :pm-no-error)
-      (error 'acond:pm-error :pm-error-flag status))))
+;; (defun init-port-midi ()
+;;   (let ((status (pm:initialize)))
+;;     (unless (eq status :pm-no-error)
+;;       (error 'acond:pm-error :pm-error-flag status))))
 
-(defun find-faderfox-id (faderfox-name-string)
-  (pm:print-devices-info :input)
-  (let ((id (pm:get-device-id-by-name faderfox-name-string :input)))
-    (if id id (error 'acond:faderfox-id-not-found
-                     :faderfox-name faderfox-name-string))))
+;; (defun find-faderfox-id (faderfox-name-string)
+;;   (pm:print-devices-info :input)
+;;   (let ((id (pm:get-device-id-by-name faderfox-name-string :input)))
+;;     (if id id (error 'acond:faderfox-id-not-found
+;;                      :faderfox-name faderfox-name-string))))
 
 (defun init ()
-  (restart-case (init-port-midi)
-    (continue-without-pm () :report "Don't use PortMidi from this point on." nil))
-  (let ((id (restart-case (find-faderfox-id "Faderfox EC4 MIDI 1")
-              (ignore () (log:warn "No Faderfox interface found."))
-              (input-different-name (name)
-                :report "Input custom Faderfox name string (in \"\")."
-                :interactive (lambda () (get-faderfox-name-from-user))
-                (find-faderfox-id name)))))
-    (log:info "The Faderfox device ID is ~a." id))
+  (unless *faderfox-in*
+    (setf *faderfox-in* (jackmidi:open :port-name "Faderfox in")))
 
-  (let ((faderfox-id (pm:get-device-id-by-name "Faderfox EC4 MIDI 1" :input)))
-    (if *midi-in*
-        (log:warn "MIDI-IN is already in use.")
-        (if faderfox-id
-            (setf *midi-in* (pm:open faderfox-id))
-            (log:warn "Faderfox interface not found. No MIDI input set up."))))
-
-  (when *midi-in*
-    (incudine:recv-stop *midi-in*)
-    (incudine:remove-all-responders *midi-in*)
+  (when *faderfox-in*
+    (incudine:recv-stop *faderfox-in*)
+    (incudine:remove-all-responders *faderfox-in*)
     (setf *midi-responder*
-          (incudine:make-responder *midi-in* (lambda (a b c) (midi-responder a b c))))
-    (incudine:recv-start *midi-in*)
+          (incudine:make-responder *faderfox-in* (lambda (a b c) (midi-responder a b c))))
+    (incudine:recv-start *faderfox-in*)
     (sleep 1)
-    (if (eq (incudine:recv-status *midi-in*) :running)
+    (if (eq (incudine:recv-status *faderfox-in*) :running)
       (log:info "MIDI listener is running.")
-      (log:warn "MIDI listener is not running.")))
+      (log:warn "MIDI listener is not running."))))
 
-  (restart-case (start-incudine-rt)
-    (continue-without-rt () :report "Don't attempt to start real time." nil)))
+;; (defun init ()
+;;   (restart-case (init-port-midi)
+;;     (continue-without-pm () :report "Don't use PortMidi from this point on." nil))
+;;   (let ((id (restart-case (find-faderfox-id "Faderfox EC4 MIDI 1")
+;;               (ignore () (log:warn "No Faderfox interface found."))
+;;               (input-different-name (name)
+;;                 :report "Input custom Faderfox name string (in \"\")."
+;;                 :interactive (lambda () (get-faderfox-name-from-user))
+;;                 (find-faderfox-id name)))))
+;;     (log:info "The Faderfox device ID is ~a." id))
+
+;;   (let ((faderfox-id (pm:get-device-id-by-name "Faderfox EC4 MIDI 1" :input)))
+;;     (if *midi-in*
+;;         (log:warn "MIDI-IN is already in use.")
+;;         (if faderfox-id
+;;             (setf *midi-in* (pm:open faderfox-id))
+;;             (log:warn "Faderfox interface not found. No MIDI input set up."))))
+
+;;   (when *midi-in*
+;;     (incudine:recv-stop *midi-in*)
+;;     (incudine:remove-all-responders *midi-in*)
+;;     (setf *midi-responder*
+;;           (incudine:make-responder *midi-in* (lambda (a b c) (midi-responder a b c))))
+;;     (incudine:recv-start *midi-in*)
+;;     (sleep 1)
+;;     (if (eq (incudine:recv-status *midi-in*) :running)
+;;       (log:info "MIDI listener is running.")
+;;       (log:warn "MIDI listener is not running.")))
+
+;;   (restart-case (start-incudine-rt)
+;;     (continue-without-rt () :report "Don't attempt to start real time." nil)))
