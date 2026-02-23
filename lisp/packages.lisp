@@ -101,7 +101,8 @@
 
 (defpackage :arcimoog.explorateur
   (:use :cl)
-  (:nicknames :am-exp))
+  (:nicknames :am-exp :am-explo)
+  (:export #:aftertouch))
 
 (defpackage :arcimoog.ui
   (:use :cl :clog :clog-webgl)

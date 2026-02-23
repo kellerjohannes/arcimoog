@@ -39,7 +39,6 @@
                                    (am-ui:update-value name value)))))
 
 
-
 (defmacro register-toggle-dial (controller channel doc target-parameter)
   `(am-midi:register-callback ,controller ,channel
                               (lambda (value)
